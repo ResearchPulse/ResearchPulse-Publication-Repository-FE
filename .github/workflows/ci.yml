@@ -1,0 +1,55 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+# Tự động hủy job đang chạy nếu có commit mới được push lên cùng branch / PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck-and-build:
+    name: Type Check & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 TypeScript Type Check
+        run: npx tsc --noEmit
+
+      - name: ⚡ Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: 🏗️ Build Next.js Application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_PREPRINT_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_PREPRINT_API_BASE_URL || 'http://localhost:3002' }}
+          NEXT_PUBLIC_DEMO_MODE: ${{ secrets.NEXT_PUBLIC_DEMO_MODE || 'true' }}
+          CENTRAL_SSO_API_URL: ${{ secrets.CENTRAL_SSO_API_URL || 'https://auth-api.hyperdatalab.org' }}
+          CENTRAL_SSO_PORTAL_URL: ${{ secrets.CENTRAL_SSO_PORTAL_URL || 'https://auth.hyperdatalab.org' }}
