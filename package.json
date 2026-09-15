@@ -4,7 +4,7 @@
   "private": true,
   "scripts": { "dev": "next dev -p 3003", "build": "next build", "start": "next start -p 3003", "lint": "next lint" },
   "dependencies": {
-    "@hyperlabdata/ui": "file:../ScienceJournalTrendingVN_Shared_UI",
+    "@hyperlabdata/ui": "file:./packages/ui",
     "next": "15.5.7",
     "react": "19.1.0",
     "react-dom": "19.1.0"
