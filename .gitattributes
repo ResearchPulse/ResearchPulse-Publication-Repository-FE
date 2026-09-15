@@ -1,4 +1,4 @@
-# Keep local agent tooling out of GitHub language statistics
+# Keep local tooling out of GitHub language statistics
 .agents/** linguist-vendored
 .codex/** linguist-vendored
 .mcp.json linguist-vendored
