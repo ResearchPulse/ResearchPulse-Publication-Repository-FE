@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-const baseUrl = () => process.env.SSO_BASE_URL ?? process.env.SSO_API_BASE_URL ?? 'http://localhost:3001';
+const baseUrl = () => process.env.CENTRAL_SSO_API_URL ?? 'https://auth-api.hyperdatalab.org';
 
 export function oidcConfig() {
   const base = baseUrl();

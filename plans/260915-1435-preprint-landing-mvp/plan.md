@@ -108,7 +108,7 @@ Use `BrandMark` from `@hyperlabdata/ui`. Use link elements styled as landing but
 - Existing shared package `@hyperlabdata/ui` at `../ScienceJournalTrendingVN_Shared_UI`.
 - Existing OIDC login BFF at `src/app/api/auth/login/route.ts`.
 - SSO FE registration route at `/register`.
-- Runtime configuration for the SSO FE web origin, for example `NEXT_PUBLIC_SSO_WEB_URL=http://localhost:3000`.
+- Runtime configuration for the SSO portal origin, for example `CENTRAL_SSO_PORTAL_URL=https://auth.hyperdatalab.org`.
 - Approved brainstorm report and SSO FE design system.
 
 ## Validation Strategy
