@@ -1,0 +1,42 @@
+:root {
+  /* Shared legacy aliases */
+  --hd-blue: var(--ds-blue-600);
+  --hd-blue-dark: var(--ds-blue-800);
+  --hd-blue-soft: var(--ds-blue-50);
+  --hd-ink: var(--ds-ink-900);
+  --hd-muted: var(--ds-slate-600);
+  --hd-line: var(--ds-slate-200);
+  --hd-bg: var(--ds-paper-50);
+  --hd-surface: var(--ds-surface-0);
+  --hd-success: var(--ds-green-700);
+  --hd-warning: var(--ds-amber-700);
+  --hd-danger: var(--ds-red-700);
+  --hd-radius: var(--ds-radius-control);
+  --hd-radius-sm: var(--ds-radius-sm);
+  --hd-shadow: var(--ds-shadow-md);
+  --hd-ease: var(--ds-ease-out);
+
+  /* Purpose aliases */
+  --color-page: var(--ds-paper-50);
+  --color-surface: var(--ds-surface-0);
+  --color-surface-muted: var(--ds-slate-100);
+  --color-text: var(--ds-ink-900);
+  --color-text-muted: var(--ds-slate-600);
+  --color-border: var(--ds-slate-200);
+  --color-primary: var(--ds-blue-600);
+  --color-primary-hover: var(--ds-blue-800);
+  --color-primary-soft: var(--ds-blue-50);
+  --color-on-primary: var(--ds-surface-0);
+  --color-error: var(--ds-red-700);
+  --color-error-border: var(--ds-red-100);
+  --color-error-surface: var(--ds-red-50);
+  --color-success: var(--ds-green-700);
+  --color-success-border: var(--ds-green-100);
+  --color-success-surface: var(--ds-green-50);
+  --color-warning: var(--ds-amber-700);
+  --color-warning-border: var(--ds-amber-100);
+  --color-warning-surface: var(--ds-amber-50);
+  --focus-color: var(--color-primary);
+  --focus-width: 2px;
+  --focus-offset: 3px;
+}

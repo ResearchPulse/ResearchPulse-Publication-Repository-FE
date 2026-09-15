@@ -533,15 +533,19 @@ To reuse this system for another website:
 
 | System area | Current FE location |
 | --- | --- |
-| Global tokens and layout | `src/styles.css` |
-| Button behavior | `src/shared/ui/components/Button/` |
-| Brand panel | `src/components/AuthBrandPanel.jsx` |
-| Shared illustration | `src/components/ResearchIllustration.jsx` |
-| Sign in | `src/components/AuthScreen.jsx` |
-| Sign up | `src/components/RegisterScreen.jsx` |
-| Forgot password | `src/components/ForgotPasswordScreen.jsx` |
-| Reset password | `src/components/ResetPasswordScreen.jsx` |
-| Verify email | `src/components/VerifyScreen.jsx` |
+| Shared package API | `packages/design-system/src/index.tsx` |
+| Primitive, semantic, and component tokens | `packages/design-system/src/styles/tokens/` |
+| Shared component implementations | `packages/design-system/src/components/` |
+| Shared component styles | `packages/design-system/src/styles/components/` |
+| Shared stylesheet entrypoint | `packages/design-system/src/styles.css` |
+| App base styles | `src/styles/base.css` |
+| Admin workspace styles | `src/styles/admin-layout.css` and `src/styles/student-workspace.css` |
+| Public landing styles | `src/styles/public-landing.css` |
+| Public landing composition | `src/components/public-preprint-landing.tsx` |
+| Student workspace composition | `src/app/student/` |
+| Admin workspace composition | `src/app/admin/` |
+
+The package API is intentionally named `@hyperdata/design-system`. Legacy UI package imports are not part of the supported contract.
 
 ### Recommended component contract
 

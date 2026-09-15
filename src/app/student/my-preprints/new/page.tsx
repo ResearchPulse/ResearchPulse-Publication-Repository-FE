@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Button, Field, Panel, ProgressBar, TextInput } from '@hyperlabdata/ui';
+import { Button, Field, Panel, ProgressBar, TextInput } from '@hyperdata/design-system';
 import { UserShell } from '../../../../components/user-shell';
 import { preprintApi } from '../../../../lib/student-preprint-api';
 

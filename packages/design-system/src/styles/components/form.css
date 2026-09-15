@@ -1,0 +1,18 @@
+.ui-field { display: grid; gap: var(--ds-space-2); color: var(--color-text); font-size: 14px; font-weight: 700; }
+.ui-field__label { display: block; }
+.ui-field__hint { color: var(--color-text-muted); font-size: 12px; font-weight: 400; line-height: 1.45; }
+.ui-input, .ui-textarea, .ui-select {
+  width: 100%;
+  min-height: var(--ui-control-height);
+  padding: 10px var(--ui-control-padding-x);
+  border: 1px solid var(--ui-control-border);
+  border-radius: var(--ui-control-radius);
+  outline: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--ds-size-md);
+  transition: border-color var(--ds-duration-state) var(--ds-ease-out), box-shadow var(--ds-duration-state) var(--ds-ease-out);
+}
+.ui-textarea { min-height: 132px; resize: vertical; }
+.ui-input:focus, .ui-textarea:focus, .ui-select:focus { border-color: var(--ui-control-focus-border); box-shadow: 0 0 0 4px rgb(0 113 188 / .12); }

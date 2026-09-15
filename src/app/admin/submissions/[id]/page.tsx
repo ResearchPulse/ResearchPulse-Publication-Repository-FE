@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { use, useState } from 'react';
-import { Button, Panel, StatusBadge } from '@hyperlabdata/ui';
+import { Button, Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminSidebar, Topbar } from '../../../../components/admin-shell';
 
 export default function SubmissionDetailPage({ params }: { params: Promise<{ id: string }> }) {

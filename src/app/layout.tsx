@@ -1,4 +1,4 @@
-import '@hyperlabdata/ui/styles.css';
+import '@hyperdata/design-system/styles.css';
 import './globals.css';
 import type { Metadata } from 'next';
 

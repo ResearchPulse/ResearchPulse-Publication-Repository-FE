@@ -1,0 +1,5 @@
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--color-page); color: var(--color-text); font-family: var(--ds-font-ui); }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
