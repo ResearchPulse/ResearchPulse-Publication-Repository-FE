@@ -2133,6 +2133,8 @@ button, input, select, textarea { font: inherit; }
 .review-actions .ui-button { flex: 1 1 auto; }
 .skip-link { position: fixed; z-index: 20; top: 12px; left: 12px; padding: 10px 14px; border-radius: var(--hd-radius-sm); background: var(--hd-ink); color: #fff; font-size: 13px; font-weight: 700; transform: translateY(-180%); transition: transform 180ms var(--hd-ease); }
 .skip-link:focus { transform: translateY(0); }
+.forbidden-page { display: grid; min-height: 100dvh; place-items: center; }
+.forbidden-page .section-panel { width: min(100%, 680px); }
 
 @media (max-width: 1050px) {
   .content { padding-inline: 28px; }
