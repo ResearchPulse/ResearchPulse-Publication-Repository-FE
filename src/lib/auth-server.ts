@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { oidcConfig } from './oidc';
+import { preprintApiBaseUrl } from './oidc';
 import type { Role, User } from './types';
 
 const roles = new Set<Role>(['STUDENT', 'LECTURER', 'ADMIN']);
@@ -35,7 +35,7 @@ function normalizeUser(payload: AuthPayload): User | null {
 }
 
 export async function getUserFromAccessToken(accessToken: string): Promise<User | null> {
-  const response = await fetch(oidcConfig().userinfo, {
+  const response = await fetch(`${preprintApiBaseUrl()}/api/v1/auth/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: 'no-store',
   });
@@ -45,17 +45,13 @@ export async function getUserFromAccessToken(accessToken: string): Promise<User 
 
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get('sso_access_token')?.value;
-  const ssoBase = process.env.SSO_BASE_URL ?? process.env.SSO_API_BASE_URL ?? 'http://localhost:3001';
-  const response = await fetch(
-    accessToken ? oidcConfig().userinfo : `${ssoBase}/api/v1/auth/me`,
-    {
-      headers: accessToken
-        ? { Authorization: `Bearer ${accessToken}` }
-        : { Cookie: cookieStore.toString() },
-      cache: 'no-store',
-    },
-  );
+  const sessionToken = cookieStore.get('app_session')?.value;
+  if (!sessionToken) return null;
+
+  const response = await fetch(`${preprintApiBaseUrl()}/api/v1/auth/me`, {
+    headers: { Authorization: `Bearer ${sessionToken}` },
+    cache: 'no-store',
+  });
   if (!response.ok) return null;
   return normalizeUser(await response.json() as AuthPayload);
 }
