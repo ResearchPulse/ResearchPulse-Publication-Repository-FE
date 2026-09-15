@@ -130,4 +130,4 @@ Use `BrandMark` from `@hyperlabdata/ui`. Use link elements styled as landing but
 
 ## Follow-up Plan
 
-Create a separate plan for migrating User FE into this repository and enforcing the final route policy: STUDENT/RESEARCHER under `/student/**`, LECTURER/ADMINISTRATOR under `/admin/**`, with trusted server-side role resolution and administrator-only publication.
+Create a separate plan for migrating User FE into this repository and enforcing the final route policy: STUDENT under `/student/**`, LECTURER/ADMIN under `/admin/**`, with trusted server-side role resolution and admin-only publication.

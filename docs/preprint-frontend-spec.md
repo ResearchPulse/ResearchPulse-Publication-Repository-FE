@@ -55,8 +55,7 @@ SSO_BE / SSO_FE
 |---|---|---|
 | `STUDENT` | Tạo, sửa, submit và theo dõi bài của mình | Không truy cập admin workflow |
 | `LECTURER` | Không dùng workflow sinh viên | Xem bài được phân công, review và yêu cầu sửa |
-| `RESEARCHER` | Không dùng workflow sinh viên | Có thể review nếu được cấp quyền |
-| `ADMINISTRATOR` | Không dùng workflow sinh viên | Quản lý toàn bộ, phân công, approve và publish |
+| `ADMIN` | Không dùng workflow sinh viên | Quản lý toàn bộ, phân công, approve và publish |
 
 Frontend chỉ hiển thị đúng chức năng theo role; Preprint BE vẫn là nơi enforce authorization.
 
@@ -130,17 +129,20 @@ Layout không dùng chung hoàn toàn:
 - User FE: content-first, ít điều hướng, tập trung vào form và tiến trình.
 - Admin FE: sidebar, dashboard, bảng dữ liệu và review panel.
 
-## 6. User_FE requirements
+## 6. Student workspace requirements
 
 ### 6.1. Routes
 
 ```text
 /
-/my-preprints
-/my-preprints/new
-/my-preprints/[id]
-/my-preprints/[id]/edit
-/my-preprints/[id]/versions
+/student
+/student/my-preprints
+/student/my-preprints/new
+/student/my-preprints/[id]
+/student/my-preprints/[id]/edit
+/student/my-preprints/[id]/versions
+
+Các URL `/my-preprints/**` cũ được giữ dưới dạng redirect tương thích.
 ```
 
 ### 6.2. Main screens
@@ -208,17 +210,19 @@ Hiển thị:
 - Student tạo version mới sau `NEEDS_REVISION`.
 - UI hiển thị lỗi API rõ ràng và không mất dữ liệu form.
 
-## 7. Admin_FE requirements
+## 7. Admin workspace requirements
 
 ### 7.1. Routes
 
 ```text
-/
-/dashboard
-/submissions
-/submissions/[id]
-/assignments
-/reviews
+/admin
+/admin/dashboard
+/admin/submissions
+/admin/submissions/[id]
+/admin/assignments
+/admin/reviews
+
+Các URL admin cũ (`/dashboard`, `/submissions/**`, `/reviews`) được giữ dưới dạng redirect tương thích.
 ```
 
 ### 7.2. Dashboard

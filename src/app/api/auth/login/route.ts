@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { safeNextPath } from '../../../../lib/auth-server';
 import { createCodeChallenge, oidcConfig, randomString } from '../../../../lib/oidc';
 
 export const runtime = 'nodejs';
@@ -14,5 +15,7 @@ export async function GET(request: Request) {
   authorizeUrl.search = new URLSearchParams({ client_id: process.env.SSO_CLIENT_ID ?? 'hyperlabdata-preprint-admin', redirect_uri: redirectUri, response_type: 'code', scope: 'openid profile email', state, nonce, code_challenge: createCodeChallenge(verifier), code_challenge_method: 'S256' }).toString();
   const response = NextResponse.redirect(authorizeUrl);
   for (const [name, value] of [['oidc_state', state], ['oidc_nonce', nonce], ['oidc_verifier', verifier]] as const) response.cookies.set(name, value, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
+  const next = safeNextPath(url.searchParams.get('next') ?? undefined);
+  if (next) response.cookies.set('oidc_next', next, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
   return response;
 }
