@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { BrandMark, PageHeader } from '@hyperlabdata/ui';
+import { BrandMark, PageHeader } from '@hyperdata/design-system';
 
 type AdminNavKey = 'dashboard' | 'submissions' | 'reviews';
 

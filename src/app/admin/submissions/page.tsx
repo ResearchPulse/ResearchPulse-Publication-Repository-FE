@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Button, Panel, SelectInput, StatusBadge, TextInput } from '@hyperlabdata/ui';
+import { Button, Panel, SelectInput, StatusBadge, TextInput } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../../../components/admin-shell';
 import type { PreprintStatus } from '../../../lib/types';
 

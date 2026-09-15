@@ -1,24 +1,50 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export function ScrollRevealObserver() {
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (typeof window === 'undefined') return;
+
+    const landing = document.querySelector('.public-landing');
+    const revealElements = document.querySelectorAll('.pl-reveal');
+    const frameIds = new Set<number>();
+
+    const revealAfterPaint = (element: Element) => {
+      const firstFrame = window.requestAnimationFrame(() => {
+        const secondFrame = window.requestAnimationFrame(() => {
+          element.classList.add('is-revealed');
+        });
+        frameIds.add(secondFrame);
+      });
+      frameIds.add(firstFrame);
+    };
 
     // If user prefers reduced motion, reveal everything immediately
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      document.querySelectorAll('.pl-reveal').forEach((el) => {
+      revealElements.forEach((el) => {
         el.classList.add('is-revealed');
       });
       return;
     }
 
+    // Keep content visible if the browser does not support IntersectionObserver.
+    if (!('IntersectionObserver' in window)) {
+      revealElements.forEach((el) => {
+        el.classList.add('is-revealed');
+      });
+      return;
+    }
+
+    landing?.classList.add('pl-motion-ready');
+
     const observer = new IntersectionObserver(
       (entries, obs) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-revealed');
+            revealAfterPaint(entry.target);
             obs.unobserve(entry.target);
           }
         });
@@ -29,10 +55,13 @@ export function ScrollRevealObserver() {
       }
     );
 
-    const elements = document.querySelectorAll('.pl-reveal');
-    elements.forEach((el) => observer.observe(el));
+    revealElements.forEach((el) => observer.observe(el));
 
-    return () => observer.disconnect();
+    return () => {
+      frameIds.forEach((frameId) => window.cancelAnimationFrame(frameId));
+      observer.disconnect();
+      landing?.classList.remove('pl-motion-ready');
+    };
   }, []);
 
   return null;

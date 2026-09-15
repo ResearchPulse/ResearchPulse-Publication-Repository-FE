@@ -1,0 +1,10 @@
+.ui-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--ds-space-6); margin-bottom: var(--ds-space-6); }
+.ui-page-header h1 { margin: 0; color: var(--color-text); font-size: clamp(28px, 3vw, 40px); line-height: 1.1; letter-spacing: -.035em; }
+.ui-page-header__eyebrow { margin: 0 0 7px; color: var(--color-primary); font-size: var(--ds-size-xs); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.ui-page-header__description { max-width: 650px; margin: 9px 0 0; color: var(--color-text-muted); line-height: 1.55; }
+.ui-page-header__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+@media (max-width: 640px) {
+  .ui-page-header { align-items: flex-start; flex-direction: column; gap: var(--ds-space-4); }
+  .ui-page-header__actions, .ui-page-header__actions .ui-button { width: 100%; }
+}
