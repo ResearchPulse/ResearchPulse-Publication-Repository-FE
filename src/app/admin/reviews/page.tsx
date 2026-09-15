@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button, EmptyState } from '@hyperlabdata/ui';
+import { Button, EmptyState } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../../../components/admin-shell';
 
 export default function ReviewsPage() { return <AdminShell active="reviews" title="Reviews">

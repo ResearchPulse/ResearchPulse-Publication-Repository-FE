@@ -1,0 +1,59 @@
+:root {
+  /* Brand palette */
+  --ds-blue-800: #005a95;
+  --ds-blue-700: #005f9e;
+  --ds-blue-600: #0071bc;
+  --ds-blue-100: #dbeef9;
+  --ds-blue-50: #eaf5fb;
+
+  /* Cool neutral palette */
+  --ds-ink-900: #172b4d;
+  --ds-slate-600: #62748a;
+  --ds-slate-500: #718198;
+  --ds-slate-300: #c8d4dc;
+  --ds-slate-200: #d8e2eb;
+  --ds-slate-100: #eef2f6;
+  --ds-paper-50: #f6f9fc;
+  --ds-surface-0: #ffffff;
+
+  /* Feedback */
+  --ds-red-700: #b42318;
+  --ds-red-100: #f1b8b0;
+  --ds-red-50: #fff5f3;
+  --ds-green-700: #15803d;
+  --ds-green-100: #b7e0c3;
+  --ds-green-50: #f0faf3;
+  --ds-amber-700: #a16207;
+  --ds-amber-100: #f1d58a;
+  --ds-amber-50: #fffaf0;
+
+  /* Spacing: 4px base */
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+  --ds-space-12: 48px;
+  --ds-space-16: 64px;
+
+  /* Shape and elevation */
+  --ds-radius-sm: 6px;
+  --ds-radius-control: 10px;
+  --ds-radius-panel: 24px;
+  --ds-radius-pill: 9999px;
+  --ds-shadow-sm: 0 1px 3px rgb(23 43 77 / 0.08);
+  --ds-shadow-md: 0 10px 30px rgb(23 43 77 / 0.08);
+
+  /* Typography and motion */
+  --ds-font-ui: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ds-size-xs: 12px;
+  --ds-size-sm: 13px;
+  --ds-size-md: 16px;
+  --ds-size-lg: 18px;
+  --ds-size-xl: 24px;
+  --ds-size-2xl: 32px;
+  --ds-duration-quick: 160ms;
+  --ds-duration-state: 240ms;
+  --ds-ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+}

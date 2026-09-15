@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
-import { Button, Panel, StatusBadge } from '@hyperlabdata/ui';
+import { Button, Panel, StatusBadge } from '@hyperdata/design-system';
 import { UserShell } from '../../../../components/user-shell';
 import { preprintApi } from '../../../../lib/student-preprint-api';
 import type { Preprint } from '../../../../lib/student-types';

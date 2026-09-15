@@ -112,7 +112,7 @@ Mỗi client cần redirect URI và post-logout redirect URI riêng.
 
 ### 5.2. Shared UI package
 
-Khuyến nghị tạo package dùng chung `@hyperlabdata/ui` cho:
+Package dùng chung hiện tại là `@hyperdata/design-system`, dành cho:
 
 - Design tokens.
 - Button, Input, Select, Textarea.
