@@ -18,8 +18,8 @@ The landing page should feel like an academic gateway: a safe first home for stu
 
 - Public landing page at /, targeting students and making registration the primary conversion.
 - User FE is brought into the Admin FE repository; there is one Next.js frontend.
-- STUDENT and RESEARCHER access /student/**.
-- LECTURER and ADMINISTRATOR access /admin/**.
+- STUDENT accesses /student/**.
+- LECTURER and ADMIN access /admin/**.
 - Multiple lecturers may review one submission; lecturers cannot publish.
 - Administrators have the highest authority and make the final publish decision.
 - Public pages require no authentication; protected access must fail closed.
@@ -82,9 +82,8 @@ Role policy:
 | Role | Allowed namespace | Capability boundary |
 | --- | --- | --- |
 | STUDENT | /student/** | Submit and manage owned preprints |
-| RESEARCHER | /student/** | Use the student-facing submission workspace in MVP |
 | LECTURER | /admin/** | Review and recommend decisions; cannot publish |
-| ADMINISTRATOR | /admin/** | Final moderation and publish decision |
+| ADMIN | /admin/** | Final moderation and publish decision |
 
 Unrecognized roles must be denied protected workspace access and routed to a safe unauthorized/sign-in state. An unauthorized protected request must not silently fall back to the public landing page.
 

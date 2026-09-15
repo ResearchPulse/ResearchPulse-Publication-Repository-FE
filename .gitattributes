@@ -9,4 +9,3 @@
 dist/** linguist-generated
 out/** linguist-generated
 coverage/** linguist-generated
-.gitattributes
