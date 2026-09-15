@@ -26,7 +26,7 @@ Make the landing CTAs operational with the existing OIDC login BFF and the SSO F
 ```text
 Landing /register link
   -> Admin FE src/app/register/page.tsx
-      -> redirect(configured SSO_WEB_URL + /register)
+      -> redirect(configured CENTRAL_SSO_PORTAL_URL + /register)
 
 Landing Sign in link
   -> Admin FE /api/auth/login
@@ -40,19 +40,19 @@ Do not change the OIDC protocol implementation in this phase. Do not add a secon
 
 - Create: `E:/Science_Journal_Trending_VN/ScienceJournalTrendingVN_Admin_FE/src/app/register/page.tsx` — server redirect to SSO FE.
 - Modify: `E:/Science_Journal_Trending_VN/ScienceJournalTrendingVN_Admin_FE/src/app/layout.tsx` — title, description, and `lang` value.
-- Modify: `E:/Science_Journal_Trending_VN/ScienceJournalTrendingVN_Admin_FE/.env.example` — document `NEXT_PUBLIC_SSO_WEB_URL` or the chosen server-safe equivalent.
+- Modify: `E:/Science_Journal_Trending_VN/ScienceJournalTrendingVN_Admin_FE/.env.example` — document the server-safe `CENTRAL_SSO_PORTAL_URL`.
 - Reuse: `E:/Science_Journal_Trending_VN/ScienceJournalTrendingVN_Admin_FE/src/app/api/auth/login/route.ts` — no code change expected.
 - Reuse: `E:/SSO_FE/src/app/register/page.jsx` — destination contract.
 
 ## Implementation Steps
 
 1. Add the registration page as a server component using Next.js `redirect`.
-2. Read the SSO FE web origin from a documented environment variable. Prefer a server-only `SSO_WEB_URL`; if deployment conventions require a public variable, use a fixed configured value and never append arbitrary user input.
+2. Read the SSO portal origin from the server-only `CENTRAL_SSO_PORTAL_URL`; never append arbitrary user input.
 3. Normalize the configured origin before appending `/register`; reject malformed configuration at runtime with a clear server error rather than falling back to an untrusted URL.
 4. Keep the landing link as `/register`, so the page does not hardcode an environment-specific SSO host.
 5. Update root metadata to `Hyperlabdata Preprint` and a concise public description. Set document language to `en` for the approved English copy.
 6. Keep the existing `/api/auth/login` link and verify the login route still builds the existing OIDC callback URL.
-7. Document the local default, for example `SSO_WEB_URL=http://localhost:3000`, in `.env.example` without committing secrets.
+7. Document `CENTRAL_SSO_PORTAL_URL=https://auth.hyperdatalab.org` in `.env.example` without committing secrets.
 
 ## Success Criteria
 

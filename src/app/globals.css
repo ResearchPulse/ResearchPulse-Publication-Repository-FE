@@ -2097,3 +2097,54 @@ button, input, select, textarea { font: inherit; }
     animation: none !important;
   }
 }
+
+/* Admin UI normalization layer. Keep admin primitives visually consistent
+   without leaking styles into the public landing surface above. */
+.admin-frame {
+  --admin-sidebar-width: 248px;
+  --admin-content-max: 1400px;
+  background: var(--hd-bg);
+}
+
+.admin-sidebar__brand { display: inline-flex; width: fit-content; border-radius: var(--hd-radius-sm); }
+.admin-sidebar__brand:focus-visible, .side-nav a:focus-visible, .back-link:focus-visible, .section-title a:focus-visible {
+  outline: 3px solid rgba(0, 113, 188, .24);
+  outline-offset: 3px;
+}
+.admin-sidebar__nav-group { min-width: 0; }
+.side-nav a { transition: background-color 180ms var(--hd-ease), color 180ms var(--hd-ease), transform 180ms var(--hd-ease); }
+.side-nav a:hover { transform: translateX(2px); }
+.nav-icon { border: 0; }
+.nav-icon svg { width: 18px; height: 18px; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.sidebar-footer span { display: block; }
+
+.topbar { position: sticky; z-index: 5; top: 0; }
+.content { width: 100%; max-width: var(--admin-content-max); }
+.ui-page-header { margin-bottom: 24px; }
+.ui-page-header__actions > a { display: inline-flex; }
+.preview-note { border-color: #b9d9ef; border-radius: var(--hd-radius-sm); }
+.stat-card, .section-panel, .detail-panel, .table-shell { box-shadow: 0 8px 24px rgba(23, 43, 77, .045); }
+.stat-card, .section-panel, .detail-panel, .table-shell, .ui-panel { transition: border-color 180ms var(--hd-ease), box-shadow 180ms var(--hd-ease); }
+.stat-card:hover, .section-panel:hover, .detail-panel:hover { border-color: #c3d9e8; box-shadow: 0 12px 30px rgba(23, 43, 77, .075); }
+.search-input.ui-input { min-height: 42px; }
+.search-input:focus, .search-input:focus-visible, .ui-select:focus-visible, .ui-textarea:focus-visible { outline: none; }
+.data-table tbody tr { transition: background-color 160ms var(--hd-ease); }
+.data-table td .ui-button { min-height: 36px; padding-inline: 12px; }
+.review-actions .ui-button { flex: 1 1 auto; }
+.skip-link { position: fixed; z-index: 20; top: 12px; left: 12px; padding: 10px 14px; border-radius: var(--hd-radius-sm); background: var(--hd-ink); color: #fff; font-size: 13px; font-weight: 700; transform: translateY(-180%); transition: transform 180ms var(--hd-ease); }
+.skip-link:focus { transform: translateY(0); }
+
+@media (max-width: 1050px) {
+  .content { padding-inline: 28px; }
+  .topbar { padding-inline: 28px; }
+}
+
+@media (max-width: 760px) {
+  .ui-page-header h1 { font-size: 32px; }
+  .section-grid, .detail-grid { gap: 16px; }
+  .detail-panel, .section-panel { padding: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-frame *, .admin-frame *::before, .admin-frame *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

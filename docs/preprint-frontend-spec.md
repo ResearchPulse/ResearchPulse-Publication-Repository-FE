@@ -301,7 +301,10 @@ Base URL cấu hình qua environment variable:
 
 ```env
 NEXT_PUBLIC_PREPRINT_API_BASE_URL=http://localhost:<port>
-NEXT_PUBLIC_SSO_API_BASE_URL=http://localhost:3001
+CENTRAL_SSO_API_URL=https://auth-api.hyperdatalab.org
+CENTRAL_SSO_PORTAL_URL=https://auth.hyperdatalab.org
+SSO_CLIENT_ID=researchpulse-ecosystem
+SSO_REDIRECT_URI=http://localhost:3003/api/auth/callback
 ```
 
 ### User endpoints

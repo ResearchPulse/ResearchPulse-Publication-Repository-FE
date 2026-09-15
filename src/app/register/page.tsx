@@ -2,9 +2,8 @@ import { redirect } from 'next/navigation';
 
 export default function RegisterPage() {
   const ssoWebUrl = (
-    process.env.SSO_WEB_URL ||
-    process.env.NEXT_PUBLIC_SSO_WEB_URL ||
-    'http://localhost:3000'
+    process.env.CENTRAL_SSO_PORTAL_URL ||
+    'https://auth.hyperdatalab.org'
   ).trim();
 
   // Validate URL format
@@ -13,7 +12,7 @@ export default function RegisterPage() {
     const parsed = new URL(ssoWebUrl);
     targetOrigin = parsed.origin;
   } catch {
-    targetOrigin = 'http://localhost:3000';
+    targetOrigin = 'https://auth.hyperdatalab.org';
   }
 
   // Safe redirect to configured SSO registration page (ignores any untrusted query parameters)
