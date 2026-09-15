@@ -1,0 +1,21 @@
+:root {
+  --ui-control-height: 46px;
+  --ui-control-height-compact: 44px;
+  --ui-control-radius: var(--ds-radius-sm);
+  --ui-control-border: var(--color-border);
+  --ui-control-focus-border: var(--color-primary);
+  --ui-control-padding-x: var(--ds-space-3);
+
+  --ui-button-primary-bg: var(--color-primary);
+  --ui-button-primary-bg-hover: var(--color-primary-hover);
+  --ui-button-primary-fg: var(--color-on-primary);
+  --ui-button-secondary-bg: var(--color-surface);
+  --ui-button-secondary-bg-hover: var(--ds-blue-50);
+  --ui-button-secondary-fg: var(--color-text);
+  --ui-button-secondary-border: var(--color-border);
+
+  --ui-panel-bg: var(--color-surface);
+  --ui-panel-border: var(--color-border);
+  --ui-panel-radius: var(--ds-radius-control);
+  --ui-panel-shadow: var(--ds-shadow-md);
+}

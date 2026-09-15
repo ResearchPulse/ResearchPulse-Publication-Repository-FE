@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button, Panel, StatusBadge } from '@hyperlabdata/ui';
+import { Button, Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../../../components/admin-shell';
 
 const metrics = [

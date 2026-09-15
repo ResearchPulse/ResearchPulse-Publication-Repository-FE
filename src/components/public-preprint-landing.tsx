@@ -7,6 +7,7 @@ export default function PublicPreprintLanding() {
   return (
     <div className="public-landing">
       <ScrollRevealObserver />
+      <a className="pl-skip-link" href="#main-content">Skip to content</a>
 
       {/* Modern Sticky Glassmorphism Header */}
       <header className="pl-header">
@@ -22,27 +23,36 @@ export default function PublicPreprintLanding() {
             <a href="#faq" className="pl-nav__link">FAQ</a>
           </nav>
 
+          <details className="pl-mobile-nav">
+            <summary className="pl-mobile-nav__toggle" aria-label="Open navigation menu">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            </summary>
+            <nav className="pl-mobile-nav__panel" aria-label="Mobile navigation">
+              <a href="#portal" className="pl-mobile-nav__link">Portal</a>
+              <a href="#features" className="pl-mobile-nav__link">Features</a>
+              <a href="#advisory" className="pl-mobile-nav__link">Advisory</a>
+              <a href="#faq" className="pl-mobile-nav__link">FAQ</a>
+            </nav>
+          </details>
+
           <div className="pl-header__actions">
-            <Link href="/api/auth/login" className="pl-btn pl-btn--ghost">
+            <Link href="/api/auth/login" className="pl-header-action pl-header-action--secondary">
               Sign in
             </Link>
-            <Link href="/register" className="pl-btn pl-btn--primary pl-btn--shimmer">
-              <span>Create account</span>
+            <Link href="/register" className="pl-header-action pl-header-action--primary">
+              Create account
             </Link>
           </div>
         </div>
       </header>
 
       {/* Centered Hero Section */}
-      <section className="pl-section pl-hero pl-hero--centered">
+      <section id="main-content" className="pl-section pl-hero pl-hero--centered">
         <div className="pl-container">
           {/* Centered Header Box */}
           <div className="pl-hero__center-box pl-reveal">
-            <div className="pl-pill-badge">
-              <span className="pl-pill-badge__icon" aria-hidden="true">🎓</span>
-              <span>A transparent pathway for student research</span>
-            </div>
-
             <h1 className="pl-hero__title pl-hero__title--centered">
               Discover research that{' '}
               <span className="pl-hero__highlight">moves your ideas forward.</span>
@@ -56,7 +66,9 @@ export default function PublicPreprintLanding() {
             <div className="pl-hero__actions pl-hero__actions--centered">
               <Link href="/register" className="pl-btn pl-btn--primary pl-btn--lg pl-btn--shimmer">
                 <span>Create a student account</span>
-                <span className="pl-btn__arrow" aria-hidden="true">→</span>
+                <svg className="pl-btn__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 12h16M14 6l6 6-6 6" />
+                </svg>
               </Link>
               <Link href="/api/auth/login" className="pl-btn pl-btn--secondary pl-btn--lg">
                 Sign in with SSO
@@ -86,7 +98,9 @@ export default function PublicPreprintLanding() {
               </p>
               <Link href="/register" className="pl-bento-link">
                 <span>Start submission</span>
-                <span className="pl-bento-link__arrow" aria-hidden="true">→</span>
+                <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 12h16M14 6l6 6-6 6" />
+                </svg>
               </Link>
             </div>
 
@@ -102,7 +116,9 @@ export default function PublicPreprintLanding() {
               </p>
               <a href="#advisory" className="pl-bento-link">
                 <span>Explore mentorship</span>
-                <span className="pl-bento-link__arrow" aria-hidden="true">→</span>
+                <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 12h16M14 6l6 6-6 6" />
+                </svg>
               </a>
             </div>
 
@@ -118,7 +134,9 @@ export default function PublicPreprintLanding() {
               </p>
               <a href="#faq" className="pl-bento-link">
                 <span>Learn in FAQ</span>
-                <span className="pl-bento-link__arrow" aria-hidden="true">→</span>
+                <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 12h16M14 6l6 6-6 6" />
+                </svg>
               </a>
             </div>
           </div>
@@ -126,7 +144,12 @@ export default function PublicPreprintLanding() {
           {/* Academic Trust & Community Banner */}
           <div id="advisory" className="pl-trust-banner pl-reveal">
             <div className="pl-trust-quote">
-              <div className="pl-trust-avatar" aria-hidden="true">🎓</div>
+              <div className="pl-trust-avatar" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 5.5h16v13H4z" />
+                  <path d="M8 9h8M8 13h5M8 16h3" />
+                </svg>
+              </div>
               <div>
                 <p className="pl-trust-text">
                   &ldquo;Hyperdata Lab gives our student researchers a transparent, structured gateway to timestamp early findings and iterate with faculty.&rdquo;
@@ -151,7 +174,6 @@ export default function PublicPreprintLanding() {
       <section id="faq" className="pl-section pl-section--alt pl-faq-prefooter pl-reveal">
         <div className="pl-container pl-container--narrow">
           <div className="pl-section-head">
-            <span className="pl-eyebrow">Knowledge</span>
             <h2 className="pl-section-title">Frequently Asked Questions</h2>
             <p className="pl-section-subtitle">
               Everything you need to know about student preprints, faculty review, and academic priority.
