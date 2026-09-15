@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { HyperdataLogo } from './hyperdata-logo';
-import { PublicResearchIllustration } from './public-research-illustration';
+import { PublicPortalShowcase } from './public-portal-showcase';
 
 export default function PublicPreprintLanding() {
   return (
@@ -32,21 +32,27 @@ export default function PublicPreprintLanding() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="pl-section pl-hero">
-        <div className="pl-container pl-hero__grid">
-          <div className="pl-hero__content">
-            <div className="pl-eyebrow">Academic Research Gateway</div>
-            <h1 className="pl-hero__title">
-              Give your research a clear place to begin.
+      {/* Centered Hero Section */}
+      <section className="pl-section pl-hero pl-hero--centered">
+        <div className="pl-container">
+          {/* Centered Header Box */}
+          <div className="pl-hero__center-box">
+            <div className="pl-pill-badge">
+              <span className="pl-pill-badge__icon" aria-hidden="true">🎓</span>
+              <span>A transparent pathway for student research</span>
+            </div>
+
+            <h1 className="pl-hero__title pl-hero__title--centered">
+              Discover research that{' '}
+              <span className="pl-hero__highlight">moves your ideas forward.</span>
             </h1>
-            <p className="pl-hero__desc">
-              Hyperdata Lab Preprint is an academic gateway designed for early-stage student research.
-              Timestamp your findings, receive structured guidance from university lecturers,
-              and build a transparent version record on your journey toward publication.
+
+            <p className="pl-hero__desc pl-hero__desc--centered">
+              Hyperdata Lab Preprint connects student scholars with university faculty.
+              Timestamp your findings early, receive structured mentorship, and build an authentic scholarly portfolio.
             </p>
 
-            <div className="pl-hero__actions">
+            <div className="pl-hero__actions pl-hero__actions--centered">
               <Link href="/register" className="pl-btn pl-btn--primary pl-btn--lg">
                 Create a student account
               </Link>
@@ -54,25 +60,78 @@ export default function PublicPreprintLanding() {
                 Sign in with SSO
               </Link>
             </div>
+          </div>
 
-            <div className="pl-hero__badges">
-              <div className="pl-badge-item">
-                <span className="pl-badge-dot" aria-hidden="true" />
-                <span>Author-owned research</span>
+          {/* Layered Showcase Mockup */}
+          <div className="pl-hero__showcase-wrap">
+            <PublicPortalShowcase />
+          </div>
+
+          {/* 3 Bento Feature Cards */}
+          <div className="pl-bento-grid">
+            <div className="pl-bento-card">
+              <div className="pl-bento-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
               </div>
-              <div className="pl-badge-item">
-                <span className="pl-badge-dot" aria-hidden="true" />
-                <span>Faculty review & mentorship</span>
+              <h3 className="pl-bento-title">Prepare & Timestamp</h3>
+              <p className="pl-bento-desc">
+                Register early manuscripts with immutable cryptographic records, securing your scientific priority without journal delays.
+              </p>
+              <a href="#why-preprint" className="pl-bento-link">Learn more →</a>
+            </div>
+
+            <div className="pl-bento-card">
+              <div className="pl-bento-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
               </div>
-              <div className="pl-badge-item">
-                <span className="pl-badge-dot" aria-hidden="true" />
-                <span>Immutable version history</span>
+              <h3 className="pl-bento-title">Faculty Mentorship</h3>
+              <p className="pl-bento-desc">
+                Receive targeted methodological critiques and line-by-line guidance from university educators to strengthen your paper.
+              </p>
+              <a href="#how-it-works" className="pl-bento-link">Learn more →</a>
+            </div>
+
+            <div className="pl-bento-card">
+              <div className="pl-bento-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
               </div>
+              <h3 className="pl-bento-title">Editorial Governance</h3>
+              <p className="pl-bento-desc">
+                Maintain a clear distinction between preprints and published articles, backed by institutional administrative oversight.
+              </p>
+              <a href="#integrity" className="pl-bento-link">Learn more →</a>
             </div>
           </div>
 
-          <div className="pl-hero__visual">
-            <PublicResearchIllustration />
+          {/* Academic Trust & Community Banner */}
+          <div className="pl-trust-banner">
+            <div className="pl-trust-quote">
+              <div className="pl-trust-avatar">🎓</div>
+              <div>
+                <p className="pl-trust-text">
+                  &ldquo;Hyperdata Lab gives our student researchers a transparent, structured gateway to timestamp early findings and iterate with faculty.&rdquo;
+                </p>
+                <span className="pl-trust-author">Faculty Advisory Board • Student Research Initiative</span>
+              </div>
+            </div>
+            <div className="pl-trust-labels">
+              <span className="pl-trust-label-head">ACADEMIC DISCIPLINES</span>
+              <div className="pl-trust-tags">
+                <span>Computer Science</span>
+                <span>Data Science</span>
+                <span>Biotechnology</span>
+                <span>Applied Physics</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

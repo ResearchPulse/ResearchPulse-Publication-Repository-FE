@@ -1,0 +1,11 @@
+# Keep local agent tooling out of GitHub language statistics
+.agents/** linguist-vendored
+.codex/** linguist-vendored
+.mcp.json linguist-vendored
+.hs.json linguist-vendored
+
+# Keep generated build output out of GitHub language statistics
+.next/** linguist-generated
+dist/** linguist-generated
+out/** linguist-generated
+coverage/** linguist-generated
