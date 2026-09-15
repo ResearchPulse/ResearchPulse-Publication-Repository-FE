@@ -1,4 +1,4 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = { transpilePackages: ['@hyperlabdata/ui'] };
-// Next.js configuration
+// Next.js configuration - refreshed
 export default nextConfig;

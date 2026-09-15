@@ -491,10 +491,12 @@ button, input, select, textarea { font: inherit; }
 }
 
 .pl-hero__highlight {
-  color: var(--ds-blue-600);
-  background: linear-gradient(135deg, var(--ds-blue-600) 0%, var(--ds-blue-800) 100%);
+  color: #0071bc;
+  background: linear-gradient(135deg, #0071bc 0%, #005f9e 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  display: inline;
 }
 
 .pl-hero__desc--centered {
@@ -814,8 +816,8 @@ button, input, select, textarea { font: inherit; }
 
 /* Left Widget */
 .pl-floating-card--left {
-  left: -20px;
-  top: 26%;
+  left: -28px;
+  top: 30%;
   width: 220px;
   animation-delay: 0s;
 }
@@ -856,8 +858,8 @@ button, input, select, textarea { font: inherit; }
 
 /* Right Top Widget */
 .pl-floating-card--right-top {
-  right: -24px;
-  top: 14%;
+  right: -28px;
+  top: 10%;
   width: 215px;
   animation-delay: 1.8s;
 }
