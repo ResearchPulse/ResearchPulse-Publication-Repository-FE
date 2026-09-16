@@ -64,27 +64,33 @@ export function PreprintListView() {
   };
 
   return (
-    <StudentShell showStandardHeader={false}>
-      {/* Hero Section matching user screenshot */}
-      <div className="user-hero">
-        <div className="user-hero__text">
-          <p className="user-eyebrow">Student research workspace</p>
-          <h1 className="user-hero__title">Your preprints.</h1>
-          <p className="user-hero__desc">
-            Prepare a manuscript, keep feedback in one place, and submit when your work is ready for lecturer review.
+    <StudentShell title="My Manuscripts" showStandardHeader={false}>
+      {/* Dashboard Page Header */}
+      <div className="dashboard-page-header">
+        <div className="dashboard-page-header__left">
+          <span className="dashboard-hero__eyebrow">MANUSCRIPT REPOSITORY</span>
+          <h1 className="dashboard-hero__title" style={{ fontSize: '24px', margin: '0 0 6px' }}>My Manuscripts</h1>
+          <p className="dashboard-hero__subtitle" style={{ margin: 0 }}>
+            Prepare, revise, and track your preprints in the Hyperdata Lab repository.
           </p>
         </div>
-        <div className="user-hero__action">
-          <Link href="/student/my-preprints/new" className="user-btn user-btn--primary">
-            Start a submission
+        <div className="dashboard-page-header__right">
+          <Link href="/student/my-preprints/new" className="dashboard-btn dashboard-btn--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Start a Submission</span>
           </Link>
         </div>
       </div>
 
-      {/* Notice Banner matching user screenshot */}
-      <div className="user-notice">
-        Preprint API is unavailable, so preview data is shown. Your work is not affected.
-      </div>
+      {/* Notice Banner */}
+      {apiPending && (
+        <div className="user-notice" style={{ marginTop: '16px', marginBottom: '20px' }}>
+          Preprint API is unavailable, so preview data is shown. Your work is not affected.
+        </div>
+      )}
 
       {/* Metrics Summary Strip */}
       <div className="student-metrics-grid">
