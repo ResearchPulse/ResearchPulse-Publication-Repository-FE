@@ -539,10 +539,7 @@ To reuse this system for another website:
 | Shared component styles | `packages/design-system/src/styles/components/` |
 | Shared stylesheet entrypoint | `packages/design-system/src/styles.css` |
 | App base styles | `src/styles/base.css` |
-| Admin workspace styles | `src/styles/admin-layout.css` and `src/styles/student-workspace.css` |
-| Public landing styles | `src/styles/public-landing.css` |
-| Public landing composition | `src/components/public-preprint-landing.tsx` |
-| Student workspace composition | `src/app/student/` |
+| Admin workspace styles | `src/features/admin/styles/admin-layout.css` |
 | Admin workspace composition | `src/app/admin/` |
 
 The package API is intentionally named `@hyperdata/design-system`. Legacy UI package imports are not part of the supported contract.
