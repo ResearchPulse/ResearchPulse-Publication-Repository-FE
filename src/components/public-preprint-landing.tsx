@@ -1,284 +1,354 @@
+'use client';
+
 import Link from 'next/link';
-import { HyperdataLogo } from './hyperdata-logo';
-import { PublicPortalShowcase } from './public-portal-showcase';
-import { ScrollRevealObserver } from './scroll-reveal';
+import { useAuth } from '@/features/auth/hooks';
+
+interface ManuscriptItem {
+  id: string;
+  code: string;
+  title: string;
+  author: string;
+  field: string;
+  status: 'reviewing' | 'revision' | 'completed';
+  statusText: string;
+  version: string;
+  date: string;
+}
+
+const MANUSCRIPTS: ManuscriptItem[] = [
+  {
+    id: 'm1',
+    code: '#014',
+    title: 'Mapping Data Literacy in Emerging Research Environments',
+    author: 'Nguyễn Minh An',
+    field: 'Computer Science',
+    status: 'reviewing',
+    statusText: 'Đang phản biện',
+    version: 'Version 2',
+    date: '12/09/2026',
+  },
+  {
+    id: 'm2',
+    code: '#013',
+    title: 'Reproducible Computational Workflows for Academic Labs',
+    author: 'Trần Gia Huy',
+    field: 'Information Systems',
+    status: 'revision',
+    statusText: 'Chờ chỉnh sửa',
+    version: 'Version 1',
+    date: '10/09/2026',
+  },
+  {
+    id: 'm3',
+    code: '#012',
+    title: 'Peer Review Practices & Algorithmic Transparency',
+    author: 'Lê Hà My',
+    field: 'Biotechnology & Health',
+    status: 'completed',
+    statusText: 'Đã hoàn tất',
+    version: 'Version 3',
+    date: '08/09/2026',
+  },
+  {
+    id: 'm4',
+    code: '#011',
+    title: 'Adaptive Edge AI for Real-time Traffic Graph Analytics',
+    author: 'Trần Thu Hà',
+    field: 'Software Engineering',
+    status: 'completed',
+    statusText: 'Đã hoàn tất',
+    version: 'Version 2',
+    date: '05/09/2026',
+  },
+];
 
 export default function PublicPreprintLanding() {
-  return (
-    <div className="public-landing">
-      <ScrollRevealObserver />
-      <a className="pl-skip-link" href="#main-content">Skip to content</a>
+  const { user } = useAuth();
 
-      {/* Modern Sticky Glassmorphism Header */}
-      <header className="pl-header">
-        <div className="pl-container pl-header__inner">
-          <Link href="/" className="pl-brand" aria-label="Hyperdata Lab Home">
-            <HyperdataLogo size={34} />
+  return (
+    <div className="slrs-layout">
+      {/* 1. TOP NAVBAR */}
+      <header className="slrs-navbar">
+        <div className="slrs-container slrs-navbar__inner">
+          <Link href="/" className="slrs-brand" aria-label="Hyperdata Lab Preprint System">
+            <div className="slrs-brand__logo">
+              <span className="slrs-brand__letters">
+                P R E P R I N <span className="slrs-brand__accent">T</span>
+              </span>
+              <span className="slrs-brand__sub">
+                HYPERDATA LAB · PREPRINT REPOSITORY SYSTEM
+              </span>
+            </div>
           </Link>
 
-          <nav className="pl-nav" aria-label="Main Navigation">
-            <a href="#portal" className="pl-nav__link">Portal</a>
-            <a href="#features" className="pl-nav__link">Features</a>
-            <a href="#advisory" className="pl-nav__link">Advisory</a>
-            <a href="#faq" className="pl-nav__link">FAQ</a>
+          <nav className="slrs-nav" aria-label="Chuyên mục chính">
+            <a href="#projects" className="slrs-nav__link">PROJECTS</a>
+            <a href="#process" className="slrs-nav__link">PROCESS</a>
+            <a href="#guidelines" className="slrs-nav__link">GUIDELINES</a>
           </nav>
 
-          <details className="pl-mobile-nav">
-            <summary className="pl-mobile-nav__toggle" aria-label="Open navigation menu">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              </svg>
-            </summary>
-            <nav className="pl-mobile-nav__panel" aria-label="Mobile navigation">
-              <a href="#portal" className="pl-mobile-nav__link">Portal</a>
-              <a href="#features" className="pl-mobile-nav__link">Features</a>
-              <a href="#advisory" className="pl-mobile-nav__link">Advisory</a>
-              <a href="#faq" className="pl-mobile-nav__link">FAQ</a>
-            </nav>
-          </details>
-
-          <div className="pl-header__actions">
-            <Link href="/api/auth/login" className="pl-header-action pl-header-action--secondary">
-              Sign in
-            </Link>
-            <Link href="/register" className="pl-header-action pl-header-action--primary">
-              Create account
-            </Link>
+          <div className="slrs-navbar__action">
+            {user ? (
+              <Link href="/student" className="slrs-btn-signin">
+                ACCOUNT
+              </Link>
+            ) : (
+              <Link href="/api/auth/login" className="slrs-btn-signin">
+                SIGN IN
+              </Link>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Centered Hero Section */}
-      <section id="main-content" className="pl-section pl-hero pl-hero--centered">
-        <div className="pl-container">
-          {/* Centered Header Box */}
-          <div className="pl-hero__center-box pl-reveal">
-            <h1 className="pl-hero__title pl-hero__title--centered">
-              Discover research that{' '}
-              <span className="pl-hero__highlight">moves your ideas forward.</span>
-            </h1>
-
-            <p className="pl-hero__desc pl-hero__desc--centered">
-              Hyperdata Lab Preprint connects student scholars with university faculty.
-              Timestamp your findings early, receive structured mentorship, and build an authentic scholarly portfolio.
-            </p>
-
-            <div className="pl-hero__actions pl-hero__actions--centered">
-              <Link href="/register" className="pl-btn pl-btn--primary pl-btn--lg pl-btn--shimmer">
-                <span>Create a student account</span>
-                <svg className="pl-btn__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 12h16M14 6l6 6-6 6" />
-                </svg>
-              </Link>
-              <Link href="/api/auth/login" className="pl-btn pl-btn--secondary pl-btn--lg">
-                Sign in with SSO
-              </Link>
-            </div>
+      {/* 2. HERO SECTION */}
+      <section className="slrs-hero">
+        <div className="slrs-container slrs-hero__inner">
+          <div className="slrs-hero__eyebrow">
+            HYPERDATA LAB · PREPRINT PROGRAM 2026
           </div>
 
-          {/* Layered Showcase Mockup */}
-          <div id="portal" className="pl-hero__showcase-wrap pl-reveal" style={{ '--delay': '120ms' } as React.CSSProperties}>
-            <PublicPortalShowcase />
-          </div>
+          <h1 className="slrs-hero__title">
+            Empowering <br />
+            <em>Research Excellence</em>
+          </h1>
 
-          {/* 3 Bento Feature Cards */}
-          <div id="features" className="pl-bento-grid">
-            <div className="pl-bento-card pl-reveal" style={{ '--delay': '0ms' } as React.CSSProperties}>
-              <div className="pl-bento-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              </div>
-              <h3 className="pl-bento-title">Prepare & Timestamp</h3>
-              <p className="pl-bento-desc">
-                Register early manuscripts with immutable cryptographic records, securing your scientific priority without journal delays.
-              </p>
-              <Link href="/register" className="pl-bento-link">
-                <span>Start submission</span>
-                <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 12h16M14 6l6 6-6 6" />
-                </svg>
-              </Link>
-            </div>
-
-            <div className="pl-bento-card pl-reveal" style={{ '--delay': '120ms' } as React.CSSProperties}>
-              <div className="pl-bento-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </div>
-              <h3 className="pl-bento-title">Faculty Mentorship</h3>
-              <p className="pl-bento-desc">
-                Receive targeted methodological critiques and line-by-line guidance from university educators to strengthen your paper.
-              </p>
-              <a href="#advisory" className="pl-bento-link">
-                <span>Explore mentorship</span>
-                <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 12h16M14 6l6 6-6 6" />
-                </svg>
-              </a>
-            </div>
-
-            <div className="pl-bento-card pl-reveal" style={{ '--delay': '240ms' } as React.CSSProperties}>
-              <div className="pl-bento-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-              </div>
-              <h3 className="pl-bento-title">Editorial Governance</h3>
-              <p className="pl-bento-desc">
-                Maintain a clear distinction between preprints and published articles, backed by institutional administrative oversight.
-              </p>
-              <a href="#faq" className="pl-bento-link">
-                <span>Learn in FAQ</span>
-                <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 12h16M14 6l6 6-6 6" />
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Academic Trust & Community Banner */}
-          <div id="advisory" className="pl-trust-banner pl-reveal">
-            <div className="pl-trust-quote">
-              <div className="pl-trust-avatar" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 5.5h16v13H4z" />
-                  <path d="M8 9h8M8 13h5M8 16h3" />
-                </svg>
-              </div>
-              <div>
-                <p className="pl-trust-text">
-                  &ldquo;Hyperdata Lab gives our student researchers a transparent, structured gateway to timestamp early findings and iterate with faculty.&rdquo;
-                </p>
-                <span className="pl-trust-author">Faculty Advisory Board • Student Research Initiative</span>
-              </div>
-            </div>
-            <div className="pl-trust-labels">
-              <span className="pl-trust-label-head">ACADEMIC DISCIPLINES</span>
-              <div className="pl-trust-tags">
-                <span>Computer Science</span>
-                <span>Data Science</span>
-                <span>Biotechnology</span>
-                <span>Applied Physics</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pre-Footer FAQ Section */}
-      <section id="faq" className="pl-section pl-section--alt pl-faq-prefooter pl-reveal">
-        <div className="pl-container pl-container--narrow">
-          <div className="pl-section-head">
-            <h2 className="pl-section-title">Frequently Asked Questions</h2>
-            <p className="pl-section-subtitle">
-              Everything you need to know about student preprints, faculty review, and academic priority.
-            </p>
-          </div>
-
-          <div className="pl-faq-list">
-            <details className="pl-faq-item" open>
-              <summary className="pl-faq-question">
-                <span>What is a preprint and does it prevent formal journal publication?</span>
-                <span className="pl-faq-icon" aria-hidden="true">+</span>
-              </summary>
-              <div className="pl-faq-answer">
-                A preprint is an author-owned preliminary manuscript shared before formal peer review. Major
-                publishers (including IEEE, Elsevier, Springer Nature, and ACM) allow preprint sharing before submission.
-                It establishes your scientific priority without forfeiting journal publication rights.
-              </div>
-            </details>
-
-            <details className="pl-faq-item">
-              <summary className="pl-faq-question">
-                <span>Who can register and submit manuscripts to Hyperdata Lab Preprint?</span>
-                <span className="pl-faq-icon" aria-hidden="true">+</span>
-              </summary>
-              <div className="pl-faq-answer">
-                Hyperdata Lab Preprint is open to undergraduate and graduate students, academic researchers,
-                and faculty. Registration is centrally managed through our university Single Sign-On (SSO) service.
-              </div>
-            </details>
-
-            <details className="pl-faq-item">
-              <summary className="pl-faq-question">
-                <span>Can I update my manuscript after uploading it?</span>
-                <span className="pl-faq-icon" aria-hidden="true">+</span>
-              </summary>
-              <div className="pl-faq-answer">
-                Yes. Research is iterative. When lecturers provide critique or you improve your findings,
-                you can submit revised versions (e.g. v2.0). All previous versions remain chronologically preserved in your
-                audit timeline to maintain an honest academic record.
-              </div>
-            </details>
-
-            <details className="pl-faq-item">
-              <summary className="pl-faq-question">
-                <span>How are preprints reviewed and approved?</span>
-                <span className="pl-faq-icon" aria-hidden="true">+</span>
-              </summary>
-              <div className="pl-faq-answer">
-                Submissions are assigned to qualified faculty lecturers who review manuscript clarity,
-                methodology, and research relevance. Lecturers provide revision notes or recommend approval, while
-                final publication readiness is validated by administrators.
-              </div>
-            </details>
-
-            <details className="pl-faq-item">
-              <summary className="pl-faq-question">
-                <span>Is there any cost to submit or read preprints?</span>
-                <span className="pl-faq-icon" aria-hidden="true">+</span>
-              </summary>
-              <div className="pl-faq-answer">
-                No. Hyperdata Lab Preprint is completely free for students, researchers, and educators. Our mission
-                is open scientific transparency without financial barriers.
-              </div>
-            </details>
-          </div>
-        </div>
-      </section>
-
-      {/* Public Footer */}
-      <footer className="pl-footer">
-        <div className="pl-container pl-footer__inner">
-          <div className="pl-footer__brand">
-            <HyperdataLogo size={32} />
-            <p className="pl-footer__tagline">
-              Open academic infrastructure supporting early research, faculty mentorship, and scholarly transparency.
-            </p>
-          </div>
-
-          <div className="pl-footer__links">
-            <div className="pl-footer__col">
-              <h4>Platform</h4>
-              <a href="#portal" className="pl-link">Preprint Portal</a>
-              <a href="#features" className="pl-link">Core Features</a>
-              <a href="#advisory" className="pl-link">Faculty Advisory</a>
-            </div>
-            <div className="pl-footer__col">
-              <h4>Resources</h4>
-              <a href="#faq" className="pl-link">FAQ & Guidelines</a>
-              <Link href="/api/auth/login" className="pl-link">Faculty SSO Portal</Link>
-              <Link href="/register" className="pl-link">Student Registration</Link>
-            </div>
-            <div className="pl-footer__col">
-              <h4>Access</h4>
-              <Link href="/register" className="pl-link">Create Account</Link>
-              <Link href="/api/auth/login" className="pl-link">Sign In</Link>
-              <Link href="/admin/dashboard" className="pl-link">Admin Dashboard</Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="pl-container pl-footer__bottom">
-          <p>© {new Date().getFullYear()} Hyperdata Lab. All rights reserved.</p>
-          <p className="pl-footer__disclaimer">
-            Hyperdata Lab Preprint is an educational research platform. Manuscripts are author-owned preliminary works.
+          <p className="slrs-hero__lead">
+            A comprehensive platform for student researchers to conduct peer review, establish cryptographic precedence with SHA-256 timestamping, and foster academic rigor before external publication.
           </p>
+
+          <div className="slrs-hero__actions">
+            <Link
+              href={user ? '/student/my-preprints/new' : '/api/auth/login'}
+              className="slrs-btn slrs-btn--dark"
+            >
+              MANAGE PROJECTS
+            </Link>
+            <a href="#process" className="slrs-btn slrs-btn--outline">
+              EXPLORE PROCESS
+            </a>
+          </div>
+
+          {/* 3. HERO VISUALIZATION WORKFLOW BOX */}
+          <div id="process" className="slrs-viz-box">
+            <div className="slrs-viz-grid">
+              <div className="slrs-viz-card">
+                <span className="slrs-viz-card__num">01</span>
+                <h3 className="slrs-viz-card__title">Đăng Ký &amp; Nộp Sơ Bộ</h3>
+                <p className="slrs-viz-card__desc">
+                  Nộp bản thảo PDF (v1.0). Hệ thống tự động cấp mã băm SHA-256 xác lập quyền ưu tiên nghiên cứu.
+                </p>
+                <div className="slrs-viz-card__date">20/08 — 20/09/2026</div>
+              </div>
+
+              <div className="slrs-viz-card slrs-viz-card--active">
+                <div className="slrs-viz-card__badge">Đang diễn ra</div>
+                <span className="slrs-viz-card__num">02</span>
+                <h3 className="slrs-viz-card__title">Mentor Phản Biện</h3>
+                <p className="slrs-viz-card__desc">
+                  Giảng viên hướng dẫn trong Lab phản biện phương pháp luận, mô hình tính toán và độ tin cậy dữ liệu.
+                </p>
+                <div className="slrs-viz-card__date">21/09 — 30/09/2026</div>
+              </div>
+
+              <div className="slrs-viz-card">
+                <span className="slrs-viz-card__num">03</span>
+                <h3 className="slrs-viz-card__title">Tác Giả Hoàn Thiện</h3>
+                <p className="slrs-viz-card__desc">
+                  Nhóm sinh viên thực hiện Rebuttal, giải trình từng góp ý phản biện và cập nhật bản phát hành v2.0.
+                </p>
+                <div className="slrs-viz-card__date">01/10 — 15/10/2026</div>
+              </div>
+
+              <div className="slrs-viz-card">
+                <span className="slrs-viz-card__num">04</span>
+                <h3 className="slrs-viz-card__title">Nghiệm Thu &amp; Cấp DOI</h3>
+                <p className="slrs-viz-card__desc">
+                  Hội đồng chấm điểm theo thang 100đ, công nhận kết quả nghiệm thu và cấp mã DOI lưu chiểu vĩnh viễn.
+                </p>
+                <div className="slrs-viz-card__date">20/10 — 25/10/2026</div>
+              </div>
+            </div>
+
+            <div className="slrs-viz-box__caption">
+              STANDARDIZED PREPRINT 2026 WORKFLOW VISUALIZATION
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. NOTICES & CRITICAL MILESTONES */}
+      <section className="slrs-section slrs-section--bordered">
+        <div className="slrs-container">
+          <div className="slrs-section-head">
+            <span className="slrs-label">TIMELINE &amp; CRITICAL MILESTONES</span>
+            <h2 className="slrs-heading">Kế Hoạch Xét Duyệt Đợt 01/2026</h2>
+            <p className="slrs-subheading">
+              Các mốc thời gian quy định nghiêm ngặt để đảm bảo tính minh bạch và tiến độ phản biện học thuật.
+            </p>
+          </div>
+
+          <div className="slrs-milestones-grid">
+            <div className="slrs-milestone-card">
+              <div className="slrs-milestone-card__dot" />
+              <div className="slrs-milestone-card__content">
+                <span className="slrs-milestone-card__date">15/10/2026</span>
+                <h3 className="slrs-milestone-card__title">Hạn Cuối Nộp Bản Thảo</h3>
+                <p className="slrs-milestone-card__desc">
+                  Khóa cổng tiếp nhận hồ sơ sơ bộ Đợt 01. Toàn bộ bản thảo được cấp dấu băm mật mã thời gian.
+                </p>
+              </div>
+            </div>
+
+            <div className="slrs-milestone-card">
+              <div className="slrs-milestone-card__dot" />
+              <div className="slrs-milestone-card__content">
+                <span className="slrs-milestone-card__date">20/10/2026</span>
+                <h3 className="slrs-milestone-card__title">Bắt Đầu Phản Biện Chuyên Môn</h3>
+                <p className="slrs-milestone-card__desc">
+                  Hội đồng Giảng viên thẩm định độc lập phương pháp nghiên cứu và trả kết quả phản biện chi tiết.
+                </p>
+              </div>
+            </div>
+
+            <div className="slrs-milestone-card">
+              <div className="slrs-milestone-card__dot" />
+              <div className="slrs-milestone-card__content">
+                <span className="slrs-milestone-card__date">15/11/2026</span>
+                <h3 className="slrs-milestone-card__title">Hạn Cuối Chỉnh Sửa &amp; Rebuttal</h3>
+                <p className="slrs-milestone-card__desc">
+                  Tác giả hoàn thiện phiên bản chỉnh sửa, đính kèm văn bản giải trình đối chiếu ý kiến chuyên gia.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. ACTIVE MANUSCRIPTS REPOSITORY */}
+      <section id="projects" className="slrs-section">
+        <div className="slrs-container">
+          <div className="slrs-section-head">
+            <span className="slrs-label">PUBLIC REPOSITORY</span>
+            <h2 className="slrs-heading">Bản Thảo Nghiên Cứu Trong Đợt</h2>
+            <p className="slrs-subheading">
+              Theo dõi trực tiếp tình trạng lưu chiểu, tiến độ phản biện và phân bổ phiên bản của từng đề tài.
+            </p>
+          </div>
+
+          <div className="slrs-manuscripts-list">
+            {MANUSCRIPTS.map((item) => (
+              <div key={item.id} className="slrs-manuscript-card">
+                <div className="slrs-manuscript-card__left">
+                  <span className="slrs-manuscript-code">{item.code}</span>
+                  <div className="slrs-manuscript-main">
+                    <Link href="/student/my-preprints" className="slrs-manuscript-title">
+                      {item.title}
+                    </Link>
+                    <div className="slrs-manuscript-meta">
+                      <span className="slrs-author">{item.author}</span>
+                      <span className="slrs-meta-sep">•</span>
+                      <span className="slrs-field">{item.field}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="slrs-manuscript-card__right">
+                  <span className={`slrs-pill slrs-pill--${item.status}`}>
+                    {item.statusText}
+                  </span>
+                  <span className="slrs-version-tag">{item.version}</span>
+                  <span className="slrs-date-tag">{item.date}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="slrs-view-all">
+            <Link href="/student/my-preprints" className="slrs-view-all__link">
+              XEM TẤT CẢ BẢN THẢO <span>→</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. DARK QUOTE SECTION (EXACT FROM SLRS) */}
+      <section className="slrs-quote-section">
+        <div className="slrs-container">
+          <div className="slrs-quote-box">
+            <h2 className="slrs-quote-box__title">
+              Engineered for <br />
+              <em>Academic Rigor</em>
+            </h2>
+            <p className="slrs-quote-box__text">
+              &ldquo;Transparency, open methodology, and verified precedence are the twin pillars of scientific credibility. Hyperdata Preprint provides the digital scaffolding to uphold and advance them.&rdquo;
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. SCHOLAR TOOLKIT & GUIDELINES */}
+      <section id="guidelines" className="slrs-section">
+        <div className="slrs-container">
+          <div className="slrs-section-head">
+            <span className="slrs-label">SCHOLAR TOOLKIT</span>
+            <h2 className="slrs-heading">Quy Chuẩn &amp; Tài Liệu Tác Giả</h2>
+            <p className="slrs-subheading">
+              Bộ công cụ chuẩn mực hỗ trợ sinh viên chuẩn bị bản thảo đạt tiêu chuẩn hội nghị và tạp chí quốc tế.
+            </p>
+          </div>
+
+          <div className="slrs-toolkit-grid">
+            <Link href="/student/my-preprints/new" className="slrs-toolkit-card">
+              <div className="slrs-toolkit-card__icon">📖</div>
+              <h3 className="slrs-toolkit-card__title">Hướng Dẫn Nộp Bản Thảo</h3>
+              <p className="slrs-toolkit-card__desc">
+                Quy định cấu trúc bản thảo khoa học, yêu cầu tóm tắt (Abstract) và mã nguồn mở đi kèm.
+              </p>
+            </Link>
+
+            <Link href="/student/versions" className="slrs-toolkit-card">
+              <div className="slrs-toolkit-card__icon">⚖️</div>
+              <h3 className="slrs-toolkit-card__title">Quy Trình &amp; Tiêu Chí Phản Biện</h3>
+              <p className="slrs-toolkit-card__desc">
+                Thang điểm 100đ đánh giá tính mới, phương pháp luận thực nghiệm và khả năng tái lập.
+              </p>
+            </Link>
+
+            <Link href="/student/my-preprints/new" className="slrs-toolkit-card">
+              <div className="slrs-toolkit-card__icon">📄</div>
+              <h3 className="slrs-toolkit-card__title">Mẫu Đề Cương (LaTeX / Word)</h3>
+              <p className="slrs-toolkit-card__desc">
+                Template chuẩn IEEE/ACM hai cột tích hợp sẵn định dạng trích dẫn BibTeX chuẩn mực.
+              </p>
+            </Link>
+
+            <a href="#projects" className="slrs-toolkit-card">
+              <div className="slrs-toolkit-card__icon">🛡️</div>
+              <h3 className="slrs-toolkit-card__title">Liêm Chính Học Thuật &amp; DOI</h3>
+              <p className="slrs-toolkit-card__desc">
+                Cơ chế tạo chuỗi dấu thời gian SHA-256 chống chiếm đoạt ý tưởng trước ngày nghiệm thu.
+              </p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. SLRS FOOTER */}
+      <footer className="slrs-footer">
+        <div className="slrs-container slrs-footer__inner">
+          <div className="slrs-footer__left">
+            <span className="slrs-footer__brand">
+              P R E P R I N <span className="slrs-brand__accent">T</span>
+            </span>
+            <span className="slrs-footer__desc">
+              Hyperdata Lab · Student Research Initiative
+            </span>
+          </div>
+
+          <div className="slrs-footer__right">
+            <span>© {new Date().getFullYear()} Hyperdata Lab. All rights reserved. Lưu hành nội bộ.</span>
+          </div>
         </div>
       </footer>
     </div>
