@@ -16,7 +16,7 @@ export function ssoClientId() {
 }
 
 export function ssoRedirectUri(origin: string) {
-  return process.env.SSO_REDIRECT_URI ?? `${origin}/api/auth/callback`;
+  return process.env.SSO_REDIRECT_URI ?? origin + '/auth/callback';
 }
 
 export function randomString(bytes = 32) { return randomBytes(bytes).toString('base64url'); }

@@ -1,20 +1,33 @@
 import '@hyperdata/design-system/styles.css';
+import '@/features/admin/styles/admin-layout.css';
+import '@/features/preprint/styles/preprint.css';
+import '@/features/preprint/styles/paper-student.css';
+import '@/features/landing/styles/paper-landing.css';
+import '@/features/landing/styles/paper-portal.css';
+import '@/styles/public-landing.css';
 import './globals.css';
 import type { Metadata } from 'next';
+import { AppProviders } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Hyperdata Lab — Academic Gateway',
-  description: 'A transparent academic gateway for student research, faculty review, and research milestones.',
+  title: 'Hyperdata Lab Preprint Repository',
+  description: 'A public academic repository for early research, faculty mentorship, and transparent publication workflows.',
   icons: {
     icon: [
-      { url: '/hyperdata-lab-logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/images/hyperdata-lab-logo.png', sizes: '32x32', type: 'image/png' },
       { url: '/favicon.ico', sizes: 'any' }
     ],
     shortcut: '/favicon.ico',
-    apple: '/hyperdata-lab-logo.png',
+    apple: '/images/hyperdata-lab-logo.png',
   },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return (
+    <html lang='en'>
+      <body>
+        <AppProviders>{children}</AppProviders>
+      </body>
+    </html>
+  );
 }

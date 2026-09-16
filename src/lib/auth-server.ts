@@ -1,10 +1,10 @@
 import { cookies } from 'next/headers';
 import { preprintApiBaseUrl } from './oidc';
-import type { Role, User } from './types';
+import type { Role, User } from '@/shared/types';
 
 const roles = new Set<Role>(['STUDENT', 'LECTURER', 'ADMIN']);
+const adminRoles = new Set<Role>(['ADMIN', 'LECTURER']);
 const studentRoles = new Set<Role>(['STUDENT']);
-const adminRoles = new Set<Role>(['LECTURER', 'ADMIN']);
 
 type RawUser = {
   id?: string;
@@ -56,29 +56,27 @@ export async function getCurrentUser(): Promise<User | null> {
   return normalizeUser(await response.json() as AuthPayload);
 }
 
-export function canAccessArea(role: Role | undefined, area: 'student' | 'admin') {
+export function canAccessArea(role: Role | undefined, area: 'admin' | 'student') {
   if (!role) return false;
-  return area === 'student' ? studentRoles.has(role) : adminRoles.has(role);
+  if (area === 'admin') return adminRoles.has(role);
+  return studentRoles.has(role);
 }
 
 export function safeNextPath(value?: string) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return undefined;
-  if (value === '/student' || value.startsWith('/student/')) return value;
   if (value === '/admin' || value.startsWith('/admin/')) return value;
+  if (value === '/student' || value.startsWith('/student/')) return value;
   return undefined;
 }
 
 export function defaultPathForRole(role?: Role) {
-  if (role && studentRoles.has(role)) return '/student/my-preprints';
-  if (role && adminRoles.has(role)) return '/admin/dashboard';
+  if (role === 'STUDENT') return '/student/my-preprints';
+  if (role && adminRoles.has(role)) return role === 'LECTURER' ? '/admin/reviews' : '/admin/dashboard';
   return '/forbidden';
 }
 
 export function resolvePostLoginPath(role: Role | undefined, requestedPath?: string) {
   const next = safeNextPath(requestedPath);
-  if (next) {
-    const area = next === '/student' || next.startsWith('/student/') ? 'student' : 'admin';
-    if (canAccessArea(role, area)) return next;
-  }
+  if (next && ((next === '/student' || next.startsWith('/student/')) ? canAccessArea(role, 'student') : canAccessArea(role, 'admin'))) return next;
   return defaultPathForRole(role);
 }

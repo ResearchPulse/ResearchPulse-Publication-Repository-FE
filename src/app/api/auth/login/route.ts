@@ -15,6 +15,10 @@ export async function GET(request: Request) {
   const response = NextResponse.redirect(authorizeUrl);
   for (const [name, value] of [['oidc_state', state], ['oidc_verifier', verifier]] as const) response.cookies.set(name, value, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
   const next = safeNextPath(url.searchParams.get('next') ?? undefined);
-  if (next) response.cookies.set('oidc_next', next, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
+  if (next) {
+    response.cookies.set('oidc_next', next, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
+  } else {
+    response.cookies.delete('oidc_next');
+  }
   return response;
 }
