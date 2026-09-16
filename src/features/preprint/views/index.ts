@@ -5,3 +5,4 @@ export * from './PreprintVersionsView';
 export * from './StudentDashboardView';
 export * from './StudentMentorFeedbackView';
 export * from './StudentVersionArchiveView';
+export * from './StudentProfileView';

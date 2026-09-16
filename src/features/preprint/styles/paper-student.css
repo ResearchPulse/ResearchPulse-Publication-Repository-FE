@@ -2854,12 +2854,18 @@
   border-top: 1px solid #f1f5f9;
   padding: 14px 16px;
   background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .student-sidebar__profile-card {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .student-sidebar__avatar {

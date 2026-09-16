@@ -28,6 +28,9 @@ export function StudentSidebar({
     if (href === '/student/versions') {
       return pathname.startsWith('/student/versions');
     }
+    if (href === '/student/profile') {
+      return pathname.startsWith('/student/profile');
+    }
     if (href === '/student/my-preprints/new') {
       return pathname === '/student/my-preprints/new';
     }
@@ -138,6 +141,20 @@ export function StudentSidebar({
               </span>
               <span className="student-sidebar__text">New Submission</span>
             </Link>
+
+            <Link
+              href="/student/profile"
+              className={`student-sidebar__link ${isRouteActive('/student/profile') ? 'student-sidebar__link--active' : ''}`}
+              onClick={onClose}
+            >
+              <span className="student-sidebar__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
+              <span className="student-sidebar__text">Scholar Profile</span>
+            </Link>
           </div>
 
           {/* Group: Mentorship & Quality */}
@@ -180,7 +197,13 @@ export function StudentSidebar({
 
         {/* Sidebar Footer: Student Profile Card */}
         <div className="student-sidebar__footer">
-          <div className="student-sidebar__profile-card">
+          <Link
+            href="/student/profile"
+            className="student-sidebar__profile-card"
+            style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}
+            onClick={onClose}
+            title="View & Edit Scholar Profile"
+          >
             <div className="student-sidebar__avatar">
               <span>NA</span>
               <span className="student-sidebar__status-dot" aria-label="Online" />
@@ -189,19 +212,20 @@ export function StudentSidebar({
               <span className="student-sidebar__name">Nguyen Minh An</span>
               <span className="student-sidebar__org">HCMUT • Author</span>
             </div>
-            <Link
-              href="/api/auth/logout"
-              className="student-sidebar__logout-btn"
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </Link>
-          </div>
+          </Link>
+          <Link
+            href="/api/auth/logout"
+            className="student-sidebar__logout-btn"
+            title="Sign Out"
+            aria-label="Sign Out"
+            style={{ flexShrink: 0 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </Link>
         </div>
       </aside>
     </>
