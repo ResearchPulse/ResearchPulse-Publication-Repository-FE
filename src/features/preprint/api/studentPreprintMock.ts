@@ -1,39 +1,39 @@
 import type { StudentPreprint, PreprintVersionInfo, ReviewNote, TimelineEvent } from '../types';
 
-const STORAGE_KEY = 'hyperdata_student_preprints_v1';
+const STORAGE_KEY = 'hyperdata_student_preprints_v2';
 
 const SEED_PREPRINTS: StudentPreprint[] = [
   {
     id: 'manuscript-stem-01',
-    title: 'Mapping data literacy in undergraduate STEM research',
-    abstract: 'This empirical study explores curriculum interventions designed to enhance empirical data verification and statistical integrity across undergraduate STEM coursework in Vietnamese higher education. We present quantitative results from a 3-semester trial spanning 450 participants, demonstrating a 42% decrease in statistical reporting discrepancies and elevated student agency in peer-review exercises.',
-    discipline: 'Computer Science',
+    title: 'Mapping data literacy in undergraduate research',
+    abstract: 'A student-led study exploring how research teams build confidence with data.',
+    discipline: 'Data & Computer Science',
     keywords: ['Data Literacy', 'STEM Education', 'Statistical Integrity', 'Peer Review'],
-    status: 'APPROVED',
+    status: 'NEEDS_REVISION',
     current_version: 2,
     authors: [
       { name: 'Nguyen Minh An', email: 'an.nguyen@student.hcmut.edu.vn', institution: 'VNU-HCM University of Technology', isPrimary: true, isCorresponding: true },
       { name: 'Le Van Binh', email: 'binh.le@student.hcmut.edu.vn', institution: 'VNU-HCM University of Technology' },
     ],
     supervisor: 'Prof. Dang Quang Minh',
-    file_name: 'stem_data_literacy_v2.0_final.pdf',
+    file_name: 'stem_data_literacy_v2.0.pdf',
     file_size: '2.4 MB',
     sha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
     doi: '10.5281/zenodo.hdl-7821',
     submitted_at: '2026-08-28T09:30:00Z',
-    updated_at: '2026-09-12T14:15:00Z',
+    updated_at: '2026-09-15T14:15:00Z',
     reviews: [
       {
         id: 'rev-01',
         reviewer_name: 'Dr. Linh Tran',
-        reviewer_title: 'Advisory Board Chair & Senior Faculty',
-        decision: 'APPROVED',
-        comments: 'Excellent revisions on Section 3.2. The additional statistical validation tests with confidence intervals address all previous methodological concerns. The paper is ready for public repository archiving and external conference submission.',
+        reviewer_title: 'Advisory Reviewer',
+        decision: 'NEEDS_REVISION',
+        comments: 'Please update Figure 4 confidence intervals and provide the raw dataset repository link before final approval.',
         recommendations: [
-          'Add dataset repository link to final camera-ready footer',
-          'Ensure all figures are exported at 300 DPI for conference printing',
+          'Add dataset repository link to camera-ready footer',
+          'Export all figures at 300 DPI',
         ],
-        created_at: '2026-09-12T14:10:00Z',
+        created_at: '2026-09-14T10:00:00Z',
       },
     ],
     timeline: [
@@ -119,38 +119,24 @@ const SEED_PREPRINTS: StudentPreprint[] = [
   },
   {
     id: 'manuscript-workflow-02',
-    title: 'A reproducible workflow framework for laboratory notebooks',
-    abstract: 'Electronic lab notebooks frequently suffer from data silos and non-interoperable export formats. We introduce a standardized, version-controlled notebook framework built on cryptographic commit hashing, lightweight Markdown schemas, and automated schema validation for student lab groups.',
+    title: 'Open methods for small research teams',
+    abstract: 'Practical methods for making early-stage research easier to reproduce.',
     discipline: 'Open Methods',
     keywords: ['Reproducibility', 'Electronic Lab Notebooks', 'Git Workflow', 'Open Science'],
-    status: 'NEEDS_REVISION',
-    current_version: 1.2,
+    status: 'UNDER_REVIEW',
+    current_version: 1,
     authors: [
       { name: 'Nguyen Minh An', email: 'an.nguyen@student.hcmut.edu.vn', institution: 'VNU-HCM University of Technology', isPrimary: true, isCorresponding: true },
       { name: 'Tran Gia Huy', email: 'huy.tran@student.uit.edu.vn', institution: 'VNU-HCM University of Information Technology' },
     ],
     supervisor: 'Dr. Linh Tran',
-    file_name: 'lab_notebook_workflow_v1.2.pdf',
+    file_name: 'open_methods_small_teams_v1.0.pdf',
     file_size: '3.1 MB',
     sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     doi: '10.5281/zenodo.hdl-6402-preview',
     submitted_at: '2026-09-02T15:45:00Z',
     updated_at: '2026-09-14T10:00:00Z',
-    reviews: [
-      {
-        id: 'rev-02',
-        reviewer_name: 'Dr. Linh Tran',
-        reviewer_title: 'Advisory Reviewer',
-        decision: 'NEEDS_REVISION',
-        comments: 'The proposed protocol is promising and clearly laid out. However, please address the following before formal preprint approval: 1) Clarify handling of binary assets (>50MB) within the git hook architecture; 2) Add a comparison table against Benchling and JupyterLab protocols; 3) Provide benchmark timing figures on cross-platform operating systems.',
-        recommendations: [
-          'Detail LFS (Large File Storage) fallback mechanism in Section 4.1',
-          'Add comparison matrix in Table 2',
-          'Provide test scripts repository link in Appendix A',
-        ],
-        created_at: '2026-09-14T09:45:00Z',
-      },
-    ],
+    reviews: [],
     timeline: [
       {
         id: 't-201',
