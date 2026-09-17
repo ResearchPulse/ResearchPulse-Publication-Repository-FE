@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const verifier = randomString(48);
   const redirectUri = ssoRedirectUri(url.origin);
   const authorizeUrl = new URL(oidcConfig().authorize);
-  authorizeUrl.search = new URLSearchParams({ client_id: ssoClientId(), redirect_uri: redirectUri, response_type: 'code', scope: 'openid profile email', state, code_challenge: createCodeChallenge(verifier), code_challenge_method: 'S256' }).toString();
+  authorizeUrl.search = new URLSearchParams({ client_id: ssoClientId(), redirect_uri: redirectUri, response_type: 'code', scope: 'openid profile email', state, prompt: 'login', code_challenge: createCodeChallenge(verifier), code_challenge_method: 'S256' }).toString();
   const response = NextResponse.redirect(authorizeUrl);
   for (const [name, value] of [['oidc_state', state], ['oidc_verifier', verifier]] as const) response.cookies.set(name, value, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
   const next = safeNextPath(url.searchParams.get('next') ?? undefined);
