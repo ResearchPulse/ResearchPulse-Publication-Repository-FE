@@ -1,5 +1,3 @@
 import { redirect } from 'next/navigation';
 
-export default function LegacyDashboardPage() {
-  redirect('/admin/dashboard');
-}
+export default function LegacyDashboardPage() { redirect('/admin/dashboard'); }
