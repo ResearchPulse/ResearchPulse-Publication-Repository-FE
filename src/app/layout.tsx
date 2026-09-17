@@ -5,6 +5,7 @@ import '@/features/preprint/styles/paper-student.css';
 import '@/features/landing/styles/paper-landing.css';
 import '@/features/landing/styles/paper-portal.css';
 import '@/styles/public-landing.css';
+import '@/styles/auth-forms.css';
 import './globals.css';
 import type { Metadata } from 'next';
 import { AppProviders } from './providers';

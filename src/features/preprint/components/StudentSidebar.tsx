@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useAuth } from '@/features/auth/hooks';
 import { usePathname } from 'next/navigation';
 
 interface StudentSidebarProps {
@@ -16,6 +17,10 @@ export function StudentSidebar({
   isOpen = false,
   onClose,
 }: StudentSidebarProps) {
+  const { user } = useAuth();
+  const initials = user?.name ? user.name.trim().split(/\s+/).map(n => n[0]).slice(0, 2).join('').toUpperCase() : (user?.email ? user.email.slice(0, 2).toUpperCase() : 'NA');
+  const displayName = user?.name || user?.email || 'Student';
+  const displayOrg = user?.role === 'STUDENT' ? 'Student • Author' : (user?.role || 'Author');
   const pathname = usePathname();
 
   const isRouteActive = (href: string) => {
@@ -182,12 +187,12 @@ export function StudentSidebar({
         <div className="student-sidebar__footer">
           <div className="student-sidebar__profile-card">
             <div className="student-sidebar__avatar">
-              <span>NA</span>
+              <span>{initials}</span>
               <span className="student-sidebar__status-dot" aria-label="Online" />
             </div>
             <div className="student-sidebar__profile-info">
-              <span className="student-sidebar__name">Nguyen Minh An</span>
-              <span className="student-sidebar__org">HCMUT • Author</span>
+              <span className="student-sidebar__name">{displayName}</span>
+              <span className="student-sidebar__org">{displayOrg}</span>
             </div>
             <Link
               href="/api/auth/logout"
@@ -209,3 +214,4 @@ export function StudentSidebar({
 }
 
 export default StudentSidebar;
+

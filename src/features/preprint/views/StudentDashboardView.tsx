@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/features/auth/hooks';
 import { StudentDashboardLayout } from '../components';
 import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import type { StudentPreprint } from '../types';
 
 export function StudentDashboardView() {
+  const { user } = useAuth();
+  const displayName = user?.name || user?.email || 'Scholar';
   const { items, loading, error } = usePreprintList();
   const [filterStatus, setFilterStatus] = useState<'ALL' | PreprintStatus>('ALL');
   const [copiedDoi, setCopiedDoi] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export function StudentDashboardView() {
         <div className="dashboard-hero__main">
           <div className="dashboard-hero__greeting">
             <span className="dashboard-hero__eyebrow">STUDENT RESEARCH SCHOLAR</span>
-            <h1 className="dashboard-hero__title">Welcome back, Nguyen Minh An 👋</h1>
+            <h1 className="dashboard-hero__title">Welcome back, {displayName} 👋</h1>
             <p className="dashboard-hero__subtitle">
               Manage your manuscripts, track faculty mentorship assessments, and monitor priority timestamp verification.
             </p>
@@ -60,8 +63,8 @@ export function StudentDashboardView() {
               <span className="dashboard-hero__tag-dot" />
               Verified Author
             </span>
-            <span className="dashboard-hero__tag">ID: STU-2026-HCMUT</span>
-            <span className="dashboard-hero__tag">VNU-HCM Univ. of Technology</span>
+            <span className="dashboard-hero__tag">ID: {user?.id?.substring(0, 8) || "STU-2026"}</span>
+            <span className="dashboard-hero__tag">{user?.email?.split("@")[1] || "University Scholar"}</span>
           </div>
         </div>
         <div className="dashboard-hero__action">

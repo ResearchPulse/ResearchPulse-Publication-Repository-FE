@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { useAuth } from '@/features/auth/hooks';
 import { BrandMark, PageHeader } from '@hyperdata/design-system';
 import { ROUTES } from '@/app/router';
 
@@ -44,6 +45,9 @@ export function AdminSidebar({ active }: { active: AdminNavKey }) {
 }
 
 export function Topbar({ title }: { title: string }) {
+  const { user } = useAuth();
+  const initials = user?.name ? user.name.trim().split(/\s+/).map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'A';
+  const displayName = user?.name || user?.email || 'Administrator';
   return (
     <header className="topbar">
       <div>
