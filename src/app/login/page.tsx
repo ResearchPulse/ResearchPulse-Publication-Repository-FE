@@ -1,17 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/features/auth/hooks';
 import { HyperdataLogo } from '@/components/hyperdata-logo';
-import { ScrollRevealObserver } from '@/components/scroll-reveal';
+import '@/styles/public-landing.css';
+import '@/styles/auth-forms.css';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get('next') || '/student/my-preprints';
-  const { refresh } = useAuth();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -21,11 +20,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!identifier.trim() || !password) {
-      setError('Vui lòng nhập tên đăng nhập/email và mật khẩu.');
-      return;
-    }
-
     setError(null);
     setLoading(true);
 
@@ -33,107 +27,197 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: identifier.trim(), password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await res.json().catch(() => null);
-
+      const data = await res.json();
       if (!res.ok) {
-        setError(data?.error || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
+        setError(data.error || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
         setLoading(false);
         return;
       }
 
-      // Refresh auth state in React context
-      await refresh();
-
-      // Navigate to destination
-      const role = data?.user?.role;
-      const target = nextPath && nextPath !== '/' ? nextPath : (role === 'ADMIN' ? '/admin/dashboard' : '/student/my-preprints');
-      router.push(target);
-      router.refresh();
+      if (data.user.role === 'ADMIN') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push(nextPath);
+      }
     } catch {
-      setError('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+      setError('Không thể kết nối đến máy chủ xác thực.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="public-landing">
-      <ScrollRevealObserver />
-      <a className="pl-skip-link" href="#main-content">Chuyển đến nội dung chính</a>
+    <div className="auth-card" style={{ maxWidth: 480, margin: '0 auto' }}>
+      <div style={{ marginBottom: 22, textAlign: 'left' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#122331', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+          Thông tin đăng nhập
+        </h2>
+        <p style={{ fontSize: 13, color: '#647381', margin: 0, lineHeight: 1.5 }}>
+          Nhập Tên đăng nhập học vụ (hoặc Email) cùng mật khẩu để tiếp tục.
+        </p>
+      </div>
 
-      {/* Floating Ambient Background Lights */}
-      <div className="auth-ambient-glow auth-ambient-glow--1" aria-hidden="true" />
-      <div className="auth-ambient-glow auth-ambient-glow--2" aria-hidden="true" />
+      {error && (
+        <div className="auth-alert-box" role="alert" style={{ marginBottom: 18 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <div>{error}</div>
+        </div>
+      )}
 
-      {/* Header - Aligned with Landing Page */}
-      <header className="pl-header">
+      <form onSubmit={handleSubmit} className="auth-form" style={{ gap: 16 }}>
+        <div className="auth-field" style={{ gap: 6, textAlign: 'left' }}>
+          <label className="auth-label" htmlFor="identifier" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
+            Tên đăng nhập hoặc Email *
+          </label>
+          <input
+            id="identifier"
+            type="text"
+            autoComplete="username"
+            className="auth-input"
+            placeholder="MinhNVSE150000 hoặc student@fpt.edu.vn"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        <div className="auth-field" style={{ gap: 6, textAlign: 'left' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label className="auth-label" htmlFor="password" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
+              Mật khẩu *
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#0071bc',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: '2px 4px',
+                borderRadius: 4,
+                transition: 'color 0.2s, background 0.2s',
+              }}
+            >
+              {showPassword ? 'Ẩn' : 'Hiện'} mật khẩu
+            </button>
+          </div>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            className="auth-input"
+            placeholder="Nhập mật khẩu của bạn"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="auth-btn auth-btn--primary"
+          style={{
+            padding: '13px 20px',
+            fontSize: 15,
+            fontWeight: 700,
+            marginTop: 6,
+          }}
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+              </svg>
+              <span>Đang xác thực tài khoản...</span>
+            </>
+          ) : (
+            <span>Đăng nhập</span>
+          )}
+        </button>
+      </form>
+
+      <div className="auth-card__footer" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e8eef2', fontSize: 13, color: '#647381', textAlign: 'center' }}>
+        Chưa có tài khoản sinh viên?{' '}
+        <Link href="/#register-section" style={{ color: '#0071bc', fontWeight: 700, textDecoration: 'none' }}>
+          Đăng ký tài khoản ngay
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="pl-page auth-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
+      {/* Hiệu ứng Ambient Orbs nền phát sáng mờ ảo */}
+      <div className="auth-ambient-glow auth-ambient-glow--1" />
+      <div className="auth-ambient-glow auth-ambient-glow--2" />
+
+      {/* Header chuẩn theo style Landing Page */}
+      <header className="pl-header" style={{ position: 'relative', zIndex: 10 }}>
         <div className="pl-container pl-header__inner">
-          <Link href="/" className="pl-brand" aria-label="Trang chủ ResearchPulse">
-            <HyperdataLogo size={34} />
+          <Link href="/" className="pl-brand" aria-label="Trang chủ Hyperdata">
+            <HyperdataLogo size={32} />
+            <div className="pl-brand__text">
+              <span className="pl-brand__title">ResearchPulse</span>
+              <span className="pl-brand__sub">Publication Repository</span>
+            </div>
           </Link>
 
-          <nav className="pl-nav" aria-label="Thanh điều hướng">
-            <Link href="/#register-section" className="pl-nav__link">Đăng ký</Link>
-            <Link href="/#portal" className="pl-nav__link">Cổng lưu trữ</Link>
+          <nav className="pl-nav" aria-label="Điều hướng">
+            <Link href="/#portal" className="pl-nav__link">Cổng Lưu trữ</Link>
             <Link href="/#features" className="pl-nav__link">Tính năng</Link>
             <Link href="/#faq" className="pl-nav__link">Hỏi đáp</Link>
           </nav>
 
           <div className="pl-header__actions">
-            <Link href="/" className="pl-header-action pl-header-action--secondary">
-              Về trang chủ
-            </Link>
-            <Link href="/#register-section" className="pl-header-action pl-header-action--primary">
-              Đăng ký ngay
+            <Link href="/#register-section" className="pl-btn pl-btn--primary">
+              Đăng ký sinh viên
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section (2-Column Grid with Smooth Entrance Animations) */}
-      <main id="main-content" className="pl-section pl-hero" style={{ position: 'relative', zIndex: 1, minHeight: 'calc(100vh - 180px)', display: 'flex', alignItems: 'center', padding: '60px 0 80px' }}>
+      {/* Body: 2 Cột chuẩn như Landing Page Hero */}
+      <main className="pl-hero" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '60px 0', position: 'relative', zIndex: 1 }}>
         <div className="pl-container">
-          <div className="pl-hero__grid" style={{ alignItems: 'center' }}>
+          <div className="pl-hero__grid" style={{ alignItems: 'center', gap: '48px' }}>
             
-            {/* Cột trái: Văn bản & Nhận diện Học thuật */}
-            <div className="pl-hero__main pl-reveal">
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginBottom: 18,
-                  background: '#eef6fc',
-                  color: '#0071bc',
-                  padding: '6px 16px',
-                  borderRadius: 9999,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  border: '1px solid #dbeef9',
-                  transition: 'transform 0.3s ease',
-                }}
-              >
-                🔐 Cổng Xác Thực Học Vụ Sinh Viên
-              </span>
+            {/* Cột trái: Giới thiệu & Cổng đăng nhập học thuật */}
+            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left' }}>
+              <div className="pl-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                <span className="pl-badge__dot" />
+                Cổng Xác thực Nghiên cứu Khoa học
+              </div>
 
-              <h1 className="pl-hero__title" style={{ fontSize: 'clamp(32px, 4.4vw, 54px)', marginBottom: 16 }}>
-                Đăng nhập tài khoản <br />
-                <span className="pl-hero__highlight">ResearchPulse.</span>
+              <h1 className="pl-hero__title" style={{ fontSize: '2.5rem', lineHeight: 1.2, marginBottom: 16 }}>
+                Đăng nhập vào <br />
+                <span className="pl-gradient-text">Không gian Học thuật</span>
               </h1>
 
-              <p className="pl-hero__desc" style={{ fontSize: 17, marginBottom: 32, maxWidth: 540 }}>
-                Truy cập không gian nghiên cứu học thuật, quản lý bản thảo sớm và nhận đánh giá chuyên môn từ hội đồng giảng viên.
+              <p className="pl-hero__desc" style={{ fontSize: '1.05rem', color: '#4b5563', lineHeight: 1.6, marginBottom: 28, maxWidth: 520 }}>
+                Hệ thống lưu trữ và bình duyệt sớm cho sinh viên. Đăng nhập để nộp bản thảo khoa học, theo dõi phản hồi phản biện và liên kết hướng dẫn cùng giảng viên.
               </p>
 
-              {/* 3 Bullet bảo chứng học thuật với hiệu ứng hover mượt mà */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 14, color: '#647381' }}>
+              {/* Danh sách cam kết bảo mật & quyền lợi */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
                 <div className="auth-bullet-item">
                   <div className="auth-bullet-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                   </div>
-                  <span>Sử dụng <strong>Tên đăng nhập học vụ</strong> (ví dụ: <code style={{ color: '#0071bc', fontWeight: 700, background: '#f0f7fc', padding: '2px 6px', borderRadius: 6 }}>MinhNVSE150000</code>)</span>
+                  <span>Tài khoản tự động gán theo Mã số sinh viên (MSSV)</span>
                 </div>
 
                 <div className="auth-bullet-item">
@@ -152,114 +236,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Cột phải: Form Đăng nhập có hiệu ứng nổi và hover */}
+            {/* Cột phải: Form Đăng nhập bọc Suspense */}
             <div className="pl-hero__form-wrap pl-reveal" style={{ '--delay': '120ms' } as React.CSSProperties}>
-              <div className="auth-card" style={{ maxWidth: 480, margin: '0 auto' }}>
-                <div style={{ marginBottom: 22, textAlign: 'left' }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: '#122331', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
-                    Thông tin đăng nhập
-                  </h2>
-                  <p style={{ fontSize: 13, color: '#647381', margin: 0, lineHeight: 1.5 }}>
-                    Nhập Tên đăng nhập học vụ (hoặc Email) cùng mật khẩu để tiếp tục.
-                  </p>
+              <Suspense fallback={
+                <div className="auth-card" style={{ maxWidth: 480, margin: '0 auto', textAlign: 'center', padding: '40px' }}>
+                  <p style={{ color: '#647381' }}>Đang tải biểu mẫu đăng nhập...</p>
                 </div>
-
-                {error && (
-                  <div className="auth-alert-box" role="alert" style={{ marginBottom: 18 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>{error}</div>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="auth-form" style={{ gap: 16 }}>
-                  <div className="auth-field" style={{ gap: 6, textAlign: 'left' }}>
-                    <label className="auth-label" htmlFor="identifier" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
-                      Tên đăng nhập hoặc Email *
-                    </label>
-                    <input
-                      id="identifier"
-                      type="text"
-                      autoComplete="username"
-                      className="auth-input"
-                      placeholder="MinhNVSE150000 hoặc student@fpt.edu.vn"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      disabled={loading}
-                      required
-                    />
-                  </div>
-
-                  <div className="auth-field" style={{ gap: 6, textAlign: 'left' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label className="auth-label" htmlFor="password" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
-                        Mật khẩu *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#0071bc',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          padding: '2px 4px',
-                          borderRadius: 4,
-                          transition: 'color 0.2s, background 0.2s',
-                        }}
-                      >
-                        {showPassword ? 'Ẩn' : 'Hiện'} mật khẩu
-                      </button>
-                    </div>
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      className="auth-input"
-                      placeholder="Nhập mật khẩu của bạn"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={loading}
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="auth-btn auth-btn--primary"
-                    style={{
-                      padding: '13px 20px',
-                      fontSize: 15,
-                      fontWeight: 700,
-                      marginTop: 6,
-                    }}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
-                          <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
-                        </svg>
-                        <span>Đang xác thực tài khoản...</span>
-                      </>
-                    ) : (
-                      <span>Đăng nhập</span>
-                    )}
-                  </button>
-                </form>
-
-                <div className="auth-card__footer" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e8eef2', fontSize: 13, color: '#647381', textAlign: 'center' }}>
-                  Chưa có tài khoản sinh viên?{' '}
-                  <Link href="/#register-section" style={{ color: '#0071bc', fontWeight: 700, textDecoration: 'none' }}>
-                    Đăng ký tài khoản ngay
-                  </Link>
-                </div>
-              </div>
+              }>
+                <LoginForm />
+              </Suspense>
             </div>
 
           </div>
