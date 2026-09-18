@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Button, Panel, StatusBadge } from '@hyperdata/design-system';
+import { Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminShell, AdminPageHeader } from '../components';
 import {
   adminApi,
@@ -10,7 +10,6 @@ import {
   type AdminPublicationStatus,
   type AdminReview,
   type AdminTimelineEvent,
-  type AdminUser,
   type AdminVersion,
 } from '../api';
 import type { PreprintStatus } from '@/shared/types';
@@ -205,8 +204,6 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [versions, setVersions] = useState<AdminVersion[]>([]);
   const [timeline, setTimeline] = useState<AdminTimelineEvent[]>([]);
-  const [lecturers, setLecturers] = useState<AdminUser[]>([]);
-  const [selectedReviewers, setSelectedReviewers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -224,8 +221,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       adminApi.getReviews(id),
       adminApi.getVersions(id),
       adminApi.getTimeline(id),
-      adminApi.listLecturers(),
-    ]).then(([publicationResult, reviewsResult, versionsResult, timelineResult, lecturersResult]) => {
+    ]).then(([publicationResult, reviewsResult, versionsResult, timelineResult]) => {
       if (!active) return;
 
       if (publicationResult.status === 'rejected') {
@@ -237,7 +233,6 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       const optionalFailures: string[] = [];
       if (reviewsResult.status === 'fulfilled') {
         setReviews(reviewsResult.value);
-        setSelectedReviewers(reviewsResult.value.map((review) => review.reviewerId));
       } else {
         optionalFailures.push('reviews');
       }
@@ -245,8 +240,6 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       else optionalFailures.push('versions');
       if (timelineResult.status === 'fulfilled') setTimeline(timelineResult.value);
       else optionalFailures.push('timeline');
-      if (lecturersResult.status === 'fulfilled') setLecturers(lecturersResult.value.users);
-      else optionalFailures.push('lecturer directory');
 
       if (optionalFailures.length) {
         setHistoryError(`Some panels are unavailable: ${optionalFailures.join(', ')}.`);
@@ -259,25 +252,6 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       active = false;
     };
   }, [id]);
-
-  const assignReviewers = async () => {
-    if (!selectedReviewers.length) {
-      setMessage('Select at least one active lecturer before assigning review.');
-      return;
-    }
-
-    setBusy(true);
-    setMessage(null);
-    try {
-      const nextReviews = await adminApi.assignReviewers(id, selectedReviewers);
-      setReviews(nextReviews);
-      setMessage('Reviewers assigned successfully.');
-    } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to assign reviewers.');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const changeStatus = async (status: 'PUBLISHED' | 'REJECTED' | 'DRAFTING') => {
     const actionLabel = status === 'PUBLISHED' ? 'publish' : status === 'DRAFTING' ? 'request revision for' : 'reject';
@@ -303,7 +277,15 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
         title={publication?.title || 'Submission detail'}
         description="Read the manuscript record, inspect peer review evidence, and execute editorial decisions."
       />
-      <Link className="back-link" href={ROUTES.ADMIN.SUBMISSIONS}>← Back to submissions</Link>
+      <div className="admin-detail-top-nav">
+        <Link className="admin-back-btn" href={ROUTES.ADMIN.SUBMISSIONS}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          <span>Back to submissions</span>
+        </Link>
+      </div>
 
       {loading && <div className="preview-note" role="status">Loading manuscript record...</div>}
       {error && <div className="preview-note" role="alert">Unable to load manuscript: {error}</div>}
@@ -313,14 +295,24 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
         <div className="detail-grid">
           {/* Left Panel: Manuscript Record, Authors, Versions, Timeline */}
           <Panel className="detail-panel">
-            <div className="manuscript-detail-header">
-              <div>
-                <p className="manuscript-meta-eyebrow">
-                  {publication.currentVersion?.versionLabel || 'v1.0'} · Student Research
-                </p>
-                <h2 className="manuscript-detail-title">{publication.title || 'Untitled manuscript'}</h2>
+            <div className="manuscript-meta-strip">
+              <div className="manuscript-meta-strip__left">
+                <span className="manuscript-meta-pill">
+                  {publication.currentVersion?.versionLabel ? `v${publication.currentVersion.versionLabel}` : 'v1.0'}
+                </span>
+                <span className="manuscript-meta-tag">Student Research</span>
+                <span className="manuscript-meta-date">
+                  Updated {formatDate(publication.updatedAt)}
+                </span>
+                {publication.uploader?.email && (
+                  <span className="manuscript-meta-uploader">
+                    Author: {publication.uploader?.name || publication.uploader?.email}
+                  </span>
+                )}
               </div>
-              <StatusBadge status={badgeStatus(publication.status)} />
+              <div className="manuscript-meta-strip__right">
+                <StatusBadge status={badgeStatus(publication.status)} />
+              </div>
             </div>
 
             {/* Abstract */}
@@ -388,133 +380,98 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                 <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>No author data available.</p>
               )}
             </div>
-
-            {/* Version History */}
-            <h3>Version History</h3>
-            <VersionList versions={versions} />
-
             {/* Audit Timeline */}
             <h3>Audit Timeline</h3>
             <TimelineList events={timeline} />
           </Panel>
 
           {/* Right Panel: Review Progress & Admin Decision */}
-          <Panel className="detail-panel">
-            <h2>Peer Review Progress</h2>
-            <p className="abstract">
-              Faculty mentor evaluations provide independent evidence to inform editorial decisions.
-            </p>
-            <ReviewList reviews={reviews} />
-
-            <h3>Assign Lecturers</h3>
-            <div className="review-form">
-              {!lecturers.length && <p className="abstract">No active faculty lecturers are available.</p>}
-              <div className="lecturer-select-list">
-                {lecturers.map((lecturer) => {
-                  const isSelected = selectedReviewers.includes(lecturer.id);
-                  return (
-                    <label
-                      key={lecturer.id}
-                      className={`lecturer-select-item ${isSelected ? 'lecturer-select-item--active' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="lecturer-select-checkbox"
-                        checked={isSelected}
-                        onChange={(event) =>
-                          setSelectedReviewers((current) =>
-                            event.target.checked
-                              ? [...new Set([...current, lecturer.id])]
-                              : current.filter((value) => value !== lecturer.id)
-                          )
-                        }
-                      />
-                      <div className="reviewer-avatar-circle" style={{ width: '32px', height: '32px', fontSize: '11px' }}>
-                        {(lecturer.name || lecturer.email).charAt(0).toUpperCase()}
-                      </div>
-                      <div className="lecturer-select-info">
-                        <span className="lecturer-select-name">{lecturer.name || lecturer.email}</span>
-                        <span className="lecturer-select-email">{lecturer.email}</span>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-              <Button variant="secondary" disabled={busy || !lecturers.length} onClick={assignReviewers}>
-                Update Lecturer Assignments
-              </Button>
-            </div>
-
-            {/* Administrator Decision Card */}
-            <div className="admin-decision-card">
-              <h4 className="admin-decision-title">Administrator Decision</h4>
-              <p className="admin-decision-desc">
-                As the administrator, you evaluate the peer review recommendations and determine the next lifecycle stage.
+          <div className="detail-grid__sidebar">
+            <Panel className="detail-panel">
+              <h2>Peer Review Progress</h2>
+              <p className="abstract">
+                Faculty mentor evaluations provide independent evidence to inform editorial decisions.
               </p>
-              {publication.status === 'REVIEWING' && (
-                <div className="admin-decision-buttons">
-                  <button
-                    type="button"
-                    className="admin-btn-decision admin-btn-decision--publish"
-                    disabled={busy}
-                    onClick={() => changeStatus('PUBLISHED')}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <span>Publish Paper</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn-decision admin-btn-decision--revision"
-                    disabled={busy}
-                    onClick={() => changeStatus('DRAFTING')}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    <span>Request Revision</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn-decision admin-btn-decision--reject"
-                    disabled={busy}
-                    onClick={() => changeStatus('REJECTED')}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                    <span>Reject Paper</span>
-                  </button>
-                </div>
-              )}
-              {publication.status === 'REJECTED' && (
-                <div className="admin-decision-buttons">
-                  <button
-                    type="button"
-                    className="admin-btn-decision admin-btn-decision--reopen"
-                    disabled={busy}
-                    onClick={() => changeStatus('DRAFTING')}
-                  >
-                    Reopen for Revision
-                  </button>
-                </div>
-              )}
-              {publication.status === 'DRAFTING' && (
-                <p style={{ margin: 0, fontSize: '13px', color: '#d97706', fontWeight: 600 }}>
-                  Manuscript is currently returned to the student for revision (DRAFTING).
+              <ReviewList reviews={reviews} />
+
+              <h3>Lecturer Review Progress</h3>
+              <p className="abstract">
+                All active lecturers can review manuscripts in the REVIEWING queue. Recommendations are advisory; the administrator makes the final decision.
+              </p>
+
+              {/* Administrator Decision Card */}
+              <div className="admin-decision-card">
+                <h4 className="admin-decision-title">Administrator Decision</h4>
+                <p className="admin-decision-desc">
+                  As the administrator, you evaluate the peer review recommendations and determine the next lifecycle stage.
                 </p>
-              )}
-              {publication.status === 'PUBLISHED' && (
-                <p style={{ margin: 0, fontSize: '13px', color: '#059669', fontWeight: 600 }}>
-                  This manuscript is published and publicly accessible.
-                </p>
-              )}
-              {message && <p className="preview-note" style={{ marginTop: '14px', marginBottom: 0 }} role="status">{message}</p>}
-            </div>
-          </Panel>
+                {publication.status === 'REVIEWING' && (
+                  <div className="admin-decision-buttons">
+                    <button
+                      type="button"
+                      className="admin-btn-decision admin-btn-decision--publish"
+                      disabled={busy}
+                      onClick={() => changeStatus('PUBLISHED')}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Publish Paper</span>
+                    </button>
+                    <div className="admin-decision-sub-row">
+                      <button
+                        type="button"
+                        className="admin-btn-decision admin-btn-decision--revision"
+                        disabled={busy}
+                        onClick={() => changeStatus('DRAFTING')}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        <span>Request Revision</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn-decision admin-btn-decision--reject"
+                        disabled={busy}
+                        onClick={() => changeStatus('REJECTED')}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        <span>Reject Paper</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {publication.status === 'REJECTED' && (
+                  <div className="admin-decision-buttons">
+                    <button
+                      type="button"
+                      className="admin-btn-decision admin-btn-decision--reopen"
+                      disabled={busy}
+                      onClick={() => changeStatus('DRAFTING')}
+                    >
+                      Reopen for Revision
+                    </button>
+                  </div>
+                )}
+                {publication.status === 'DRAFTING' && (
+                  <p style={{ margin: 0, fontSize: '13px', color: '#d97706', fontWeight: 600 }}>
+                    Manuscript is currently returned to the student for revision (DRAFTING).
+                  </p>
+                )}
+                {publication.status === 'PUBLISHED' && (
+                  <p style={{ margin: 0, fontSize: '13px', color: '#059669', fontWeight: 600 }}>
+                    This manuscript is published and publicly accessible.
+                  </p>
+                )}
+                {message && <p className="preview-note" style={{ marginTop: '14px', marginBottom: 0 }} role="status">{message}</p>}
+              </div>
+            </Panel>
+          </div>
         </div>
       )}
     </AdminShell>

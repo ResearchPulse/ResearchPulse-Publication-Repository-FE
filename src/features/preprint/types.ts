@@ -3,6 +3,11 @@ import type { PreprintStatus } from '@/shared/types';
 export type Author = {
   name: string;
   email: string;
+  studentId?: string;
+  role?: 'STUDENT' | 'LECTURER' | 'ADMIN';
+  userId?: string;
+  verificationStatus?: 'VERIFIED' | 'UNREGISTERED' | 'MISSING_IDENTIFIER' | 'INACTIVE';
+  verificationReason?: string;
   institution: string;
   isPrimary?: boolean;
   isCorresponding?: boolean;
@@ -67,6 +72,23 @@ export type StudentPreprint = {
   reviews?: ReviewNote[];
   timeline?: TimelineEvent[];
   versions?: PreprintVersionInfo[];
+};
+
+export type AuthorVerificationStatus = Author['verificationStatus'];
+
+export type PreprintAnalysis = {
+  title?: string | null;
+  abstract?: string | null;
+  doi?: string | null;
+  publicationDate?: string | null;
+  keywords: string[];
+  authors: Array<Author & {
+    verification?: {
+      status: NonNullable<AuthorVerificationStatus>;
+      reason?: string;
+      user?: { id: string; name: string | null; email: string; studentId: string | null; role: 'STUDENT' | 'LECTURER' | 'ADMIN' };
+    };
+  }>;
 };
 
 export type ApiPending = { code: 'API_NOT_AVAILABLE'; message: string };

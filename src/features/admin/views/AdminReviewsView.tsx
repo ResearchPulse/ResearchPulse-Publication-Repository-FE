@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminReview, type AdminPublication } from '../api';
 import { ROUTES } from '@/app/router';
@@ -29,25 +29,27 @@ export function AdminReviewsView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
 
-  useEffect(() => {
-    let active = true;
+  const fetchReviews = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    // Primary: fetch from /api/v1/admin/reviews
-    adminApi
-      .listAllReviews()
-      .then((res) => {
-        if (!active) return;
-        if (res.items && res.items.length > 0) {
-          setReviews(res.items);
-          setLoading(false);
-          return;
-        }
+    try {
+      let items: AdminReview[] = [];
 
-        // Secondary fallback: if reviews list is empty, inspect submissions and gather reviews
-        return adminApi.listSubmissions({ limit: 50 }).then(async (submissionsRes) => {
-          if (!active) return;
+      // Primary attempt: fetch directly from /api/v1/admin/reviews
+      try {
+        const res = await adminApi.listAllReviews();
+        if (res?.items && Array.isArray(res.items) && res.items.length > 0) {
+          items = res.items;
+        }
+      } catch {
+        // Fall through to secondary fallback
+      }
+
+      // Secondary fallback: gather reviews across recent submissions
+      if (items.length === 0) {
+        try {
+          const submissionsRes = await adminApi.listSubmissions({ limit: 50 });
           const pubs = submissionsRes.items || [];
           const allGathered: AdminReview[] = [];
 
@@ -72,25 +74,25 @@ export function AdminReviewsView() {
               }
             })
           );
-
-          if (active) {
-            setReviews(allGathered);
+          items = allGathered;
+        } catch (subErr) {
+          if (items.length === 0) {
+            setError(subErr instanceof Error ? subErr.message : 'Unable to sync reviews from preprints.');
           }
-        });
-      })
-      .catch((err: unknown) => {
-        if (active) {
-          setError(err instanceof Error ? err.message : 'Unable to load reviews.');
         }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      }
 
-    return () => {
-      active = false;
-    };
+      setReviews(items);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to load reviews.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   // Metrics calculation
   const metrics = useMemo(() => {
@@ -165,7 +167,7 @@ export function AdminReviewsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.total}</span>
-            <span className="student-metric-label">Total Assignments</span>
+            <span className="student-metric-label">Total Lecturer Reviews</span>
           </div>
         </div>
 
@@ -245,7 +247,7 @@ export function AdminReviewsView() {
 
         <div className="student-search-sort-group">
           <div className="student-search-box">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -256,6 +258,16 @@ export function AdminReviewsView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="student-search-clear"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
           </div>
 
           <div className="student-sort-box">
@@ -274,16 +286,41 @@ export function AdminReviewsView() {
         </div>
       </div>
 
-      {/* 3. Review Oversight Table Card */}
-      <div className="dashboard-table-card">
+      {/* Graceful soft error notice if sync failed */}
+      {error && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            padding: '12px 18px',
+            marginBottom: '20px',
+            borderRadius: '8px',
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fde68a',
+            color: '#92400e',
+            fontSize: '13px',
+          }}
+        >
+          <span>Notice: Live review API sync is unavailable ({error}). Displaying local records.</span>
+          <button
+            type="button"
+            onClick={fetchReviews}
+            className="dashboard-table__cite-btn"
+            style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600 }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* 3. Review Oversight Academic Table Card */}
+      <div className="dashboard-table-card dashboard-table-wrapper">
         {loading ? (
           <div className="student-loading-box">
             <div className="student-spinner" />
-            <p>Loading peer reviews and faculty assignments…</p>
-          </div>
-        ) : error ? (
-          <div className="student-error" role="alert">
-            Error loading reviews: {error}
+            <p>Loading peer reviews…</p>
           </div>
         ) : filteredReviews.length === 0 ? (
           <div className="student-empty-card" style={{ padding: '48px 24px' }}>
@@ -295,149 +332,123 @@ export function AdminReviewsView() {
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
             </div>
-            <h3>No review assignments found</h3>
+            <h3>No lecturer reviews found</h3>
             <p>
               {searchQuery
                 ? `No reviews matched "${searchQuery}". Try a different keyword.`
                 : activeTab !== 'ALL'
-                ? 'No review assignments match the selected status filter.'
-                : 'No faculty reviews have been assigned to preprints yet. Open a submission to assign lecturers.'}
+                ? 'No lecturer reviews match the selected status filter.'
+                : 'No faculty reviews have been submitted for preprints yet.'}
             </p>
             <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-btn student-btn--primary" style={{ textDecoration: 'none' }}>
               Inspect Submissions →
             </Link>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ minWidth: '280px' }}>Manuscript</th>
-                  <th>Assigned Lecturer</th>
-                  <th>Evaluation Status</th>
-                  <th style={{ minWidth: '220px' }}>Feedback Notes</th>
-                  <th>Submitted / SLA</th>
-                  <th style={{ textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredReviews.map((review) => {
-                  const reviewerInitials =
-                    review.reviewer?.name
-                      ?.split(' ')
-                      .map((w) => w[0])
-                      .filter(Boolean)
-                      .slice(-2)
-                      .join('')
-                      .toUpperCase() || 'LR';
+          <table className="dashboard-table dashboard-table--repository" aria-label="Faculty review records">
+            <thead>
+              <tr>
+                <th style={{ width: '38%' }}>Manuscript</th>
+                <th>Lecturer Reviewer</th>
+                <th>Evaluation Status</th>
+                <th style={{ width: '24%' }}>Feedback Notes</th>
+                <th>Submitted / SLA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredReviews.map((review) => {
+                const reviewerInitials =
+                  review.reviewer?.name
+                    ?.split(' ')
+                    .map((w) => w[0])
+                    .filter(Boolean)
+                    .slice(-2)
+                    .join('')
+                    .toUpperCase() || 'LR';
 
-                  return (
-                    <tr key={review.id}>
-                      {/* Manuscript Column */}
-                      <td>
-                        <div className="title-cell">
-                          <Link
-                            href={`${ROUTES.ADMIN.SUBMISSIONS}/${review.publicationId}`}
-                            style={{
-                              fontWeight: 700,
-                              color: '#0f172a',
-                              textDecoration: 'none',
-                              fontSize: '14px',
-                              lineHeight: 1.4,
-                              display: 'block',
-                              marginBottom: '4px',
-                            }}
-                          >
-                            {review.publication?.title || 'Untitled Manuscript'}
-                          </Link>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span className="version-pill">
-                              {review.publication?.currentVersionLabel || `Round ${review.round}`}
-                            </span>
-                            {review.publication?.uploader?.name && (
-                              <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                                Author: {review.publication.uploader.name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Lecturer Reviewer Column */}
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div className="reviewer-avatar-circle" style={{ width: '32px', height: '32px', fontSize: '11px' }}>
-                            {reviewerInitials}
-                          </div>
-                          <div>
-                            <strong style={{ display: 'block', fontSize: '13.5px', color: '#0f172a' }}>
-                              {review.reviewer?.name || review.reviewer?.email || review.reviewerId}
-                            </strong>
-                            <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                              {review.reviewer?.email || 'Faculty Reviewer'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Evaluation Status Column */}
-                      <td>
-                        {review.recommendation === 'NEEDS_REVISION' && (
-                          <span className="user-badge user-badge--revision">NEEDS REVISION</span>
-                        )}
-                        {review.recommendation === 'PUBLISH' && (
-                          <span className="user-badge user-badge--approved">RECOMMEND PUBLISH</span>
-                        )}
-                        {review.recommendation === 'REJECT' && (
-                          <span className="user-badge user-badge--withdrawn">RECOMMEND REJECT</span>
-                        )}
-                        {!review.recommendation && (
-                          <span className="user-badge user-badge--review">IN PROGRESS</span>
-                        )}
-                      </td>
-
-                      {/* Feedback Notes Column */}
-                      <td>
-                        {review.comment ? (
-                          <span style={{ fontSize: '13px', color: '#334155', fontStyle: 'italic' }}>
-                            &ldquo;{review.comment.length > 60 ? review.comment.slice(0, 60) + '…' : review.comment}&rdquo;
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
-                            Pending reviewer submission
-                          </span>
-                        )}
-                      </td>
-
-                      {/* SLA / Submitted Column */}
-                      <td>
-                        <div style={{ fontSize: '12.5px', color: '#334155' }}>
-                          {formatDate(review.submittedAt || review.updatedAt)}
-                        </div>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>
-                          {review.submittedAt ? 'Evaluation complete' : 'Expected SLA 48–72h'}
+                return (
+                  <tr key={review.id}>
+                    {/* Manuscript Column - Clickable Title */}
+                    <td className="dashboard-table__title-cell">
+                      <Link
+                        href={ROUTES.ADMIN.SUBMISSION_DETAIL(review.publicationId)}
+                        className="dashboard-table__title-link"
+                        title={review.publication?.title || 'Untitled Manuscript'}
+                      >
+                        {review.publication?.title || 'Untitled Manuscript'}
+                      </Link>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        <span className="dashboard-version-pill">
+                          {review.publication?.currentVersionLabel || (review.round ? `v${review.round}.0` : 'v1.0')}
                         </span>
-                      </td>
+                        {review.publication?.uploader?.name && (
+                          <span className="dashboard-table__sha" style={{ fontSize: '11.5px', color: '#64748b' }}>
+                            Author: {review.publication.uploader.name}
+                          </span>
+                        )}
+                      </div>
+                    </td>
 
-                      {/* Action Column */}
-                      <td style={{ textAlign: 'right' }}>
-                        <Link
-                          href={`${ROUTES.ADMIN.SUBMISSIONS}/${review.publicationId}`}
-                          className="student-btn student-btn--secondary student-btn--sm"
-                          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <span>Inspect</span>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="9 18 15 12 9 6" />
-                          </svg>
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    {/* Lecturer Reviewer Column */}
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="reviewer-avatar-circle" style={{ width: '32px', height: '32px', fontSize: '11px' }}>
+                          {reviewerInitials}
+                        </div>
+                        <div>
+                          <strong style={{ display: 'block', fontSize: '13.5px', color: '#0f172a' }}>
+                            {review.reviewer?.name || review.reviewer?.email || review.reviewerId}
+                          </strong>
+                          <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                            {review.reviewer?.email || 'Faculty Reviewer'}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Evaluation Status Column */}
+                    <td>
+                      {review.recommendation === 'NEEDS_REVISION' && (
+                        <span className="user-badge user-badge--revision">NEEDS REVISION</span>
+                      )}
+                      {review.recommendation === 'PUBLISH' && (
+                        <span className="user-badge user-badge--approved">RECOMMEND PUBLISH</span>
+                      )}
+                      {review.recommendation === 'REJECT' && (
+                        <span className="user-badge user-badge--withdrawn">RECOMMEND REJECT</span>
+                      )}
+                      {!review.recommendation && (
+                        <span className="user-badge user-badge--review">IN PROGRESS</span>
+                      )}
+                    </td>
+
+                    {/* Feedback Notes Column */}
+                    <td>
+                      {review.comment ? (
+                        <span style={{ fontSize: '13px', color: '#334155', fontStyle: 'italic' }}>
+                          &ldquo;{review.comment.length > 70 ? review.comment.slice(0, 70) + '…' : review.comment}&rdquo;
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
+                          Pending reviewer submission
+                        </span>
+                      )}
+                    </td>
+
+                    {/* SLA / Submitted Column */}
+                    <td className="dashboard-table__date">
+                      <div style={{ fontSize: '12.5px', color: '#334155', fontWeight: 500 }}>
+                        {formatDate(review.submittedAt || review.updatedAt)}
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        {review.submittedAt ? 'Evaluation complete' : 'Expected SLA 48–72h'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </AdminShell>

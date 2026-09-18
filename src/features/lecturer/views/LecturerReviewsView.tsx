@@ -40,7 +40,7 @@ export function LecturerReviewsView() {
     let active = true;
     lecturerReviewApi.list()
       .then((result) => { if (active) setItems(result.items); })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load assigned manuscripts.'); })
+      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load the review queue.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -140,7 +140,7 @@ export function LecturerReviewsView() {
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="student-sort-select"
             >
-              <option value="UPDATED">Recently Assigned</option>
+              <option value="UPDATED">Recently Updated</option>
               <option value="TITLE">Title (A-Z)</option>
               <option value="STATUS">Review Status</option>
             </select>
@@ -152,7 +152,7 @@ export function LecturerReviewsView() {
       {loading && (
         <div className="student-loading-box">
           <div className="student-spinner" />
-          <p>Loading assigned manuscripts from faculty review queue…</p>
+          <p>Loading manuscripts from the faculty review queue…</p>
         </div>
       )}
 
@@ -177,21 +177,21 @@ export function LecturerReviewsView() {
               ? 'No manuscripts awaiting review'
               : filter === 'COMPLETED'
               ? 'No completed reviews recorded'
-              : 'No manuscripts currently assigned'}
+              : 'No manuscripts currently available for review'}
           </h3>
           <p>
             {searchQuery
-              ? `No assigned manuscripts match "${searchQuery}". Try a different keyword.`
+              ? `No available manuscripts match "${searchQuery}". Try a different keyword.`
               : filter === 'AWAITING_REVIEW'
-              ? 'All assigned reviews have been submitted. Thank you for your thorough peer mentorship!'
-              : 'When the editorial administrator assigns a submitted preprint to your academic profile, it will appear here.'}
+              ? 'All available reviews have been submitted. Thank you for your thorough peer mentorship!'
+              : 'Submitted preprints in REVIEWING status will appear here for faculty review.'}
           </p>
         </div>
       )}
 
       {!loading && !error && visibleItems.length > 0 && (
         <div className="dashboard-table-card dashboard-table-wrapper">
-          <table className="dashboard-table dashboard-table--repository" aria-label="Assigned review manuscripts list">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Available review manuscripts list">
             <thead>
               <tr>
                 <th style={{ width: '48%' }}>Manuscript</th>
@@ -255,7 +255,7 @@ export function LecturerReviewsView() {
                         </div>
                       )}
                       <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                        Assigned {displayDate(item.updatedAt)}
+                        Updated {displayDate(item.updatedAt)}
                       </span>
                     </td>
 

@@ -116,7 +116,7 @@ export function LecturerProfileView() {
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', color: '#16a34a', fontSize: '13px', fontWeight: 700 }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }} />
-              Active · Accepting Assignments
+              Active · Open Review Pool
             </div>
           </div>
         </div>
@@ -151,7 +151,7 @@ export function LecturerProfileView() {
             padding: '20px',
           }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Assigned Queue
+              Review Queue
             </span>
             <div style={{ fontSize: '28px', fontWeight: 800, color: '#0071bc', margin: '8px 0 2px' }}>
               1
@@ -247,7 +247,7 @@ export function LecturerProfileView() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px' }}>
               <div>
                 <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
-                  Assigned Disciplines
+                  Review Disciplines
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {['Artificial Intelligence', 'Machine Learning', 'Natural Language Processing', 'Distributed Computing', 'Formal Methods'].map((tag) => (
@@ -272,7 +272,7 @@ export function LecturerProfileView() {
                 <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Standard Review Window
                 </span>
-                <span style={{ color: '#1e293b' }}>48–72 Hours upon editorial board assignment</span>
+                <span style={{ color: '#1e293b' }}>48–72 Hours after a manuscript enters review</span>
               </div>
 
               <div>

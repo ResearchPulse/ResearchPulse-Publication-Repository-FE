@@ -101,7 +101,7 @@ function withReviewStatus(publication: LecturerPublication, review?: LecturerRev
 
 export const lecturerReviewApi = {
   async list(): Promise<{ items: LecturerReviewItem[]; total: number }> {
-    const publications = await request<LecturerPublication[]>('/?assignedToMe=true&status=REVIEWING&limit=50');
+    const publications = await request<LecturerPublication[]>('/?status=REVIEWING&limit=50');
     const items = publications.map((publication) => withReviewStatus(publication, publication.myReview));
     return { items, total: items.length };
   },

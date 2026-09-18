@@ -301,12 +301,11 @@ export function AdminDashboardView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Editorial submissions list">
             <thead>
               <tr>
-                <th style={{ width: '46%' }}>Manuscript</th>
+                <th>Manuscript</th>
                 <th>Student Author</th>
                 <th>Version</th>
                 <th>Last Updated</th>
                 <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -349,16 +348,6 @@ export function AdminDashboardView() {
                     {/* Status Badge */}
                     <td>
                       {renderStatusBadge(item.status)}
-                    </td>
-
-                    {/* Action Button */}
-                    <td style={{ textAlign: 'right' }}>
-                      <Link
-                        href={ROUTES.ADMIN.SUBMISSION_DETAIL(item.id)}
-                        className="dashboard-table__action-btn"
-                      >
-                        Manage
-                      </Link>
                     </td>
                   </tr>
                 );

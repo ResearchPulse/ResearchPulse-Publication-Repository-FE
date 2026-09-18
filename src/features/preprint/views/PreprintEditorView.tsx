@@ -5,43 +5,24 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudentShell } from '../components';
-import { PreprintApiError, studentPreprintApi } from '../api';
-import type { StudentPreprint } from '../types';
+import { studentPreprintApi } from '../api';
+import type { StudentPreprint, PreprintAnalysis } from '../types';
 
 interface PreprintEditorViewProps {
   id?: string;
-}
-
-type UploadRetryState = {
-  objectKey: string;
-  fileName: string;
-};
-
-function retryStateFromError(error: unknown): UploadRetryState | null {
-  if (!(error instanceof PreprintApiError) || !error.details || typeof error.details !== 'object') {
-    return null;
-  }
-
-  const details = error.details as Record<string, unknown>;
-  if (details.retryable !== true || typeof details.objectKey !== 'string' || typeof details.fileName !== 'string') {
-    return null;
-  }
-
-  return {
-    objectKey: details.objectKey,
-    fileName: details.fileName,
-  };
 }
 
 export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const router = useRouter();
   const { user } = useAuth();
   const isEditing = Boolean(id);
+  const devMockSubmitEnabled = process.env.NEXT_PUBLIC_DEV_MOCK_SUBMIT === 'true';
 
   // Form states
   const [title, setTitle] = useState('');
-  const [discipline, setDiscipline] = useState('Computer Science & Artificial Intelligence');
+  const [discipline, setDiscipline] = useState('');
   const [abstractText, setAbstractText] = useState('');
+  const [doi, setDoi] = useState('');
   const [keywordsInput, setKeywordsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
 
@@ -50,6 +31,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [authors, setAuthors] = useState<StudentPreprint['authors']>([]);
   const [newAuthorName, setNewAuthorName] = useState('');
   const [newAuthorEmail, setNewAuthorEmail] = useState('');
+  const [newAuthorStudentId, setNewAuthorStudentId] = useState('');
+  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER' | 'ADMIN'>('STUDENT');
   const [newAuthorInst, setNewAuthorInst] = useState('');
   const [showAddAuthor, setShowAddAuthor] = useState(false);
 
@@ -63,11 +46,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   // UI status
   const [loadingInitial, setLoadingInitial] = useState(isEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [originalItem, setOriginalItem] = useState<StudentPreprint | null>(null);
-  const [uploadedDraftId, setUploadedDraftId] = useState<string | null>(null);
-  const [retryUpload, setRetryUpload] = useState<UploadRetryState | null>(null);
-  const [retryIntent, setRetryIntent] = useState<'DRAFT' | 'SUBMIT'>('SUBMIT');
+  const [analysis, setAnalysis] = useState<PreprintAnalysis | null>(null);
 
   // Load existing data if editing
   useEffect(() => {
@@ -80,6 +62,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         setTitle(item.titleNeedsInput ? '' : item.title || '');
         if (item.discipline) setDiscipline(item.discipline);
         setAbstractText(item.abstract || '');
+        setDoi(item.doi || '');
         if (item.keywords?.length) setKeywordsInput(item.keywords.join(', '));
         if (item.file_name) {
           setFileName(item.file_name);
@@ -112,17 +95,32 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     }
 
     setFormError(null);
-    setRetryUpload(null);
-    if (!isEditing) setUploadedDraftId(null);
     setFile(selectedFile);
     setFileName(selectedFile.name);
     setFileSize(`${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`);
+    setAnalysis(null);
+    setIsAnalyzing(true);
 
     try {
       const digest = await globalThis.crypto.subtle.digest('SHA-256', await selectedFile.arrayBuffer());
       setFileHash(Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join(''));
     } catch {
       setFileHash(null);
+    }
+
+    try {
+      const result = await studentPreprintApi.analyze(selectedFile);
+      setAnalysis(result);
+      setTitle(result.title || '');
+      setAbstractText(result.abstract || '');
+      setDoi(result.doi || '');
+      setKeywordsInput('');
+      setDiscipline(isEditing ? discipline : '');
+      setAuthors(result.authors);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to analyze the selected PDF.');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -133,18 +131,24 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   };
 
   const addCoAuthor = () => {
-    if (!newAuthorName.trim() || !newAuthorEmail.trim()) return;
+    if (!newAuthorName.trim()) return;
+    if (newAuthorRole === 'STUDENT' && !newAuthorStudentId.trim()) return;
+    if (newAuthorRole !== 'STUDENT' && !newAuthorEmail.trim()) return;
     setAuthors([
       ...authors,
       {
         name: newAuthorName.trim(),
         email: newAuthorEmail.trim(),
+        studentId: newAuthorStudentId.trim() || undefined,
+        role: newAuthorRole,
         institution: newAuthorInst.trim() || 'Institution unavailable',
         isPrimary: false,
       },
     ]);
     setNewAuthorName('');
     setNewAuthorEmail('');
+    setNewAuthorStudentId('');
+    setNewAuthorRole('STUDENT');
     setNewAuthorInst('');
     setShowAddAuthor(false);
   };
@@ -153,12 +157,16 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setAuthors(authors.filter((_, authorIndex) => authorIndex !== index + 1));
   };
 
-  const handleSubmit = async (submitNow: boolean) => {
-    setFormError(null);
-    setRetryIntent(submitNow ? 'SUBMIT' : 'DRAFT');
+  const handleSubmit = async (submitNow: boolean, useMockSubmit = false) => {
+    if (isAnalyzing) {
+      setFormError('Please wait for GROBID extraction to finish before saving or submitting.');
+      return;
+    }
 
-    if (submitNow) {
-      if (!fileName) {
+    setFormError(null);
+
+    if (submitNow && !useMockSubmit) {
+      if (!isEditing && !file) {
         setFormError('A PDF manuscript file is required before submitting for faculty review.');
         return;
       }
@@ -168,93 +176,94 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       }
     }
 
-    const existingPublicationId = id || uploadedDraftId;
-    if (!isEditing && !existingPublicationId && !file && !retryUpload) {
+    if (!isEditing && !file) {
       setFormError('Attach a PDF manuscript before saving this draft.');
       return;
+    }
+
+    const basePrimaryAuthor = {
+      name: primaryAuthorName,
+      email: primaryAuthorEmail,
+      studentId: user?.studentId || '',
+      role: 'STUDENT' as const,
+      institution: primaryAuthorInst,
+      isPrimary: true,
+      isCorresponding: true,
+    };
+    const sourceAuthors = authors.length > 0 ? authors : [basePrimaryAuthor];
+    const uniqueAuthors = sourceAuthors.filter((author, index, list) => (
+      list.findIndex((candidate) => (
+        (candidate.email && author.email && candidate.email.toLowerCase() === author.email.toLowerCase())
+          || candidate.name.trim().toLowerCase() === author.name.trim().toLowerCase()
+      )) === index
+    ));
+
+    if (submitNow) {
+      if (!useMockSubmit) {
+        const incompleteAuthors = uniqueAuthors.filter((author) => {
+        const role = author.role || (author.studentId ? 'STUDENT' : 'LECTURER');
+        return role === 'STUDENT' ? !author.studentId?.trim() : !author.email?.trim();
+      });
+      if (incompleteAuthors.length > 0) {
+        setFormError('Cần đăng ký thành viên');
+        return;
+      }
+      }
+      if (!discipline.trim()) {
+        setFormError('Research Discipline / Field is required before submitting.');
+        return;
+      }
+      if (!title.trim()) {
+        setFormError('Manuscript title is required before submitting.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
     try {
       const keywords = keywordsInput.split(',').map((keyword) => keyword.trim()).filter(Boolean);
-      let publicationId = existingPublicationId || undefined;
-      let uploadedPublication: StudentPreprint | null = null;
+      const metadata = {
+        title: title.trim() || undefined,
+        abstract: abstractText.trim() || undefined,
+        doi: doi.trim() || undefined,
+        discipline: discipline.trim() || undefined,
+        keywords,
+        authors: uniqueAuthors.map((author, index) => ({
+          name: author.name.trim(),
+          email: author.email?.trim() || undefined,
+          studentId: author.studentId?.trim() || undefined,
+          role: author.role || (author.studentId ? 'STUDENT' as const : 'LECTURER' as const),
+          affiliation: author.institution?.trim() || undefined,
+          orderIndex: index,
+        })),
+      };
 
-      if (!isEditing && !publicationId) {
-        uploadedPublication = retryUpload
-          ? await studentPreprintApi.retry(retryUpload.objectKey, retryUpload.fileName)
-          : await studentPreprintApi.upload(file!);
-        publicationId = uploadedPublication.id;
-        setUploadedDraftId(publicationId);
-        setRetryUpload(null);
+      if (!isEditing) {
+        const uploadedPublication = await studentPreprintApi.upload(file!, submitNow && !useMockSubmit ? 'SUBMIT' : 'DRAFT', metadata);
+        if (useMockSubmit) await studentPreprintApi.mockSubmit(uploadedPublication.id);
+        router.push(`/student/my-preprints/${uploadedPublication.id}`);
+        router.refresh();
+        return;
+      }
+
+      const publicationId = id!;
+      if (file) {
+        const uploadedPublication = await studentPreprintApi.uploadRevision(publicationId, file, changeSummary.trim() || undefined);
         setFileName(uploadedPublication.file_name || fileName);
         setFileSize(uploadedPublication.file_size || fileSize);
-        setTitle((current) => current.trim() || (uploadedPublication?.titleNeedsInput ? '' : uploadedPublication?.title || ''));
-        setAbstractText((current) => current.trim() || uploadedPublication?.abstract || '');
-        setKeywordsInput((current) => current.trim() || uploadedPublication?.keywords.join(', ') || '');
-        setAuthors((current) => current.length > 0 ? current : uploadedPublication?.authors || []);
+        setFileHash(uploadedPublication.sha256 || fileHash);
       }
 
-      if (publicationId) {
-        if (isEditing && file) {
-          uploadedPublication = await studentPreprintApi.uploadRevision(publicationId, file, changeSummary.trim() || undefined);
-          setFileName(uploadedPublication.file_name || fileName);
-          setFileSize(uploadedPublication.file_size || fileSize);
-          setFileHash(uploadedPublication.sha256 || fileHash);
-          setRetryUpload(null);
-        }
-
-        const effectiveTitle = title.trim() || (uploadedPublication?.titleNeedsInput ? '' : uploadedPublication?.title?.trim() || '');
-        if (submitNow && !effectiveTitle) {
-          setFormError('GROBID could not extract a manuscript title. Please enter a title before submitting.');
-          return;
-        }
-
-        const effectiveAbstract = abstractText.trim() || uploadedPublication?.abstract?.trim() || '';
-        const effectiveKeywords = keywordsInput.trim() ? keywords : uploadedPublication?.keywords || keywords;
-        const basePrimaryAuthor = {
-          name: primaryAuthorName,
-          email: primaryAuthorEmail,
-          institution: primaryAuthorInst,
-          isPrimary: true,
-          isCorresponding: true,
-        };
-        const sourceAuthors = isEditing
-          ? (authors.length > 0 ? authors : [basePrimaryAuthor])
-          : [...(uploadedPublication?.authors?.length ? uploadedPublication.authors : [basePrimaryAuthor]), ...authors];
-        const uniqueAuthors = sourceAuthors.filter((author, index, list) => (
-          list.findIndex((candidate) => (
-            (candidate.email && author.email && candidate.email === author.email)
-              || candidate.name.toLowerCase() === author.name.toLowerCase()
-          )) === index
-        ));
-
-        await studentPreprintApi.update(publicationId, {
-          ...(effectiveTitle ? { title: effectiveTitle } : {}),
-          ...(effectiveAbstract ? { abstract: effectiveAbstract } : {}),
-          keywords: effectiveKeywords,
-          ...(uniqueAuthors.length > 0
-            ? { authors: uniqueAuthors.map((author, index) => ({
-              name: author.name,
-              email: author.email || undefined,
-              affiliation: author.institution || undefined,
-              orderIndex: index,
-            })) }
-            : {}),
-        });
-        if (submitNow) await studentPreprintApi.submit(publicationId);
+      await studentPreprintApi.update(publicationId, metadata);
+      if (submitNow) {
+        if (useMockSubmit) await studentPreprintApi.mockSubmit(publicationId);
+        else await studentPreprintApi.submit(publicationId);
       }
 
-      router.push(publicationId ? `/student/my-preprints/${publicationId}` : '/student/my-preprints');
+      router.push(`/student/my-preprints/${publicationId}`);
       router.refresh();
     } catch (error) {
-      const retryInfo = retryStateFromError(error);
-      if (retryInfo) {
-        setRetryUpload(retryInfo);
-        setFormError(`${error instanceof Error ? error.message : 'Publication processing failed.'} The PDF is already stored; retry processing without uploading it again.`);
-      } else {
-        setFormError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
-      }
+      setFormError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
     } finally {
       setIsSubmitting(false);
     }
@@ -263,9 +272,11 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
   const latestReview = originalItem?.reviews?.[0];
 
-  const primaryAuthorName = originalItem?.authors?.[0]?.name || user?.name || user?.email?.split('@')[0] || 'Logged-in Student';
-  const primaryAuthorEmail = originalItem?.authors?.[0]?.email || user?.email || 'student@university.edu.vn';
-  const primaryAuthorInst = originalItem?.authors?.[0]?.institution || 'University Research Faculty';
+  const primaryAuthor = authors[0] || originalItem?.authors?.[0];
+  const primaryAuthorName = primaryAuthor?.name || user?.name || user?.email?.split('@')[0] || 'Logged-in Student';
+  const primaryAuthorEmail = primaryAuthor?.email || user?.email || 'student@university.edu.vn';
+  const primaryAuthorStudentId = primaryAuthor?.studentId || user?.studentId || '';
+  const primaryAuthorInst = primaryAuthor?.institution || 'University Research Faculty';
   const primaryInitials = primaryAuthorName
     .split(' ')
     .map((p) => p[0])
@@ -325,16 +336,6 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               <span>{formError}</span>
-              {retryUpload && (
-                <button
-                  type="button"
-                  className="student-btn student-btn--secondary student-error-banner__retry"
-                  onClick={() => void handleSubmit(retryIntent === 'SUBMIT')}
-                  disabled={isSubmitting}
-                >
-                  Retry processing
-                </button>
-              )}
             </div>
           )}
 
@@ -494,7 +495,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <span className="student-author-pill">Corresponding</span>
                   </div>
                   <span className="student-author-meta">
-                    {primaryAuthorEmail} • {primaryAuthorInst}
+                    {primaryAuthorEmail} • {primaryAuthorStudentId || 'MSSV chưa nhập'} • {primaryAuthorInst}
+                  </span>
+                  <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'MISSING_IDENTIFIER'}`}>
+                    {authors[0]?.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
                   </span>
                 </div>
               </div>
@@ -508,7 +512,12 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       <strong>{ca.name}</strong>
                       <span className="student-author-pill student-author-pill--co">Co-Author</span>
                     </div>
-                    <span className="student-author-meta">{ca.email} • {ca.institution}</span>
+                    <span className="student-author-meta">
+                      {ca.email || 'Email chưa nhập'} • {ca.studentId || 'MSSV chưa nhập'} • {ca.institution}
+                    </span>
+                    <span className={`student-author-verification student-author-verification--${ca.verificationStatus || 'MISSING_IDENTIFIER'}`}>
+                      {ca.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -536,10 +545,26 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <input
                       type="email"
                       className="student-input"
-                      placeholder="University Email"
+                      placeholder="University Email (lecturer/admin)"
                       value={newAuthorEmail}
                       onChange={(e) => setNewAuthorEmail(e.target.value)}
                     />
+                    <input
+                      type="text"
+                      className="student-input"
+                      placeholder="MSSV (student)"
+                      value={newAuthorStudentId}
+                      onChange={(e) => setNewAuthorStudentId(e.target.value)}
+                    />
+                    <select
+                      className="student-select"
+                      value={newAuthorRole}
+                      onChange={(e) => setNewAuthorRole(e.target.value as 'STUDENT' | 'LECTURER' | 'ADMIN')}
+                    >
+                      <option value="STUDENT">Student author</option>
+                      <option value="LECTURER">Lecturer author</option>
+                      <option value="ADMIN">Admin author</option>
+                    </select>
                     <input
                       type="text"
                       className="student-input"
@@ -585,14 +610,19 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </div>
 
               {/* Extraction notice */}
-              {fileName ? (
+              {isAnalyzing ? (
+                <div className="student-extraction-notice student-extraction-notice--waiting">
+                  <span className="student-spinner" aria-hidden="true" />
+                  <span><strong>Analyzing PDF with GROBID…</strong> No file is stored yet. Save and submit will be available after the analysis finishes.</span>
+                </div>
+              ) : analysis ? (
                 <div className="student-extraction-notice student-extraction-notice--success">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                   <span>
-                    <strong>GROBID extraction ready:</strong> PDF <em>{fileName}</em> is selected. Review or edit the extracted metadata below before proceeding.
+                    <strong>GROBID extraction ready:</strong> PDF <em>{fileName}</em> is held in this browser only. Review and edit the extracted metadata below before saving or submitting.
                   </span>
                 </div>
               ) : (
@@ -603,7 +633,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <line x1="12" y1="8" x2="12.01" y2="8" />
                   </svg>
                   <span>
-                    <strong>Waiting for PDF upload:</strong> Attach your manuscript in Step 01 to automatically parse title, abstract, and keywords via GROBID, or enter them manually below.
+                    <strong>Waiting for PDF analysis:</strong> Select a manuscript to extract title, abstract, DOI, date, and author candidates. Discipline and keywords are entered by you.
                   </span>
                 </div>
               )}
@@ -632,6 +662,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   value={discipline}
                   onChange={(e) => setDiscipline(e.target.value)}
                 >
+                  <option value="">Select a research discipline</option>
                   <option value="Computer Science & Artificial Intelligence">Computer Science & Artificial Intelligence</option>
                   <option value="Information Technology & Software Engineering">Information Technology & Software Engineering</option>
                   <option value="Data Science & Machine Learning">Data Science & Machine Learning</option>
@@ -687,24 +718,36 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <button
                   type="button"
                   onClick={() => handleSubmit(false)}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isAnalyzing}
                   className="student-btn student-btn--secondary"
                 >
-                  {isSubmitting ? 'Saving…' : 'Save as Draft'}
+                  {isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Saving…' : 'Save as Draft'}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleSubmit(true)}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isAnalyzing}
                   className="student-btn student-btn--primary student-btn--shimmer"
                 >
-                  <span>{isSubmitting ? 'Submitting…' : isRevisionMode ? 'Submit Revised Version' : 'Submit for Faculty Review'}</span>
+                  <span>{isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Submitting…' : isRevisionMode ? 'Submit Revised Version' : 'Submit for Faculty Review'}</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="5" y1="12" x2="19" y2="12" />
                     <polyline points="12 5 19 12 12 19" />
                   </svg>
                 </button>
+
+                {devMockSubmitEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit(true, true)}
+                    disabled={isSubmitting || isAnalyzing}
+                    className="student-btn student-btn--secondary"
+                    title="Development-only: bypass author account verification"
+                  >
+                    {isSubmitting ? 'Mock submittingâ€¦' : 'Mock submit (local)'}
+                  </button>
+                )}
               </div>
             </div>
           </form>

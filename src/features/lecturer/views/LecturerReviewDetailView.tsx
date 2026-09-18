@@ -74,7 +74,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
     <LecturerShell active="reviews" title="Review manuscript">
       <Link className="lecturer-back-link" href={ROUTES.LECTURER.REVIEWS}>← Back to review queue</Link>
       <PageHeader
-        eyebrow="Assigned manuscript"
+        eyebrow="Available manuscript"
         title={title}
         description={`${uploader} · ${currentVersion?.versionLabel || 'Current version'} · ${detail.publication.status}`}
       />
@@ -84,7 +84,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
       <div className="lecturer-detail-grid">
         <Panel className="lecturer-pdf-panel">
           <div className="lecturer-panel-heading"><div><span className="lecturer-panel-eyebrow">Manuscript PDF</span><h2>{currentVersion?.fileName || 'Current PDF'}</h2></div>{downloadUrl ? <a className="ui-button ui-button--secondary" href={downloadUrl} target="_blank" rel="noreferrer">Open PDF</a> : null}</div>
-          {downloadUrl ? <iframe className="lecturer-pdf-viewer" src={downloadUrl} title={`PDF preview for ${title}`} /> : <div className="lecturer-pdf-empty">PDF preview is not available for this assignment.</div>}
+          {downloadUrl ? <iframe className="lecturer-pdf-viewer" src={downloadUrl} title={`PDF preview for ${title}`} /> : <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>}
           <div className="lecturer-file-meta"><span>{formatFileSize(currentVersion?.fileSize ?? detail.publication.fileSize)}</span><span>{currentVersion?.sha256 ? `SHA-256 ${currentVersion.sha256.slice(0, 12)}…` : 'Hash unavailable'}</span></div>
         </Panel>
         <div className="lecturer-detail-side">
