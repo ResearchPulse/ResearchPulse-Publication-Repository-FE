@@ -39,6 +39,41 @@ function LoginForm() {
 
       if (data.user.role === 'ADMIN') {
         router.push('/admin/dashboard');
+      } else if (data.user.role === 'LECTURER') {
+        router.push('/lecturer/reviews');
+      } else {
+        router.push(nextPath);
+      }
+    } catch {
+      setError('Không thể kết nối đến máy chủ xác thực.');
+      setLoading(false);
+    }
+  };
+
+  const handleQuickLogin = async (email: string) => {
+    setIdentifier(email);
+    setPassword('Password@123');
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: email, password: 'Password@123' }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Đăng nhập không thành công.');
+        setLoading(false);
+        return;
+      }
+
+      if (data.user.role === 'ADMIN') {
+        router.push('/admin/dashboard');
+      } else if (data.user.role === 'LECTURER') {
+        router.push('/lecturer/reviews');
       } else {
         router.push(nextPath);
       }
@@ -57,6 +92,97 @@ function LoginForm() {
         <p style={{ fontSize: 13, color: '#647381', margin: 0, lineHeight: 1.5 }}>
           Nhập Tên đăng nhập học vụ (hoặc Email) cùng mật khẩu để tiếp tục.
         </p>
+      </div>
+
+      {/* 3 Nút Đăng nhập nhanh để Test (Dev Quick Test) */}
+      <div style={{
+        marginBottom: 20,
+        padding: '12px 14px',
+        background: '#f8fafc',
+        borderRadius: 10,
+        border: '1px dashed #cbd5e1',
+        textAlign: 'left'
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+          ⚡ Đăng nhập nhanh để test:
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('admin@researchpulse.com')}
+            disabled={loading}
+            style={{
+              padding: '7px 8px',
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#0f172a',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: 6,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
+            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+          >
+            👑 Admin
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('lecturer@researchpulse.com')}
+            disabled={loading}
+            style={{
+              padding: '7px 8px',
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#0f172a',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: 6,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
+            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+          >
+            🎓 Lecturer
+          </button>
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('student@researchpulse.com')}
+            disabled={loading}
+            style={{
+              padding: '7px 8px',
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#0f172a',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: 6,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
+            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+          >
+            📖 Student
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -160,7 +286,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="pl-page auth-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
+    <div className="public-landing pl-page auth-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
       {/* Hiệu ứng Ambient Orbs nền phát sáng mờ ảo */}
       <div className="auth-ambient-glow auth-ambient-glow--1" />
       <div className="auth-ambient-glow auth-ambient-glow--2" />
@@ -169,11 +295,7 @@ export default function LoginPage() {
       <header className="pl-header" style={{ position: 'relative', zIndex: 10 }}>
         <div className="pl-container pl-header__inner">
           <Link href="/" className="pl-brand" aria-label="Trang chủ Hyperdata">
-            <HyperdataLogo size={32} />
-            <div className="pl-brand__text">
-              <span className="pl-brand__title">ResearchPulse</span>
-              <span className="pl-brand__sub">Publication Repository</span>
-            </div>
+            <HyperdataLogo size={34} />
           </Link>
 
           <nav className="pl-nav" aria-label="Điều hướng">
@@ -183,12 +305,13 @@ export default function LoginPage() {
           </nav>
 
           <div className="pl-header__actions">
-            <Link href="/#register-section" className="pl-btn pl-btn--primary">
+            <Link href="/#register-section" className="pl-header-action pl-header-action--primary">
               Đăng ký sinh viên
             </Link>
           </div>
         </div>
       </header>
+
 
       {/* Body: 2 Cột chuẩn như Landing Page Hero */}
       <main className="pl-hero" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '60px 0', position: 'relative', zIndex: 1 }}>

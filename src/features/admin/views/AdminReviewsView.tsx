@@ -154,7 +154,7 @@ export function AdminReviewsView() {
       {/* 1. Metrics Grid (Matching Student & Lecturer Dashboard) */}
       <div className="student-metrics-grid" style={{ marginBottom: '28px' }}>
         <div className="student-metric-card">
-          <div className="student-metric-card__icon" style={{ background: '#e0f2fe', color: '#0071bc' }}>
+          <div className="student-metric-icon" style={{ background: '#e0f2fe', color: '#0071bc' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -163,49 +163,49 @@ export function AdminReviewsView() {
               <polyline points="10 9 9 9 8 9" />
             </svg>
           </div>
-          <div className="student-metric-card__body">
-            <span className="student-metric-card__value">{metrics.total}</span>
-            <span className="student-metric-card__label">Total Assignments</span>
+          <div className="student-metric-info">
+            <span className="student-metric-value">{metrics.total}</span>
+            <span className="student-metric-label">Total Assignments</span>
           </div>
         </div>
 
         <div className="student-metric-card">
-          <div className="student-metric-card__icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+          <div className="student-metric-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
           </div>
-          <div className="student-metric-card__body">
-            <span className="student-metric-card__value">{metrics.pending}</span>
-            <span className="student-metric-card__label">Awaiting Feedback</span>
+          <div className="student-metric-info">
+            <span className="student-metric-value">{metrics.pending}</span>
+            <span className="student-metric-label">Awaiting Feedback</span>
           </div>
         </div>
 
         <div className="student-metric-card">
-          <div className="student-metric-card__icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+          <div className="student-metric-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
           </div>
-          <div className="student-metric-card__body">
-            <span className="student-metric-card__value" style={{ color: '#d97706' }}>{metrics.needsRevision}</span>
-            <span className="student-metric-card__label">Revisions Requested</span>
+          <div className="student-metric-info">
+            <span className="student-metric-value" style={{ color: '#d97706' }}>{metrics.needsRevision}</span>
+            <span className="student-metric-label">Revisions Requested</span>
           </div>
         </div>
 
         <div className="student-metric-card">
-          <div className="student-metric-card__icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
+          <div className="student-metric-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <div className="student-metric-card__body">
-            <span className="student-metric-card__value" style={{ color: '#16a34a' }}>{metrics.publish}</span>
-            <span className="student-metric-card__label">Publish Recommended</span>
+          <div className="student-metric-info">
+            <span className="student-metric-value" style={{ color: '#16a34a' }}>{metrics.publish}</span>
+            <span className="student-metric-label">Publish Recommended</span>
           </div>
         </div>
       </div>
