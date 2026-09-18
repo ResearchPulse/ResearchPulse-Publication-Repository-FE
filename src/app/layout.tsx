@@ -1,5 +1,6 @@
 import '@hyperdata/design-system/styles.css';
 import '@/features/admin/styles/admin-layout.css';
+import '@/features/lecturer/styles/lecturer-layout.css';
 import '@/features/preprint/styles/preprint.css';
 import '@/features/preprint/styles/paper-student.css';
 import '@/features/landing/styles/paper-landing.css';

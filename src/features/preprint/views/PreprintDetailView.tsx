@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StudentShell } from '../components';
 import { usePreprintDetail } from '../hooks';
@@ -10,7 +10,7 @@ interface PreprintDetailViewProps {
   id: string;
 }
 
-type TabType = 'OVERVIEW' | 'DOCUMENT' | 'REVIEWS' | 'TIMELINE';
+type TabType = 'OVERVIEW' | 'REVIEWS' | 'TIMELINE';
 
 export function PreprintDetailView({ id }: PreprintDetailViewProps) {
   const { item, loading, error } = usePreprintDetail(id);
@@ -23,6 +23,27 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
     setCopiedDoi(true);
     setTimeout(() => setCopiedDoi(false), 2000);
   };
+
+  // Deduplicate institutions for the author byline
+  const { uniqueAffiliations, authorAffiliationIndices } = useMemo(() => {
+    if (!item?.authors || item.authors.length === 0) {
+      return { uniqueAffiliations: [], authorAffiliationIndices: [] };
+    }
+    const affiliations: string[] = [];
+    const indices: number[] = [];
+
+    item.authors.forEach((author) => {
+      const inst = author.institution?.trim() || 'Independent Scholar';
+      let idx = affiliations.indexOf(inst);
+      if (idx === -1) {
+        affiliations.push(inst);
+        idx = affiliations.length - 1;
+      }
+      indices.push(idx + 1);
+    });
+
+    return { uniqueAffiliations: affiliations, authorAffiliationIndices: indices };
+  }, [item?.authors]);
 
   const renderStatusBadge = (status: PreprintStatus) => {
     switch (status) {
@@ -74,48 +95,8 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
   return (
     <StudentShell
-      title={item ? item.title : 'Manuscript Record'}
-      kicker={item?.discipline ? `${item.discipline} • Manuscript Record` : 'Manuscript Record'}
-      breadcrumbs={[
-        { label: 'Preprint Portal', href: '/' },
-        { label: 'My Manuscripts', href: '/student/my-preprints' },
-        { label: item ? `v${item.current_version}` : 'Details' },
-      ]}
-      actions={
-        item && (
-          <div className="student-detail-top-actions">
-            {item.status === 'NEEDS_REVISION' && (
-              <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-                <span>Revise Manuscript</span>
-              </Link>
-            )}
-
-            {item.status === 'DRAFT' && !item.revision_required && (
-              <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--primary">
-                <span>Continue Draft →</span>
-              </Link>
-            )}
-
-            {item.status === 'DRAFT' && item.revision_required && (
-              <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
-                <span>Submit Revision →</span>
-              </Link>
-            )}
-
-            <Link href={`/student/my-preprints/${item.id}/versions`} className="student-btn student-btn--secondary">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 14 14" />
-              </svg>
-              <span>Versions ({item.versions?.length || 1})</span>
-            </Link>
-          </div>
-        )
-      }
+      title="Manuscript Details"
+      showStandardHeader={false}
     >
       {loading && (
         <div className="student-loading-box">
@@ -132,32 +113,116 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
       {item && (
         <div className="student-detail-wrap">
-          {/* Metadata Bar */}
-          <div className="student-detail-meta-bar">
-            <div className="student-detail-badges">
-              {renderStatusBadge(item.status)}
-              <span className="student-version-tag">Version {item.current_version}</span>
-              {item.discipline && <span className="student-discipline-tag">{item.discipline}</span>}
-              {item.doi && (
-                <button type="button" onClick={handleCopyDoi} className="student-doi-pill" title="Click to copy DOI">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  <span>DOI: {item.doi}</span>
-                  {copiedDoi && <span className="student-doi-copied">Copied!</span>}
-                </button>
-              )}
+          {/* 1. Hero Article Header */}
+          <section className="student-paper-hero">
+            <div className="student-paper-hero__top">
+              <div className="student-paper-hero__eyebrow">
+                <span className="student-paper-hero__kicker">PREPRINT MANUSCRIPT</span>
+                <span className="student-paper-hero__dot">•</span>
+                <span className="student-paper-hero__discipline">{item.discipline || 'General Research'}</span>
+              </div>
             </div>
 
-            <div className="student-detail-timestamp">
-              <span>Updated on {new Date(item.updated_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+            <h1 className="student-paper-hero__title">{item.title}</h1>
+
+            {/* Authors Byline */}
+            {item.authors && item.authors.length > 0 && (
+              <div className="student-paper-hero__byline">
+                <div className="student-paper-hero__authors-wrap">
+                  {item.authors.map((author, index) => {
+                    const affIdx = authorAffiliationIndices[index] || 1;
+                    return (
+                      <span key={index} className="student-paper-hero__author">
+                        <span className="student-paper-hero__author-name">{author.name}</span>
+                        <sup className="student-paper-hero__author-sup">{affIdx}</sup>
+                        {author.isPrimary && <span className="student-author-tag student-author-tag--primary">Primary</span>}
+                        {author.isCorresponding && (
+                          <span className="student-author-tag student-author-tag--corr" title={`Corresponding Author: ${author.email}`}>
+                            ✉
+                          </span>
+                        )}
+                        {index < item.authors.length - 1 && <span className="student-paper-hero__sep">,</span>}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                {/* Deduplicated Affiliation Footnotes */}
+                {uniqueAffiliations.length > 0 && (
+                  <div className="student-paper-hero__affiliations">
+                    {uniqueAffiliations.map((aff, idx) => (
+                      <span key={idx} className="student-paper-hero__aff-item">
+                        <sup>{idx + 1}</sup> {aff}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Metadata Strip & Quick Actions */}
+            <div className="student-paper-hero__meta-row">
+              <div className="student-paper-hero__badges">
+                {renderStatusBadge(item.status)}
+                <span className="student-version-tag">Version {item.current_version}</span>
+                <span className="student-license-tag">CC BY 4.0</span>
+                {item.doi && (
+                  <button type="button" onClick={handleCopyDoi} className="student-doi-pill" title="Click to copy DOI">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    <span>DOI: {item.doi}</span>
+                    {copiedDoi && <span className="student-doi-copied">Copied!</span>}
+                  </button>
+                )}
+                <span className="student-paper-hero__date">
+                  Updated on {new Date(item.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+
+              <div className="student-paper-hero__actions">
+                {item.download_url ? (
+                  <a href={item.download_url} target="_blank" rel="noreferrer" className="student-btn student-btn--primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Download PDF</span>
+                  </a>
+                ) : (
+                  <button type="button" className="student-btn student-btn--secondary" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                    <span>PDF Processing</span>
+                  </button>
+                )}
+
+                <Link href={`/student/my-preprints/${item.id}/versions`} className="student-btn student-btn--ghost">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 14 14" />
+                  </svg>
+                  <span>Versions ({item.versions?.length || 1})</span>
+                </Link>
+
+                {item.status === 'NEEDS_REVISION' && (
+                  <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
+                    <span>Revise Manuscript →</span>
+                  </Link>
+                )}
+
+                {item.status === 'DRAFT' && (
+                  <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--primary">
+                    <span>Continue Draft →</span>
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
+          </section>
 
           {/* If Needs Revision: Alert Banner */}
           {item.status === 'NEEDS_REVISION' && item.reviews?.[0] && (
-            <div className="student-revision-banner student-revision-banner--detail">
+            <div className="student-revision-banner student-revision-banner--detail" style={{ marginBottom: '24px' }}>
               <div className="student-revision-banner__header">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -191,13 +256,6 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             </button>
             <button
               type="button"
-              className={`student-detail-tab ${activeTab === 'DOCUMENT' ? 'student-detail-tab--active' : ''}`}
-              onClick={() => setActiveTab('DOCUMENT')}
-            >
-              Manuscript Document
-            </button>
-            <button
-              type="button"
               className={`student-detail-tab ${activeTab === 'REVIEWS' ? 'student-detail-tab--active' : ''}`}
               onClick={() => setActiveTab('REVIEWS')}
             >
@@ -214,9 +272,9 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
           {/* Tab 1: Overview & Metadata */}
           {activeTab === 'OVERVIEW' && (
-            <div className="student-tab-panel">
+            <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               <div className="student-panel-grid">
-                {/* Left Column: Abstract & Keywords */}
+                {/* Left Column: Abstract & Keywords & Document Box */}
                 <div className="student-panel-main">
                   <section className="student-section-card">
                     <h3 className="student-section-card__title">Abstract</h3>
@@ -232,28 +290,6 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                         ))}
                       </div>
                     )}
-                  </section>
-
-                  {/* Authors List */}
-                  <section className="student-section-card">
-                    <h3 className="student-section-card__title">Contributing Authors</h3>
-                    <div className="student-authors-table">
-                      {item.authors?.map((author, index) => (
-                        <div key={index} className="student-authors-table-row">
-                          <div className="student-author-avatar student-author-avatar--sm">
-                            {author.name.split(' ').map((n) => n[0]).slice(0, 2).join('')}
-                          </div>
-                          <div className="student-author-cell-info">
-                            <div className="student-author-cell-name">
-                              <strong>{author.name}</strong>
-                              {author.isPrimary && <span className="student-author-pill">Primary</span>}
-                              {author.isCorresponding && <span className="student-author-pill student-author-pill--co">Corresponding</span>}
-                            </div>
-                            <span className="student-author-cell-meta">{author.email} • {author.institution}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </section>
                 </div>
 
@@ -272,7 +308,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                       </div>
                       <div className="student-meta-item">
                         <span className="student-meta-key">Discipline:</span>
-                        <span className="student-meta-val">{item.discipline || 'Unassigned'}</span>
+                        <span className="student-meta-val">{item.discipline || 'General'}</span>
                       </div>
                       {item.supervisor && (
                         <div className="student-meta-item">
@@ -290,31 +326,14 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                           <span className="student-meta-val student-meta-val--code">{item.doi}</span>
                         </div>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Actions Box */}
-                  <div className="student-meta-card">
-                    <h4 className="student-meta-card__title">Author Actions</h4>
-                    <div className="student-actions-column">
-                      {item.status === 'NEEDS_REVISION' && (
-                        <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning student-btn--block">
-                          Submit Revision
-                        </Link>
+                      {item.sha256 && (
+                        <div className="student-meta-item">
+                          <span className="student-meta-key">SHA-256:</span>
+                          <span className="student-meta-val student-meta-val--code" title={item.sha256}>
+                            {item.sha256.substring(0, 16)}…
+                          </span>
+                        </div>
                       )}
-                      {item.status === 'DRAFT' && !item.revision_required && (
-                        <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--primary student-btn--block">
-                          Edit Manuscript Draft
-                        </Link>
-                      )}
-                      {item.status === 'DRAFT' && item.revision_required && (
-                        <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning student-btn--block">
-                          Submit Revision
-                        </Link>
-                      )}
-                      <button type="button" onClick={() => setActiveTab('DOCUMENT')} className="student-btn student-btn--secondary student-btn--block">
-                        Download PDF File
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -322,71 +341,9 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             </div>
           )}
 
-          {/* Tab 2: Manuscript Document */}
-          {activeTab === 'DOCUMENT' && (
-            <div className="student-tab-panel">
-              <div className="student-document-card">
-                <div className="student-document-header">
-                  <div className="student-document-icon">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                    </svg>
-                  </div>
-                  <div className="student-document-info">
-                    <h3>{item.file_name || `${item.title.substring(0, 30)}.pdf`}</h3>
-                    <div className="student-document-meta">
-                      <span>{item.file_size || 'Size unavailable'}</span>
-                      <span className="student-separator">•</span>
-                      <span>PDF Document</span>
-                      <span className="student-separator">•</span>
-                      <span className="student-hash-verified">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        SHA-256 Timestamp Verified
-                      </span>
-                    </div>
-                  </div>
-                  <div className="student-document-action">
-                    {item.download_url ? (
-                    <a href={item.download_url} target="_blank" rel="noreferrer" className="student-btn student-btn--primary">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      <span>Download PDF</span>
-                    </a>
-                    ) : (
-                      <button type="button" className="student-btn student-btn--secondary" disabled>
-                        PDF unavailable
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="student-document-hash-box">
-                  <div className="student-hash-key">Cryptographic SHA-256 Checksum:</div>
-                  {item.sha256 ? (
-                    <code className="student-hash-code">{item.sha256}</code>
-                  ) : (
-                    <p className="student-hash-note">No checksum is available in the publication API response.</p>
-                  )}
-                  <p className="student-hash-note">
-                    The checksum is shown only when it is returned by the publication service.
-                  </p>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-          {/* Tab 3: Faculty Mentorship & Reviews */}
+          {/* Tab 2: Faculty Mentorship & Reviews */}
           {activeTab === 'REVIEWS' && (
-            <div className="student-tab-panel">
+            <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               {item.reviews && item.reviews.length > 0 ? (
                 <div className="student-reviews-feed">
                   {item.reviews.map((rev) => (
@@ -467,7 +424,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
           {/* Tab 4: Provenance & Timeline */}
           {activeTab === 'TIMELINE' && (
-            <div className="student-tab-panel">
+            <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               <div className="student-timeline-card">
                 <h3 className="student-timeline-title">Audit Trail &amp; Provenance Record</h3>
                 <p className="student-timeline-desc">
@@ -507,7 +464,6 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
               </div>
             </div>
           )}
-
         </div>
       )}
     </StudentShell>

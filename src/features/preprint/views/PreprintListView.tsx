@@ -34,6 +34,11 @@ export function PreprintListView() {
     return { total, underReview, needsRevision, approved, drafts };
   }, [items]);
 
+  // Needs revision item for priority callout
+  const revisionItem = useMemo(() => {
+    return items.find((i) => i.status === 'NEEDS_REVISION');
+  }, [items]);
+
   // Filtered and sorted manuscripts
   const filteredItems = useMemo(() => {
     return items
@@ -76,30 +81,40 @@ export function PreprintListView() {
 
   return (
     <StudentShell title="My Manuscripts" showStandardHeader={false}>
-      {/* Dashboard Page Header */}
-      <div className="dashboard-page-header">
-        <div className="dashboard-page-header__left">
-          <span className="dashboard-hero__eyebrow">MANUSCRIPT REPOSITORY</span>
-          <h1 className="dashboard-hero__title" style={{ fontSize: '24px', margin: '0 0 6px' }}>My Manuscripts</h1>
-          <p className="dashboard-hero__subtitle" style={{ margin: 0 }}>
-            Prepare, revise, and track your preprints in the Hyperdata Lab repository.
-          </p>
-        </div>
-        <div className="dashboard-page-header__right">
-          <Link href="/student/my-preprints/new" className="dashboard-btn dashboard-btn--primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>Start a Submission</span>
-          </Link>
-        </div>
-      </div>
-
       {/* Notice Banner */}
       {apiPending && (
-        <div className="user-notice" style={{ marginTop: '16px', marginBottom: '20px' }}>
+        <div className="user-notice" style={{ marginTop: '0', marginBottom: '20px' }}>
           Preprint API is unavailable, so preview data is shown. Your work is not affected.
+        </div>
+      )}
+
+      {/* Urgent Action Alert (Revision Required) */}
+      {revisionItem && (
+        <div className="dashboard-alert-banner" style={{ marginBottom: '20px' }}>
+          <div className="dashboard-alert-banner__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <div className="dashboard-alert-banner__content">
+            <div className="dashboard-alert-banner__header">
+              <strong className="dashboard-alert-banner__title">Action Required: Revision Requested</strong>
+              <span className="dashboard-alert-banner__badge">Version {revisionItem.current_version}</span>
+            </div>
+            <p className="dashboard-alert-banner__desc">
+              Faculty reviewer <strong>{revisionItem.reviews?.[0]?.reviewer_name || 'Advisory Reviewer'}</strong> requested updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.
+            </p>
+          </div>
+          <div className="dashboard-alert-banner__action">
+            <Link
+              href={`/student/my-preprints/${revisionItem.id}`}
+              className="dashboard-alert-banner__btn"
+            >
+              Review Comments &amp; Revise →
+            </Link>
+          </div>
         </div>
       )}
 
@@ -274,71 +289,46 @@ export function PreprintListView() {
         </div>
       )}
 
-      {/* Manuscript summary cards */}
+      {/* Manuscripts Table View */}
       {!loading && !error && filteredItems.length > 0 && (
-        <div className="user-grid">
-          {filteredItems.map((item: StudentPreprint) => {
-            const hasRevisions = item.status === 'NEEDS_REVISION';
-            const authorCount = item.authors?.length ?? 0;
-
-            return (
-              <div key={item.id} className={`user-card ${hasRevisions ? 'user-card--needs-revision' : ''}`}>
-                <div className="user-card__top">
-                  {renderStatusBadge(item.status)}
-                  <span className="user-card__version" aria-label={`Version ${item.current_version}`}>
-                    v{item.current_version}
-                  </span>
-                </div>
-
-                <div className="user-card__body">
-                  <h2 className="user-card__title">
-                    <Link href={`/student/my-preprints/${item.id}`} className="user-card__title-link">
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Manuscripts repository list">
+            <thead>
+              <tr>
+                <th style={{ width: '48%' }}>Manuscript</th>
+                <th>Discipline</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map((item: StudentPreprint) => (
+                <tr key={item.id}>
+                  <td className="dashboard-table__title-cell">
+                    <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
                       {item.title}
                     </Link>
-                  </h2>
-                  <p className="user-card__abstract">
-                    {item.abstract || 'Abstract details will appear after the manuscript PDF is processed.'}
-                  </p>
-
-                  <div className="user-card__meta" aria-label="Manuscript details">
-                    <span className="user-card__meta-item">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5A2.5 2.5 0 0 0 17.5 16H4z" />
-                        <path d="M4 5.5V19a2 2 0 0 0 2 2h11.5A2.5 2.5 0 0 0 20 18.5" />
-                        <path d="M8 7h8M8 10.5h6" />
-                      </svg>
-                      {item.discipline || 'Research manuscript'}
+                    <span className="dashboard-table__sha">
+                      {item.sha256 ? `SHA-256: ${item.sha256.substring(0, 16)}…` : 'Cryptographic timestamp pending'}
                     </span>
-                    <span className="user-card__meta-item">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
-                      {authorCount} {authorCount === 1 ? 'author' : 'authors'}
-                    </span>
-                    <span className="user-card__meta-item user-card__meta-item--date">
-                      Updated {formatUpdatedDate(item.updated_at)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="user-card__bottom">
-                  <span className="user-card__file-state">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <path d="M14 2v6h6M8 13h8M8 17h5" />
-                    </svg>
-                    {item.file_name || 'PDF manuscript'}
-                  </span>
-                  <Link href={`/student/my-preprints/${item.id}`} className="user-card__link">
-                    View manuscript
-                    <span aria-hidden="true">→</span>
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+                  </td>
+                  <td>
+                    <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>
+                  </td>
+                  <td>
+                    <span className="dashboard-version-pill">v{item.current_version}</span>
+                  </td>
+                  <td>
+                    {renderStatusBadge(item.status)}
+                  </td>
+                  <td className="dashboard-table__date">
+                    {formatUpdatedDate(item.updated_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </StudentShell>

@@ -83,7 +83,7 @@ const faqs = [
 
 const signInUrl = '/api/auth/login?next=/student';
 const submitUrl = '/api/auth/login?next=/student/upload';
-const adminUrl = '/api/auth/login?next=/admin/reviews';
+const reviewerUrl = '/api/auth/login?next=/lecturer/reviews';
 
 export function PaperLandingView() {
   return (
@@ -342,7 +342,7 @@ export function PaperLandingView() {
                 <span>Submit Your Manuscript</span>
                 <span className="paper-btn-arrow">→</span>
               </a>
-              <a className="paper-button paper-button-quiet paper-button-large" href={adminUrl}>
+              <a className="paper-button paper-button-quiet paper-button-large" href={reviewerUrl}>
                 <span>Faculty Reviewer Access</span>
                 <span className="paper-btn-arrow">→</span>
               </a>
@@ -381,7 +381,7 @@ export function PaperLandingView() {
             <p className="paper-footer-label">Resources &amp; Access</p>
             <a href={signInUrl}>Student Sign In</a>
             <a href={submitUrl}>Submit Research</a>
-            <a href={adminUrl}>Faculty Reviewer Portal</a>
+            <a href={reviewerUrl}>Faculty Reviewer Portal</a>
             <a href="#faq">Preprint Guidelines &amp; FAQ</a>
             <a href="https://github.com/ResearchPulse/ResearchPulse-Publication-Repository-FE" target="_blank" rel="noreferrer">
               GitHub Repository

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudentShell } from '../components';
 import { PreprintApiError, studentPreprintApi } from '../api';
 import type { StudentPreprint } from '../types';
@@ -34,10 +35,12 @@ function retryStateFromError(error: unknown): UploadRetryState | null {
 
 export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const isEditing = Boolean(id);
 
   // Form states
   const [title, setTitle] = useState('');
+  const [discipline, setDiscipline] = useState('Computer Science & Artificial Intelligence');
   const [abstractText, setAbstractText] = useState('');
   const [keywordsInput, setKeywordsInput] = useState('');
   const [changeSummary, setChangeSummary] = useState('');
@@ -75,6 +78,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         if (!active) return;
         setOriginalItem(item);
         setTitle(item.titleNeedsInput ? '' : item.title || '');
+        if (item.discipline) setDiscipline(item.discipline);
         setAbstractText(item.abstract || '');
         if (item.keywords?.length) setKeywordsInput(item.keywords.join(', '));
         if (item.file_name) {
@@ -96,14 +100,12 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     };
   }, [id]);
 
-  // Validate and retain the selected PDF until the user saves or submits it.
   const handleFile = async (selectedFile: File) => {
     const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
     if (!isPdf) {
       setFormError('Only PDF files are accepted.');
       return;
     }
-
     if (selectedFile.size > 50 * 1024 * 1024) {
       setFormError('PDF file size cannot exceed 50MB.');
       return;
@@ -118,21 +120,16 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
     try {
       const digest = await globalThis.crypto.subtle.digest('SHA-256', await selectedFile.arrayBuffer());
-      const hash = Array.from(new Uint8Array(digest))
-        .map((byte) => byte.toString(16).padStart(2, '0'))
-        .join('');
-      setFileHash(hash);
+      setFileHash(Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join(''));
     } catch {
       setFileHash(null);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files?.[0]) {
-      void handleFile(e.dataTransfer.files[0]);
-    }
+    if (event.dataTransfer.files?.[0]) void handleFile(event.dataTransfer.files[0]);
   };
 
   const addCoAuthor = () => {
@@ -153,7 +150,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   };
 
   const removeCoAuthor = (index: number) => {
-    setAuthors(authors.filter((_, i) => i !== index + 1));
+    setAuthors(authors.filter((_, authorIndex) => authorIndex !== index + 1));
   };
 
   const handleSubmit = async (submitNow: boolean) => {
@@ -178,15 +175,11 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     }
 
     setIsSubmitting(true);
-
     try {
-      const keywords = keywordsInput
-        .split(',')
-        .map((k) => k.trim())
-        .filter(Boolean);
-
+      const keywords = keywordsInput.split(',').map((keyword) => keyword.trim()).filter(Boolean);
       let publicationId = existingPublicationId || undefined;
       let uploadedPublication: StudentPreprint | null = null;
+
       if (!isEditing && !publicationId) {
         uploadedPublication = retryUpload
           ? await studentPreprintApi.retry(retryUpload.objectKey, retryUpload.fileName)
@@ -196,27 +189,22 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         setRetryUpload(null);
         setFileName(uploadedPublication.file_name || fileName);
         setFileSize(uploadedPublication.file_size || fileSize);
-        setTitle((currentTitle) => currentTitle.trim() || (uploadedPublication?.titleNeedsInput ? '' : uploadedPublication?.title || ''));
-        setAbstractText((currentAbstract) => currentAbstract.trim() || uploadedPublication?.abstract || '');
-        setKeywordsInput((currentKeywords) => currentKeywords.trim() || uploadedPublication?.keywords.join(', ') || '');
-        setAuthors((currentAuthors) => currentAuthors.length > 0 ? currentAuthors : uploadedPublication?.authors || []);
+        setTitle((current) => current.trim() || (uploadedPublication?.titleNeedsInput ? '' : uploadedPublication?.title || ''));
+        setAbstractText((current) => current.trim() || uploadedPublication?.abstract || '');
+        setKeywordsInput((current) => current.trim() || uploadedPublication?.keywords.join(', ') || '');
+        setAuthors((current) => current.length > 0 ? current : uploadedPublication?.authors || []);
       }
 
       if (publicationId) {
         if (isEditing && file) {
-          uploadedPublication = await studentPreprintApi.uploadRevision(
-            publicationId,
-            file,
-            changeSummary.trim() || undefined,
-          );
+          uploadedPublication = await studentPreprintApi.uploadRevision(publicationId, file, changeSummary.trim() || undefined);
           setFileName(uploadedPublication.file_name || fileName);
           setFileSize(uploadedPublication.file_size || fileSize);
           setFileHash(uploadedPublication.sha256 || fileHash);
           setRetryUpload(null);
         }
 
-        const effectiveTitle = title.trim()
-          || (uploadedPublication?.titleNeedsInput ? '' : uploadedPublication?.title?.trim() || '');
+        const effectiveTitle = title.trim() || (uploadedPublication?.titleNeedsInput ? '' : uploadedPublication?.title?.trim() || '');
         if (submitNow && !effectiveTitle) {
           setFormError('GROBID could not extract a manuscript title. Please enter a title before submitting.');
           return;
@@ -224,9 +212,16 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
         const effectiveAbstract = abstractText.trim() || uploadedPublication?.abstract?.trim() || '';
         const effectiveKeywords = keywordsInput.trim() ? keywords : uploadedPublication?.keywords || keywords;
+        const basePrimaryAuthor = {
+          name: primaryAuthorName,
+          email: primaryAuthorEmail,
+          institution: primaryAuthorInst,
+          isPrimary: true,
+          isCorresponding: true,
+        };
         const sourceAuthors = isEditing
-          ? authors
-          : [...(uploadedPublication?.authors || []), ...authors];
+          ? (authors.length > 0 ? authors : [basePrimaryAuthor])
+          : [...(uploadedPublication?.authors?.length ? uploadedPublication.authors : [basePrimaryAuthor]), ...authors];
         const uniqueAuthors = sourceAuthors.filter((author, index, list) => (
           list.findIndex((candidate) => (
             (candidate.email && author.email && candidate.email === author.email)
@@ -239,30 +234,26 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
           ...(effectiveAbstract ? { abstract: effectiveAbstract } : {}),
           keywords: effectiveKeywords,
           ...(uniqueAuthors.length > 0
-            ? {
-                authors: uniqueAuthors.map((author, index) => ({
-                  name: author.name,
-                  email: author.email || undefined,
-                  affiliation: author.institution || undefined,
-                  orderIndex: index,
-                })),
-              }
+            ? { authors: uniqueAuthors.map((author, index) => ({
+              name: author.name,
+              email: author.email || undefined,
+              affiliation: author.institution || undefined,
+              orderIndex: index,
+            })) }
             : {}),
         });
-        if (submitNow) {
-          await studentPreprintApi.submit(publicationId);
-        }
+        if (submitNow) await studentPreprintApi.submit(publicationId);
       }
 
       router.push(publicationId ? `/student/my-preprints/${publicationId}` : '/student/my-preprints');
       router.refresh();
-    } catch (err) {
-      const retryInfo = retryStateFromError(err);
+    } catch (error) {
+      const retryInfo = retryStateFromError(error);
       if (retryInfo) {
         setRetryUpload(retryInfo);
-        setFormError(`${err instanceof Error ? err.message : 'Publication processing failed.'} The PDF is already stored; retry processing without uploading it again.`);
+        setFormError(`${error instanceof Error ? error.message : 'Publication processing failed.'} The PDF is already stored; retry processing without uploading it again.`);
       } else {
-        setFormError(err instanceof Error ? err.message : 'An error occurred while saving the preprint.');
+        setFormError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
       }
     } finally {
       setIsSubmitting(false);
@@ -272,15 +263,21 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
   const latestReview = originalItem?.reviews?.[0];
 
+  const primaryAuthorName = originalItem?.authors?.[0]?.name || user?.name || user?.email?.split('@')[0] || 'Logged-in Student';
+  const primaryAuthorEmail = originalItem?.authors?.[0]?.email || user?.email || 'student@university.edu.vn';
+  const primaryAuthorInst = originalItem?.authors?.[0]?.institution || 'University Research Faculty';
+  const primaryInitials = primaryAuthorName
+    .split(' ')
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'ST';
+
   return (
     <StudentShell
       title={isRevisionMode ? `Revise Manuscript: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}` : isEditing ? 'Edit Manuscript Draft' : 'Start a New Preprint'}
       kicker={isRevisionMode ? 'Revision Submission' : 'Manuscript Registration'}
-      breadcrumbs={[
-        { label: 'Preprint Portal', href: '/' },
-        { label: 'My Manuscripts', href: '/student/my-preprints' },
-        { label: isEditing ? 'Edit' : 'New Preprint' },
-      ]}
     >
       {loadingInitial ? (
         <div className="student-loading-box">
@@ -348,67 +345,110 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               handleSubmit(false);
             }}
           >
-            {/* Section 1: Metadata */}
+            {/* Step 01: Upload Manuscript PDF (trên cùng) */}
             <div className="student-form-section">
               <div className="student-form-section__header">
                 <span className="student-step-number">01</span>
                 <div>
-                  <h3 className="student-form-section__title">Manuscript Metadata</h3>
-                  <p className="student-form-section__desc">GROBID extracts metadata from the PDF. Review or correct the manuscript title before submission.</p>
+                  <h3 className="student-form-section__title">Upload Manuscript PDF</h3>
+                  <p className="student-form-section__desc">
+                    Attach your camera-ready PDF document (up to 50MB). Once uploaded, GROBID automated extraction will parse the manuscript's metadata, title, and citations.
+                  </p>
                 </div>
               </div>
 
-              <div className="student-field">
-                <label htmlFor="field-title" className="student-field__label">
-                  Manuscript Title <span className="student-required">*</span>
-                </label>
-                <input
-                  id="field-title"
-                  type="text"
-                  className="student-input"
-                  placeholder="e.g., Mapping data literacy in undergraduate STEM research"
-                   value={title}
-                   onChange={(e) => setTitle(e.target.value)}
-                 />
-               </div>
-
-              <div className="student-field">
-                  <label htmlFor="field-keywords" className="student-field__label">
-                    Keywords (comma separated)
-                  </label>
+              {!fileName ? (
+                <div
+                  className={`student-dropzone ${isDragging ? 'student-dropzone--active' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                >
                   <input
-                    id="field-keywords"
-                    type="text"
-                    className="student-input"
-                    placeholder="e.g. Data Literacy, STEM Education, Statistical Integrity"
-                    value={keywordsInput}
-                    onChange={(e) => setKeywordsInput(e.target.value)}
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    id="file-upload"
+                    className="student-dropzone__input"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) void handleFile(e.target.files[0]);
+                    }}
                   />
-              </div>
-
-              <div className="student-field">
-                <div className="student-field__label-row">
-                  <label htmlFor="field-abstract" className="student-field__label">
-                    Abstract
+                  <label htmlFor="file-upload" className="student-dropzone__content">
+                    <div className="student-dropzone__icon">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <strong className="student-dropzone__cta">Choose a PDF file or drag and drop here</strong>
+                    <span className="student-dropzone__specs">PDF up to 50MB. Includes figures, tables, and citations.</span>
                   </label>
-                  <span className="student-char-count">{abstractText.length} characters</span>
                 </div>
-                <textarea
-                  id="field-abstract"
-                  className="student-textarea"
-                  rows={6}
-                  placeholder="Summarize the core research question, empirical methodology, primary findings, and scientific significance..."
-                   value={abstractText}
-                   onChange={(e) => setAbstractText(e.target.value)}
-                 />
+              ) : (
+                <div className="student-file-selected-card">
+                  <div className="student-file-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  </div>
+                  <div className="student-file-details">
+                    <strong className="student-file-title">{fileName}</strong>
+                    <div className="student-file-meta">
+                      <span>{fileSize}</span>
+                      <span className="student-separator">•</span>
+                      <span className="student-file-hash-tag">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {fileHash ? `SHA-256: ${fileHash.substring(0, 14)}…` : 'Checksum verified'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      setFileName(null);
+                      setFileSize(null);
+                      setFileHash(null);
+                    }}
+                    className="student-file-remove-btn"
+                  >
+                    Replace
+                  </button>
+                </div>
+              )}
+
+              <div className="student-upload-specs-strip">
+                <span className="student-spec-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  PDF max 50MB (Camera-Ready)
+                </span>
+                <span className="student-spec-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  Automated GROBID Parser
+                </span>
+                <span className="student-spec-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  CC BY 4.0 Open Access
+                </span>
+                <span className="student-spec-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  48–72h Faculty Review SLA
+                </span>
               </div>
             </div>
 
-            {/* If Revision: Summary of Changes */}
+            {/* If Revision: Summary of Revisions (Author Response) */}
             {isRevisionMode && (
               <div className="student-form-section student-form-section--highlight">
                 <div className="student-form-section__header">
-                  <span className="student-step-number student-step-number--amber">02</span>
+                  <span className="student-step-number student-step-number--amber">★</span>
                   <div>
                     <h3 className="student-form-section__title">Summary of Revisions (Author Response)</h3>
                     <p className="student-form-section__desc">
@@ -434,29 +474,27 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </div>
             )}
 
-            {/* Section 2: Authorship & Academic Advisor */}
+            {/* Step 02: Authorship & Attribution */}
             <div className="student-form-section">
               <div className="student-form-section__header">
-                <span className="student-step-number">{isRevisionMode ? '03' : '02'}</span>
+                <span className="student-step-number">02</span>
                 <div>
-                  <h3 className="student-form-section__title">Authorship</h3>
-                  <p className="student-form-section__desc">Review authors extracted from the manuscript and add contributors when needed.</p>
+                  <h3 className="student-form-section__title">Authorship & Attribution</h3>
+                  <p className="student-form-section__desc">Primary submitter attribution is pre-filled from your profile. Add contributing co-authors if applicable.</p>
                 </div>
               </div>
 
               {/* Primary Author */}
               <div className="student-author-card student-author-card--primary">
-                <div className="student-author-avatar">AU</div>
+                <div className="student-author-avatar">{primaryInitials}</div>
                 <div className="student-author-info">
                   <div className="student-author-name-row">
-                  <strong>{originalItem?.authors?.[0]?.name || 'Authors will be extracted from the PDF'}</strong>
+                    <strong>{primaryAuthorName}</strong>
                     <span className="student-author-pill">Primary Author</span>
                     <span className="student-author-pill">Corresponding</span>
                   </div>
                   <span className="student-author-meta">
-                    {originalItem?.authors?.[0]
-                      ? `${originalItem.authors[0].email || 'Email unavailable'} • ${originalItem.authors[0].institution || 'Institution unavailable'}`
-                      : 'Author information will be extracted after upload.'}
+                    {primaryAuthorEmail} • {primaryAuthorInst}
                   </span>
                 </div>
               </div>
@@ -532,90 +570,114 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <span>Add Contributing Co-Author</span>
                 </button>
               )}
-
             </div>
 
-            {/* Section 3: File Upload Dropzone */}
+            {/* Step 03: Manuscript Metadata & Discipline (chờ GROBID extract ra) */}
             <div className="student-form-section">
               <div className="student-form-section__header">
-                <span className="student-step-number">{isRevisionMode ? '04' : '03'}</span>
+                <span className="student-step-number">03</span>
                 <div>
-                    <h3 className="student-form-section__title">Manuscript PDF</h3>
-                    <p className="student-form-section__desc">
-                    Attach the full paper in PDF format (maximum 50MB). The file will be stored securely and processed by GROBID.
+                  <h3 className="student-form-section__title">Manuscript Metadata & Discipline</h3>
+                  <p className="student-form-section__desc">
+                    Metadata will be automatically extracted from your PDF via GROBID. You can review, refine, or fill in any missing details before submission.
                   </p>
                 </div>
               </div>
 
-              {!fileName ? (
-                <div
-                  className={`student-dropzone ${isDragging ? 'student-dropzone--active' : ''}`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragging(true);
-                  }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                >
-                  <input
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    id="file-upload"
-                    className="student-dropzone__input"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) void handleFile(e.target.files[0]);
-                    }}
-                  />
-                  <label htmlFor="file-upload" className="student-dropzone__content">
-                    <div className="student-dropzone__icon">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                    </div>
-                    <strong className="student-dropzone__cta">Choose a PDF file or drag and drop here</strong>
-                    <span className="student-dropzone__specs">PDF up to 50MB. Includes figures, tables, and references.</span>
-                  </label>
+              {/* Extraction notice */}
+              {fileName ? (
+                <div className="student-extraction-notice student-extraction-notice--success">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <span>
+                    <strong>GROBID extraction ready:</strong> PDF <em>{fileName}</em> is selected. Review or edit the extracted metadata below before proceeding.
+                  </span>
                 </div>
               ) : (
-                <div className="student-file-selected-card">
-                  <div className="student-file-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
-                  </div>
-                  <div className="student-file-details">
-                    <strong className="student-file-title">{fileName}</strong>
-                    <div className="student-file-meta">
-                      <span>{fileSize}</span>
-                      <span className="student-separator">•</span>
-                      <span className="student-file-hash-tag">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        {fileHash ? `SHA-256: ${fileHash.substring(0, 18)}…` : 'Checksum unavailable'}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFile(null);
-                      setFileName(null);
-                      setFileSize(null);
-                      setFileHash(null);
-                    }}
-                    className="student-file-remove-btn"
-                  >
-                    Replace
-                  </button>
+                <div className="student-extraction-notice student-extraction-notice--waiting">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                  </svg>
+                  <span>
+                    <strong>Waiting for PDF upload:</strong> Attach your manuscript in Step 01 to automatically parse title, abstract, and keywords via GROBID, or enter them manually below.
+                  </span>
                 </div>
               )}
+
+              <div className="student-field">
+                <label htmlFor="field-title" className="student-field__label">
+                  Manuscript Title <span className="student-required">*</span>
+                </label>
+                <input
+                  id="field-title"
+                  type="text"
+                  className="student-input"
+                  placeholder="e.g., Mapping data literacy in undergraduate STEM research"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="student-field">
+                <label htmlFor="field-discipline" className="student-field__label">
+                  Research Discipline / Field <span className="student-required">*</span>
+                </label>
+                <select
+                  id="field-discipline"
+                  className="student-select"
+                  value={discipline}
+                  onChange={(e) => setDiscipline(e.target.value)}
+                >
+                  <option value="Computer Science & Artificial Intelligence">Computer Science & Artificial Intelligence</option>
+                  <option value="Information Technology & Software Engineering">Information Technology & Software Engineering</option>
+                  <option value="Data Science & Machine Learning">Data Science & Machine Learning</option>
+                  <option value="Electrical & Electronics Engineering">Electrical & Electronics Engineering</option>
+                  <option value="Mathematics & Applied Statistics">Mathematics & Applied Statistics</option>
+                  <option value="Physics & Materials Science">Physics & Materials Science</option>
+                  <option value="Biological & Medical Sciences">Biological & Medical Sciences</option>
+                  <option value="Environmental & Earth Sciences">Environmental & Earth Sciences</option>
+                  <option value="Social Sciences & Economics">Social Sciences & Economics</option>
+                  <option value="Interdisciplinary Scientific Research">Interdisciplinary Scientific Research</option>
+                </select>
+              </div>
+
+              <div className="student-field">
+                <label htmlFor="field-keywords" className="student-field__label">
+                  Keywords (comma separated)
+                </label>
+                <input
+                  id="field-keywords"
+                  type="text"
+                  className="student-input"
+                  placeholder="e.g. Data Literacy, STEM Education, Statistical Integrity"
+                  value={keywordsInput}
+                  onChange={(e) => setKeywordsInput(e.target.value)}
+                />
+              </div>
+
+              <div className="student-field">
+                <div className="student-field__label-row">
+                  <label htmlFor="field-abstract" className="student-field__label">
+                    Abstract
+                  </label>
+                  <span className="student-char-count">{abstractText.length} characters</span>
+                </div>
+                <textarea
+                  id="field-abstract"
+                  className="student-textarea"
+                  rows={6}
+                  placeholder="Summarize the core research question, empirical methodology, primary findings, and scientific significance..."
+                  value={abstractText}
+                  onChange={(e) => setAbstractText(e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Action Bar */}
+            {/* Sticky/Bottom Action Bar */}
             <div className="student-form-actions-bar">
               <Link href="/student/my-preprints" className="student-btn student-btn--secondary">
                 Cancel
