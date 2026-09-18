@@ -19,10 +19,6 @@ export function StudentSidebar({
   isOpen = false,
   onClose,
 }: StudentSidebarProps) {
-  const { user } = useAuth();
-  const initials = user?.name ? user.name.trim().split(/\s+/).map(n => n[0]).slice(0, 2).join('').toUpperCase() : (user?.email ? user.email.slice(0, 2).toUpperCase() : 'NA');
-  const displayName = user?.name || user?.email || 'Student';
-  const displayOrg = user?.role === 'STUDENT' ? 'Student • Author' : (user?.role || 'Author');
   const pathname = usePathname();
   const { user } = useAuth();
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { resolvePostLoginPath } from '../../../lib/auth-server';
 import { getPreprintSsoConfig, preprintApiBaseUrl } from '../../../lib/oidc';
 import type { User } from '../../../shared/types';

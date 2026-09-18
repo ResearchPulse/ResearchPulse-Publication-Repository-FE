@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { safeNextPath } from '../../../../lib/auth-server';
 import { createCodeChallenge, getPreprintSsoConfig, randomString } from '../../../../lib/oidc';
@@ -8,12 +7,13 @@ export const runtime = 'nodejs';
 
 // GET fallback: redirect user directly to the login page
 export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
   const state = randomString();
   const verifier = randomString(48);
   let ssoConfig;
 
   try {
-    ssoConfig = await getPreprintSsoConfig(url.origin);
+    ssoConfig = await getPreprintSsoConfig(requestUrl.origin);
   } catch {
     return NextResponse.json(
       { error: 'Preprint SSO configuration is unavailable' },
@@ -25,10 +25,12 @@ export async function GET(request: Request) {
   authorizeUrl.search = new URLSearchParams({ client_id: ssoConfig.clientId, redirect_uri: ssoConfig.redirectUri, response_type: 'code', scope: 'openid profile email', state, code_challenge: createCodeChallenge(verifier), code_challenge_method: 'S256' }).toString();
   const response = NextResponse.redirect(authorizeUrl);
   for (const [name, value] of [['oidc_state', state], ['oidc_verifier', verifier]] as const) response.cookies.set(name, value, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
-  const next = safeNextPath(url.searchParams.get('next') ?? undefined);
+  const next = safeNextPath(requestUrl.searchParams.get('next') ?? undefined);
   if (next) {
     response.cookies.set('oidc_next', next, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 600, path: '/' });
   } else {
     response.cookies.delete('oidc_next');
   }
+
+  return response;
 }
