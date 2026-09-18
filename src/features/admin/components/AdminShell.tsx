@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/features/auth/hooks';
@@ -55,8 +57,8 @@ export function Topbar({ title }: { title: string }) {
         <h2 className="topbar-title">{title}</h2>
       </div>
       <div className="topbar-user">
-        <span className="avatar" aria-hidden="true">A</span>
-        <span>Administrator</span>
+        <span className="avatar" aria-hidden="true">{initials}</span>
+        <span>{displayName}</span>
       </div>
     </header>
   );
