@@ -1,12 +1,13 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { safeNextPath } from '../../../../lib/auth-server';
 import { createCodeChallenge, getPreprintSsoConfig, randomString } from '../../../../lib/oidc';
 
+
 export const runtime = 'nodejs';
 
-// Route for OIDC login
+// GET fallback: redirect user directly to the login page
 export async function GET(request: Request) {
-  const url = new URL(request.url);
   const state = randomString();
   const verifier = randomString(48);
   let ssoConfig;
@@ -30,5 +31,4 @@ export async function GET(request: Request) {
   } else {
     response.cookies.delete('oidc_next');
   }
-  return response;
 }

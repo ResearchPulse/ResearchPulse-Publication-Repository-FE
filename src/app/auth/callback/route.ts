@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { resolvePostLoginPath } from '../../../lib/auth-server';
 import { getPreprintSsoConfig, preprintApiBaseUrl } from '../../../lib/oidc';
@@ -6,6 +5,10 @@ import type { User } from '../../../shared/types';
 
 export const runtime = 'nodejs';
 
+/**
+ * Legacy SSO callback route: Central SSO has been deprecated in favor of direct credentials.
+ * Automatically redirect any residual callbacks to the login page.
+ */
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
@@ -79,4 +82,5 @@ export async function GET(request: Request) {
   }
 
   return response;
+
 }

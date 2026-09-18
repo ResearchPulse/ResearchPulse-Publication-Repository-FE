@@ -2,11 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/features/auth/hooks';
 import { StudentDashboardLayout } from '../components';
 import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 
 export function StudentDashboardView() {
+  const { user } = useAuth();
+  const displayName = user?.name || user?.email || 'Scholar';
   const { items, loading, error } = usePreprintList();
   const [filterStatus, setFilterStatus] = useState<'ALL' | PreprintStatus>('ALL');
   // Metrics calculation
@@ -35,7 +38,9 @@ export function StudentDashboardView() {
       revisionCount={metrics.needsRevision}
       totalCount={metrics.total}
     >
+
       {/* Urgent Action Alert (Revision Required) */}
+
       {revisionItem && (
         <div className="dashboard-alert-banner">
           <div className="dashboard-alert-banner__icon">

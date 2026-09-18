@@ -1,83 +1,408 @@
+'use client';
+
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HyperdataLogo } from './hyperdata-logo';
 import { PublicPortalShowcase } from './public-portal-showcase';
 import { ScrollRevealObserver } from './scroll-reveal';
 
+// Helper for Vietnamese diacritic removal for live username preview
+const VIETNAMESE_MAP: Record<string, string> = {
+  à: 'a', á: 'a', ả: 'a', ã: 'a', ạ: 'a',
+  ă: 'a', ắ: 'a', ằ: 'a', ẳ: 'a', ẵ: 'a', ặ: 'a',
+  â: 'a', ấ: 'a', ầ: 'a', ẩ: 'a', ẫ: 'a', ậ: 'a',
+  è: 'e', é: 'e', ẻ: 'e', ẽ: 'e', ẹ: 'e',
+  ê: 'e', ế: 'e', ề: 'e', ể: 'e', ễ: 'e', ệ: 'e',
+  ì: 'i', í: 'i', ỉ: 'i', ĩ: 'i', ị: 'i',
+  ò: 'o', ó: 'o', ỏ: 'o', õ: 'o', ọ: 'o',
+  ô: 'o', ố: 'o', ồ: 'o', ổ: 'o', ỗ: 'o', ộ: 'o',
+  ơ: 'o', ớ: 'o', ờ: 'o', ở: 'o', ỡ: 'o', ợ: 'o',
+  ù: 'u', ú: 'u', ủ: 'u', ũ: 'u', ụ: 'u',
+  ư: 'u', ứ: 'u', ừ: 'u', ử: 'u', ữ: 'u', ự: 'u',
+  ỳ: 'y', ý: 'y', ỷ: 'y', ỹ: 'y', ỵ: 'y',
+  đ: 'd',
+};
+
+function removeTones(str: string): string {
+  return str.split('').map((c) => VIETNAMESE_MAP[c.toLowerCase()] ?? c).join('');
+}
+
 export default function PublicPreprintLanding() {
+  const [lastName, setLastName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [email, setEmail] = useState('');
+  const [major, setMajor] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{ username: string; email: string; name: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Live username calculation: [FirstName][LastInitials][StudentId]
+  const usernamePreview = useMemo(() => {
+    if (!firstName.trim() || !studentId.trim()) return '';
+    const cleanFirst = removeTones(firstName.trim());
+    const cleanLast = removeTones(lastName.trim());
+    const cleanId = studentId.trim().toUpperCase();
+
+    const normalizedFirst = cleanFirst.charAt(0).toUpperCase() + cleanFirst.slice(1).toLowerCase();
+    const initials = cleanLast
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase())
+      .join('');
+
+    return `${normalizedFirst}${initials}${cleanId}`;
+  }, [firstName, lastName, studentId]);
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lastName.trim() || !firstName.trim() || !studentId.trim() || !email.trim() || !major.trim()) {
+      setError('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          studentId: studentId.trim().toUpperCase(),
+          email: email.trim(),
+          major: major.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Đăng ký không thành công. Vui lòng kiểm tra lại.');
+        setLoading(false);
+        return;
+      }
+
+      setSuccessData({
+        username: data.user.username,
+        email: data.user.email,
+        name: data.user.name,
+      });
+    } catch {
+      setError('Không thể kết nối đến máy chủ.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="public-landing">
       <ScrollRevealObserver />
-      <a className="pl-skip-link" href="#main-content">Skip to content</a>
+      <a className="pl-skip-link" href="#main-content">Chuyển đến nội dung chính</a>
 
       {/* Modern Sticky Glassmorphism Header */}
       <header className="pl-header">
         <div className="pl-container pl-header__inner">
-          <Link href="/" className="pl-brand" aria-label="Hyperdata Lab Home">
+          <Link href="/" className="pl-brand" aria-label="Trang chủ ResearchPulse">
             <HyperdataLogo size={34} />
           </Link>
 
-          <nav className="pl-nav" aria-label="Main Navigation">
-            <a href="#portal" className="pl-nav__link">Portal</a>
-            <a href="#features" className="pl-nav__link">Features</a>
-            <a href="#advisory" className="pl-nav__link">Advisory</a>
-            <a href="#faq" className="pl-nav__link">FAQ</a>
+          <nav className="pl-nav" aria-label="Thanh điều hướng chính">
+            <a href="#register-section" className="pl-nav__link">Đăng ký</a>
+            <a href="#portal" className="pl-nav__link">Cổng lưu trữ</a>
+            <a href="#features" className="pl-nav__link">Tính năng</a>
+            <a href="#faq" className="pl-nav__link">Hỏi đáp</a>
           </nav>
 
-          <details className="pl-mobile-nav">
-            <summary className="pl-mobile-nav__toggle" aria-label="Open navigation menu">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              </svg>
-            </summary>
-            <nav className="pl-mobile-nav__panel" aria-label="Mobile navigation">
-              <a href="#portal" className="pl-mobile-nav__link">Portal</a>
-              <a href="#features" className="pl-mobile-nav__link">Features</a>
-              <a href="#advisory" className="pl-mobile-nav__link">Advisory</a>
-              <a href="#faq" className="pl-mobile-nav__link">FAQ</a>
-            </nav>
-          </details>
-
           <div className="pl-header__actions">
-            <Link href="/api/auth/login" className="pl-header-action pl-header-action--secondary">
-              Sign in
+            <Link href="/login" className="pl-header-action pl-header-action--secondary">
+              Đăng nhập
             </Link>
-            <Link href="/register" className="pl-header-action pl-header-action--primary">
-              Create account
-            </Link>
+            <a href="#register-section" className="pl-header-action pl-header-action--primary">
+              Đăng ký ngay
+            </a>
           </div>
         </div>
       </header>
 
-      {/* Centered Hero Section */}
-      <section id="main-content" className="pl-section pl-hero pl-hero--centered">
+      {/* Hero Section with Embedded Registration Form */}
+      <section id="main-content" className="pl-section pl-hero">
         <div className="pl-container">
-          {/* Centered Header Box */}
-          <div className="pl-hero__center-box pl-reveal">
-            <h1 className="pl-hero__title pl-hero__title--centered">
-              Discover research that{' '}
-              <span className="pl-hero__highlight">moves your ideas forward.</span>
-            </h1>
+          <div className="pl-hero__grid">
+            {/* Left Column: Value Proposition */}
+            <div className="pl-hero__main pl-reveal">
+              <span className="pl-badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16, background: '#eef6fc', color: '#0071bc', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
+                🎓 Cổng nghiên cứu khoa học sinh viên
+              </span>
+              <h1 className="pl-hero__title">
+                Khám phá & Công bố công trình nghiên cứu{' '}
+                <span className="pl-hero__highlight">vững chắc tương lai.</span>
+              </h1>
 
-            <p className="pl-hero__desc pl-hero__desc--centered">
-              Hyperdata Lab Preprint connects student scholars with university faculty.
-              Timestamp your findings early, receive structured mentorship, and build an authentic scholarly portfolio.
-            </p>
+              <p className="pl-hero__desc">
+                ResearchPulse kết nối sinh viên học thuật với hội đồng giảng viên. Lưu trữ bản thảo sớm, nhận phản hồi bình duyệt bài viết và xây dựng hồ sơ học thuật xác thực.
+              </p>
 
-            <div className="pl-hero__actions pl-hero__actions--centered">
-              <Link href="/register" className="pl-btn pl-btn--primary pl-btn--lg pl-btn--shimmer">
-                <span>Create a student account</span>
-                <svg className="pl-btn__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 12h16M14 6l6 6-6 6" />
-                </svg>
-              </Link>
-              <Link href="/api/auth/login" className="pl-btn pl-btn--secondary pl-btn--lg">
-                Sign in with SSO
-              </Link>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 24, fontSize: 14, color: '#647381' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span>Tự động sinh Tên đăng nhập theo MSSV</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span>Mật khẩu bảo mật gửi qua Email</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  <span>Phê duyệt minh bạch từ Ban Quản trị</span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 28 }}>
+                <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: '#0071bc', textDecoration: 'none' }}>
+                  <span>Đã có tài khoản sinh viên? Đăng nhập ngay</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column: Embedded Registration Card */}
+            <div id="register-section" className="pl-hero__form-wrap pl-reveal" style={{ '--delay': '100ms' } as React.CSSProperties}>
+              <div className="auth-card" style={{ maxWidth: '100%', margin: '0 auto', boxShadow: '0 16px 48px rgba(0, 113, 188, 0.12), 0 2px 8px rgba(18, 35, 49, 0.04)' }}>
+                {successData ? (
+                  <div className="auth-success-view">
+                    <div className="auth-success-icon">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+
+                    <h2 className="auth-title" style={{ fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>
+                      Đăng ký thành công!
+                    </h2>
+                    <p className="auth-subtitle" style={{ fontSize: 13, color: '#647381', marginBottom: 18, lineHeight: 1.5 }}>
+                      Chào mừng <strong>{successData.name}</strong>. Tài khoản của bạn đã được khởi tạo:
+                    </p>
+
+                    <div className="auth-preview-badge" style={{ width: '100%', marginBottom: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Tên đăng nhập (Username)
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0071bc', fontFamily: 'monospace', letterSpacing: '0.05em', marginTop: 2 }}>
+                          {successData.username}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(successData.username);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                        className="auth-copy-btn"
+                        title="Sao chép tên đăng nhập"
+                      >
+                        {copied ? (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>Đã sao chép</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            <span>Sao chép</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="auth-notice-box" style={{ width: '100%', textAlign: 'left', marginBottom: 20, fontSize: 12.5, boxSizing: 'border-box', lineHeight: 1.5 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </svg>
+                      <div>
+                        Mật khẩu tạm thời đã gửi về <strong>{successData.email}</strong>. Vui lòng chờ <strong>Admin phê duyệt</strong> để đăng nhập.
+                      </div>
+                    </div>
+
+                    {/* Clean, perfectly proportioned actions */}
+                    <div className="auth-success-actions">
+                      <Link href="/login" className="auth-btn-success-primary">
+                        <span>Đến trang Đăng nhập</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSuccessData(null);
+                          setLastName('');
+                          setFirstName('');
+                          setStudentId('');
+                          setEmail('');
+                          setMajor('');
+                        }}
+                        className="auth-btn-success-secondary"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <line x1="19" y1="8" x2="19" y2="14" />
+                          <line x1="22" y1="11" x2="16" y2="11" />
+                        </svg>
+                        <span>Đăng ký tài khoản khác</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ marginBottom: 18 }}>
+                      <h2 className="auth-title" style={{ fontSize: 20 }}>Đăng ký tài khoản Sinh viên</h2>
+                      <p className="auth-subtitle" style={{ fontSize: 13, margin: 0 }}>
+                        Tên đăng nhập sẽ được tự động tạo theo chuẩn MSSV & Họ tên.
+                      </p>
+                    </div>
+
+                    {error && (
+                      <div className="auth-alert-box" role="alert" style={{ marginBottom: 14, fontSize: 12, padding: '10px 12px' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <div>{error}</div>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleRegisterSubmit} className="auth-form" style={{ gap: 12 }}>
+                      <div className="auth-row" style={{ gap: 10 }}>
+                        <div className="auth-field" style={{ gap: 4 }}>
+                          <label className="auth-label" htmlFor="hero-lastName" style={{ fontSize: 12 }}>
+                            Họ & Tên đệm *
+                          </label>
+                          <input
+                            id="hero-lastName"
+                            type="text"
+                            className="auth-input"
+                            style={{ padding: '9px 12px', fontSize: 13 }}
+                            placeholder="Nguyễn Văn"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            disabled={loading}
+                            required
+                          />
+                        </div>
+
+                        <div className="auth-field" style={{ gap: 4 }}>
+                          <label className="auth-label" htmlFor="hero-firstName" style={{ fontSize: 12 }}>
+                            Tên *
+                          </label>
+                          <input
+                            id="hero-firstName"
+                            type="text"
+                            className="auth-input"
+                            style={{ padding: '9px 12px', fontSize: 13 }}
+                            placeholder="Minh"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            disabled={loading}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="auth-row" style={{ gap: 10 }}>
+                        <div className="auth-field" style={{ gap: 4 }}>
+                          <label className="auth-label" htmlFor="hero-studentId" style={{ fontSize: 12 }}>
+                            Mã số sinh viên (MSSV) *
+                          </label>
+                          <input
+                            id="hero-studentId"
+                            type="text"
+                            className="auth-input"
+                            style={{ padding: '9px 12px', fontSize: 13 }}
+                            placeholder="SE150000"
+                            value={studentId}
+                            onChange={(e) => setStudentId(e.target.value)}
+                            disabled={loading}
+                            required
+                          />
+                        </div>
+
+                        <div className="auth-field" style={{ gap: 4 }}>
+                          <label className="auth-label" htmlFor="hero-major" style={{ fontSize: 12 }}>
+                            Chuyên ngành *
+                          </label>
+                          <input
+                            id="hero-major"
+                            type="text"
+                            className="auth-input"
+                            style={{ padding: '9px 12px', fontSize: 13 }}
+                            placeholder="Kỹ thuật phần mềm"
+                            value={major}
+                            onChange={(e) => setMajor(e.target.value)}
+                            disabled={loading}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="auth-field" style={{ gap: 4 }}>
+                        <label className="auth-label" htmlFor="hero-email" style={{ fontSize: 12 }}>
+                          Địa chỉ Email *
+                        </label>
+                        <input
+                          id="hero-email"
+                          type="email"
+                          className="auth-input"
+                          style={{ padding: '9px 12px', fontSize: 13 }}
+                          placeholder="student@fpt.edu.vn"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={loading}
+                          required
+                        />
+                      </div>
+
+                      {usernamePreview && (
+                        <div className="auth-preview-badge" style={{ padding: '8px 12px', fontSize: 12 }}>
+                          <span className="auth-preview-badge__label">Tên đăng nhập tự động:</span>
+                          <span className="auth-preview-badge__value">{usernamePreview}</span>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="auth-btn auth-btn--primary"
+                        style={{ padding: '11px 16px', fontSize: 14, marginTop: 4 }}
+                        disabled={loading}
+                      >
+                        {loading ? 'Đang khởi tạo tài khoản...' : 'Khởi tạo tài khoản sinh viên'}
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Layered Showcase Mockup */}
-          <div id="portal" className="pl-hero__showcase-wrap pl-reveal" style={{ '--delay': '120ms' } as React.CSSProperties}>
+          <div id="portal" className="pl-hero__showcase-wrap pl-reveal" style={{ '--delay': '120ms', marginTop: 64 } as React.CSSProperties}>
             <PublicPortalShowcase />
           </div>
 
@@ -92,16 +417,16 @@ export default function PublicPreprintLanding() {
                   <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
               </div>
-              <h3 className="pl-bento-title">Prepare & Timestamp</h3>
+              <h3 className="pl-bento-title">Tải lên & Đóng dấu bản thảo</h3>
               <p className="pl-bento-desc">
-                Register early manuscripts with immutable cryptographic records, securing your scientific priority without journal delays.
+                Đăng ký bản thảo sớm với mã SHA-256 xác thực, khẳng định quyền ưu tiên học thuật mà không làm mất bản quyền công bố tạp chí.
               </p>
-              <Link href="/register" className="pl-bento-link">
-                <span>Start submission</span>
+              <a href="#register-section" className="pl-bento-link">
+                <span>Tạo tài khoản nộp bài</span>
                 <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 12h16M14 6l6 6-6 6" />
                 </svg>
-              </Link>
+              </a>
             </div>
 
             <div className="pl-bento-card pl-reveal" style={{ '--delay': '120ms' } as React.CSSProperties}>
@@ -110,12 +435,12 @@ export default function PublicPreprintLanding() {
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </div>
-              <h3 className="pl-bento-title">Faculty Mentorship</h3>
+              <h3 className="pl-bento-title">Đồng hành cùng Giảng viên</h3>
               <p className="pl-bento-desc">
-                Receive targeted methodological critiques and line-by-line guidance from university educators to strengthen your paper.
+                Nhận phản hồi nhận xét phương pháp luận và hướng dẫn từng mục từ giảng viên trường để nâng cao chất lượng nghiên cứu.
               </p>
-              <a href="#advisory" className="pl-bento-link">
-                <span>Explore mentorship</span>
+              <a href="#faq" className="pl-bento-link">
+                <span>Xem quy trình bình duyệt</span>
                 <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 12h16M14 6l6 6-6 6" />
                 </svg>
@@ -128,12 +453,12 @@ export default function PublicPreprintLanding() {
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
               </div>
-              <h3 className="pl-bento-title">Editorial Governance</h3>
+              <h3 className="pl-bento-title">Kiểm duyệt & Quản trị</h3>
               <p className="pl-bento-desc">
-                Maintain a clear distinction between preprints and published articles, backed by institutional administrative oversight.
+                Phân định rõ ràng giữa bản thảo Preprint và công trình đã xuất bản chính thức, được bảo chứng bởi hội đồng quản trị học viện.
               </p>
               <a href="#faq" className="pl-bento-link">
-                <span>Learn in FAQ</span>
+                <span>Tìm hiểu trong Hỏi & Đáp</span>
                 <svg className="pl-bento-link__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 12h16M14 6l6 6-6 6" />
                 </svg>
@@ -152,18 +477,18 @@ export default function PublicPreprintLanding() {
               </div>
               <div>
                 <p className="pl-trust-text">
-                  &ldquo;Hyperdata Lab gives our student researchers a transparent, structured gateway to timestamp early findings and iterate with faculty.&rdquo;
+                  &ldquo;ResearchPulse mang đến cho sinh viên một nền tảng minh bạch để đánh dấu thời gian nghiên cứu và trao đổi học thuật trực tiếp với hội đồng giảng viên.&rdquo;
                 </p>
-                <span className="pl-trust-author">Faculty Advisory Board • Student Research Initiative</span>
+                <span className="pl-trust-author">Hội đồng Cố vấn Học thuật • Chương trình Nghiên cứu Khoa học Sinh viên</span>
               </div>
             </div>
             <div className="pl-trust-labels">
-              <span className="pl-trust-label-head">ACADEMIC DISCIPLINES</span>
+              <span className="pl-trust-label-head">CHUYÊN NGÀNH TIÊU BIỂU</span>
               <div className="pl-trust-tags">
-                <span>Computer Science</span>
-                <span>Data Science</span>
-                <span>Biotechnology</span>
-                <span>Applied Physics</span>
+                <span>Khoa học Máy tính</span>
+                <span>Khoa học Dữ liệu</span>
+                <span>Công nghệ Thông tin</span>
+                <span>Kỹ thuật Phần mềm</span>
               </div>
             </div>
           </div>
@@ -174,68 +499,40 @@ export default function PublicPreprintLanding() {
       <section id="faq" className="pl-section pl-section--alt pl-faq-prefooter pl-reveal">
         <div className="pl-container pl-container--narrow">
           <div className="pl-section-head">
-            <h2 className="pl-section-title">Frequently Asked Questions</h2>
+            <h2 className="pl-section-title">Câu hỏi thường gặp</h2>
             <p className="pl-section-subtitle">
-              Everything you need to know about student preprints, faculty review, and academic priority.
+              Mọi điều bạn cần biết về bản thảo nghiên cứu sinh viên, quy trình phản biện và quyền tác giả.
             </p>
           </div>
 
           <div className="pl-faq-list">
             <details className="pl-faq-item" open>
               <summary className="pl-faq-question">
-                <span>What is a preprint and does it prevent formal journal publication?</span>
+                <span>Bản thảo Preprint là gì và có ảnh hưởng đến việc xuất bản tạp chí không?</span>
                 <span className="pl-faq-icon" aria-hidden="true">+</span>
               </summary>
               <div className="pl-faq-answer">
-                A preprint is an author-owned preliminary manuscript shared before formal peer review. Major
-                publishers (including IEEE, Elsevier, Springer Nature, and ACM) allow preprint sharing before submission.
-                It establishes your scientific priority without forfeiting journal publication rights.
+                Preprint là bản thảo sơ bộ do tác giả sở hữu, được chia sẻ trước khi bình duyệt chính thức. Hầu hết các nhà xuất bản uy tín (IEEE, Elsevier, Springer, ACM...) đều cho phép công bố preprint trước khi gửi bài chính thức.
               </div>
             </details>
 
             <details className="pl-faq-item">
               <summary className="pl-faq-question">
-                <span>Who can register and submit manuscripts to Hyperdata Lab Preprint?</span>
+                <span>Ai có thể đăng ký tài khoản và gửi bản thảo?</span>
                 <span className="pl-faq-icon" aria-hidden="true">+</span>
               </summary>
               <div className="pl-faq-answer">
-                Hyperdata Lab Preprint is open to undergraduate and graduate students, academic researchers,
-                and faculty. Registration is centrally managed through our university Single Sign-On (SSO) service.
+                Sinh viên, học viên cao học và giảng viên đều có thể đăng ký trực tiếp bằng Mã số sinh viên (MSSV) và Email học tập. Tài khoản sẽ được kích hoạt sau khi Quản trị viên (Admin) phê duyệt.
               </div>
             </details>
 
             <details className="pl-faq-item">
               <summary className="pl-faq-question">
-                <span>Can I update my manuscript after uploading it?</span>
+                <span>Tôi có thể cập nhật bản thảo sau khi đã tải lên không?</span>
                 <span className="pl-faq-icon" aria-hidden="true">+</span>
               </summary>
               <div className="pl-faq-answer">
-                Yes. Research is iterative. When lecturers provide critique or you improve your findings,
-                you can submit revised versions (e.g. v2.0). All previous versions remain chronologically preserved in your
-                audit timeline to maintain an honest academic record.
-              </div>
-            </details>
-
-            <details className="pl-faq-item">
-              <summary className="pl-faq-question">
-                <span>How are preprints reviewed and approved?</span>
-                <span className="pl-faq-icon" aria-hidden="true">+</span>
-              </summary>
-              <div className="pl-faq-answer">
-                Submissions are assigned to qualified faculty lecturers who review manuscript clarity,
-                methodology, and research relevance. Lecturers provide revision notes or recommend approval, while
-                final publication readiness is validated by administrators.
-              </div>
-            </details>
-
-            <details className="pl-faq-item">
-              <summary className="pl-faq-question">
-                <span>Is there any cost to submit or read preprints?</span>
-                <span className="pl-faq-icon" aria-hidden="true">+</span>
-              </summary>
-              <div className="pl-faq-answer">
-                No. Hyperdata Lab Preprint is completely free for students, researchers, and educators. Our mission
-                is open scientific transparency without financial barriers.
+                Có. Khi nhận được góp ý từ giảng viên hoặc hoàn thiện thêm kết quả, bạn có thể tải lên các phiên bản sửa đổi (v2.0, v3.0...). Mọi phiên bản đều được lưu vết minh bạch theo thời gian.
               </div>
             </details>
           </div>
@@ -248,36 +545,36 @@ export default function PublicPreprintLanding() {
           <div className="pl-footer__brand">
             <HyperdataLogo size={32} />
             <p className="pl-footer__tagline">
-              Open academic infrastructure supporting early research, faculty mentorship, and scholarly transparency.
+              Hạ tầng học thuật mở hỗ trợ nghiên cứu sớm cho sinh viên, đồng hành cùng giảng viên và minh bạch hóa quy trình công bố khoa học.
             </p>
           </div>
 
           <div className="pl-footer__links">
             <div className="pl-footer__col">
-              <h4>Platform</h4>
-              <a href="#portal" className="pl-link">Preprint Portal</a>
-              <a href="#features" className="pl-link">Core Features</a>
-              <a href="#advisory" className="pl-link">Faculty Advisory</a>
+              <h4>Nền tảng</h4>
+              <a href="#portal" className="pl-link">Cổng lưu trữ</a>
+              <a href="#features" className="pl-link">Tính năng cốt lõi</a>
+              <a href="#advisory" className="pl-link">Hội đồng cố vấn</a>
             </div>
             <div className="pl-footer__col">
-              <h4>Resources</h4>
-              <a href="#faq" className="pl-link">FAQ & Guidelines</a>
-              <Link href="/api/auth/login" className="pl-link">Faculty SSO Portal</Link>
-              <Link href="/register" className="pl-link">Student Registration</Link>
+              <h4>Tài nguyên</h4>
+              <a href="#faq" className="pl-link">Hỏi đáp & Hướng dẫn</a>
+              <Link href="/login" className="pl-link">Cổng đăng nhập</Link>
+              <a href="#register-section" className="pl-link">Đăng ký sinh viên</a>
             </div>
             <div className="pl-footer__col">
-              <h4>Access</h4>
-              <Link href="/register" className="pl-link">Create Account</Link>
-              <Link href="/api/auth/login" className="pl-link">Sign In</Link>
-              <Link href="/admin/dashboard" className="pl-link">Admin Dashboard</Link>
+              <h4>Truy cập</h4>
+              <a href="#register-section" className="pl-link">Tạo tài khoản</a>
+              <Link href="/login" className="pl-link">Đăng nhập</Link>
+              <Link href="/admin/dashboard" className="pl-link">Trang Quản trị Admin</Link>
             </div>
           </div>
         </div>
 
         <div className="pl-container pl-footer__bottom">
-          <p>© {new Date().getFullYear()} Hyperdata Lab. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} ResearchPulse. Tất cả các quyền được bảo lưu.</p>
           <p className="pl-footer__disclaimer">
-            Hyperdata Lab Preprint is an educational research platform. Manuscripts are author-owned preliminary works.
+            Nền tảng công bố học thuật phi lợi nhuận phục vụ sinh viên và nhà nghiên cứu trẻ.
           </p>
         </div>
       </footer>

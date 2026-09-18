@@ -14,10 +14,8 @@ export async function GET(request: Request) {
       headers: { Authorization: `Bearer ${sessionToken}` },
     }).catch(() => undefined);
   }
+
   const response = NextResponse.redirect(new URL('/', request.url));
   response.cookies.delete('app_session');
-  response.cookies.delete('sso_session');
-  response.cookies.delete('sso_access_token');
-  response.cookies.delete('sso_refresh_token');
   return response;
 }

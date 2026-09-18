@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Button, EmptyState } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
