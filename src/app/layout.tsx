@@ -25,10 +25,29 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang='en'>
-      <body>
+    <html lang='en' suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var orig = Element.prototype.setAttribute;
+                  Element.prototype.setAttribute = function(n, v) {
+                    if (n === 'bis_skin_checked' || n === 'bis_size') return;
+                    return orig.apply(this, arguments);
+                  };
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body suppressHydrationWarning>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
 }
+
+
