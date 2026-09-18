@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { StudentShell } from '../components';
 import { usePreprintDetail } from '../hooks';
-import { studentPreprintApi } from '../api';
 import type { PreprintStatus } from '@/shared/types';
 
 interface PreprintDetailViewProps {
@@ -15,11 +13,8 @@ interface PreprintDetailViewProps {
 type TabType = 'OVERVIEW' | 'DOCUMENT' | 'REVIEWS' | 'TIMELINE';
 
 export function PreprintDetailView({ id }: PreprintDetailViewProps) {
-  const router = useRouter();
   const { item, loading, error } = usePreprintDetail(id);
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [copiedDoi, setCopiedDoi] = useState(false);
 
   const handleCopyDoi = () => {
@@ -27,20 +22,6 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
     navigator.clipboard.writeText(item.doi);
     setCopiedDoi(true);
     setTimeout(() => setCopiedDoi(false), 2000);
-  };
-
-  const handleWithdraw = async () => {
-    if (!item) return;
-    setIsWithdrawing(true);
-    try {
-      await studentPreprintApi.withdraw(item.id);
-      setShowWithdrawConfirm(false);
-      router.refresh();
-    } catch {
-      // handled in error
-    } finally {
-      setIsWithdrawing(false);
-    }
   };
 
   const renderStatusBadge = (status: PreprintStatus) => {
@@ -113,9 +94,15 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
               </Link>
             )}
 
-            {item.status === 'DRAFT' && (
+            {item.status === 'DRAFT' && !item.revision_required && (
               <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--primary">
                 <span>Continue Draft →</span>
+              </Link>
+            )}
+
+            {item.status === 'DRAFT' && item.revision_required && (
+              <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
+                <span>Submit Revision →</span>
               </Link>
             )}
 
@@ -315,21 +302,18 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                           Submit Revision
                         </Link>
                       )}
-                      {item.status === 'DRAFT' && (
+                      {item.status === 'DRAFT' && !item.revision_required && (
                         <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--primary student-btn--block">
                           Edit Manuscript Draft
                         </Link>
                       )}
+                      {item.status === 'DRAFT' && item.revision_required && (
+                        <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning student-btn--block">
+                          Submit Revision
+                        </Link>
+                      )}
                       <button type="button" onClick={() => setActiveTab('DOCUMENT')} className="student-btn student-btn--secondary student-btn--block">
                         Download PDF File
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowWithdrawConfirm(true)}
-                        className="student-btn student-btn--danger-ghost student-btn--block"
-                        disabled={item.status === 'WITHDRAWN'}
-                      >
-                        {item.status === 'WITHDRAWN' ? 'Manuscript Withdrawn' : 'Withdraw Manuscript'}
                       </button>
                     </div>
                   </div>
@@ -354,7 +338,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                   <div className="student-document-info">
                     <h3>{item.file_name || `${item.title.substring(0, 30)}.pdf`}</h3>
                     <div className="student-document-meta">
-                      <span>{item.file_size || '2.4 MB'}</span>
+                      <span>{item.file_size || 'Size unavailable'}</span>
                       <span className="student-separator">•</span>
                       <span>PDF Document</span>
                       <span className="student-separator">•</span>
@@ -367,14 +351,8 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                     </div>
                   </div>
                   <div className="student-document-action">
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        alert(`Downloading: ${item.file_name || 'manuscript.pdf'}`);
-                      }}
-                      className="student-btn student-btn--primary"
-                    >
+                    {item.download_url ? (
+                    <a href={item.download_url} target="_blank" rel="noreferrer" className="student-btn student-btn--primary">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
@@ -382,50 +360,26 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                       </svg>
                       <span>Download PDF</span>
                     </a>
+                    ) : (
+                      <button type="button" className="student-btn student-btn--secondary" disabled>
+                        PDF unavailable
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div className="student-document-hash-box">
                   <div className="student-hash-key">Cryptographic SHA-256 Checksum:</div>
-                  <code className="student-hash-code">{item.sha256 || '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'}</code>
+                  {item.sha256 ? (
+                    <code className="student-hash-code">{item.sha256}</code>
+                  ) : (
+                    <p className="student-hash-note">No checksum is available in the publication API response.</p>
+                  )}
                   <p className="student-hash-note">
-                    This cryptographic fingerprint guarantees that the scientific priority of your manuscript was timestamped on the Hyperdata Lab Preprint ledger at the time of submission.
+                    The checksum is shown only when it is returned by the publication service.
                   </p>
                 </div>
 
-                {/* PDF Viewer Mockup */}
-                <div className="student-pdf-viewer-mock">
-                  <div className="student-pdf-viewer-toolbar">
-                    <span>Page 1 / 14</span>
-                    <div className="student-pdf-viewer-tools">
-                      <button type="button" className="student-pdf-btn" title="Zoom In">+</button>
-                      <button type="button" className="student-pdf-btn" title="Zoom Out">-</button>
-                    </div>
-                  </div>
-                  <div className="student-pdf-page-preview">
-                    <div className="student-pdf-page-header">
-                      <span>HYPERDATA LAB PREPRINT REPOSITORY • RESEARCH ARTICLE</span>
-                      <span>DOI: {item.doi || '10.5281/zenodo.hdl-preview'}</span>
-                    </div>
-                    <h2 className="student-pdf-page-title">{item.title}</h2>
-                    <p className="student-pdf-page-authors">
-                      {item.authors?.map((a) => a.name).join(', ')}
-                    </p>
-                    <p className="student-pdf-page-inst">
-                      {item.authors?.[0]?.institution}
-                    </p>
-                    <div className="student-pdf-page-abstract-box">
-                      <strong>ABSTRACT</strong>
-                      <p>{item.abstract}</p>
-                    </div>
-                    <div className="student-pdf-page-lines">
-                      <div className="student-pdf-line" style={{ width: '95%' }} />
-                      <div className="student-pdf-line" style={{ width: '90%' }} />
-                      <div className="student-pdf-line" style={{ width: '85%' }} />
-                      <div className="student-pdf-line" style={{ width: '92%' }} />
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -554,35 +508,6 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             </div>
           )}
 
-          {/* Withdraw Confirmation Modal */}
-          {showWithdrawConfirm && (
-            <div className="student-modal-backdrop">
-              <div className="student-modal">
-                <h3 className="student-modal-title">Withdraw Manuscript?</h3>
-                <p className="student-modal-desc">
-                  Are you sure you want to withdraw <strong>&ldquo;{item.title}&rdquo;</strong>? Withdrawn preprints will no longer be considered for review, but will retain their timestamped record in your archive.
-                </p>
-                <div className="student-modal-actions">
-                  <button
-                    type="button"
-                    onClick={() => setShowWithdrawConfirm(false)}
-                    className="student-btn student-btn--secondary"
-                    disabled={isWithdrawing}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleWithdraw}
-                    className="student-btn student-btn--danger"
-                    disabled={isWithdrawing}
-                  >
-                    {isWithdrawing ? 'Withdrawing…' : 'Confirm Withdrawal'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </StudentShell>

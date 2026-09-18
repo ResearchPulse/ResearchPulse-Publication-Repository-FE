@@ -1,21 +1,12 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { oidcConfig, preprintApiBaseUrl } from '../../../../lib/oidc';
+import { preprintApiBaseUrl } from '../../../../lib/oidc';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get('app_session')?.value;
-  const centralSessionToken = cookieStore.get('sso_session')?.value;
-
-  if (centralSessionToken) {
-    await fetch(oidcConfig().logout, {
-      method: 'POST',
-      headers: { Cookie: `sso_session=${centralSessionToken}` },
-      cache: 'no-store',
-    }).catch(() => undefined);
-  }
 
   if (sessionToken) {
     await fetch(`${preprintApiBaseUrl()}/api/v1/auth/logout`, {

@@ -7,6 +7,17 @@ import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import type { StudentPreprint } from '../types';
 
+function formatUpdatedDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Recently updated';
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
 export function PreprintListView() {
   const { items, loading, error, apiPending } = usePreprintList();
   const [selectedTab, setSelectedTab] = useState<'ALL' | PreprintStatus>('ALL');
@@ -263,22 +274,22 @@ export function PreprintListView() {
         </div>
       )}
 
-      {/* 2-Column Card Grid matching user screenshot */}
+      {/* Manuscript summary cards */}
       {!loading && !error && filteredItems.length > 0 && (
         <div className="user-grid">
           {filteredItems.map((item: StudentPreprint) => {
             const hasRevisions = item.status === 'NEEDS_REVISION';
-            const latestReview = item.reviews?.[0];
+            const authorCount = item.authors?.length ?? 0;
 
             return (
               <div key={item.id} className={`user-card ${hasRevisions ? 'user-card--needs-revision' : ''}`}>
-                {/* Top: Status badge on left, Version on right */}
                 <div className="user-card__top">
                   {renderStatusBadge(item.status)}
-                  <span className="user-card__version">v{item.current_version}</span>
+                  <span className="user-card__version" aria-label={`Version ${item.current_version}`}>
+                    v{item.current_version}
+                  </span>
                 </div>
 
-                {/* Middle: Title & Abstract matching user screenshot */}
                 <div className="user-card__body">
                   <h2 className="user-card__title">
                     <Link href={`/student/my-preprints/${item.id}`} className="user-card__title-link">
@@ -286,20 +297,44 @@ export function PreprintListView() {
                     </Link>
                   </h2>
                   <p className="user-card__abstract">
-                    {item.abstract ? item.abstract : 'No abstract provided.'}
+                    {item.abstract || 'Abstract details will appear after the manuscript PDF is processed.'}
                   </p>
+
+                  <div className="user-card__meta" aria-label="Manuscript details">
+                    <span className="user-card__meta-item">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5A2.5 2.5 0 0 0 17.5 16H4z" />
+                        <path d="M4 5.5V19a2 2 0 0 0 2 2h11.5A2.5 2.5 0 0 0 20 18.5" />
+                        <path d="M8 7h8M8 10.5h6" />
+                      </svg>
+                      {item.discipline || 'Research manuscript'}
+                    </span>
+                    <span className="user-card__meta-item">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                      {authorCount} {authorCount === 1 ? 'author' : 'authors'}
+                    </span>
+                    <span className="user-card__meta-item user-card__meta-item--date">
+                      Updated {formatUpdatedDate(item.updated_at)}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Bottom: Preview item on left, Open -> on right */}
                 <div className="user-card__bottom">
-                  <Link href={`/student/my-preprints/${item.id}`} className="user-card__preview-label">
-                    Preview item
+                  <span className="user-card__file-state">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <path d="M14 2v6h6M8 13h8M8 17h5" />
+                    </svg>
+                    {item.file_name || 'PDF manuscript'}
+                  </span>
+                  <Link href={`/student/my-preprints/${item.id}`} className="user-card__link">
+                    View manuscript
+                    <span aria-hidden="true">→</span>
                   </Link>
-                  <div className="user-card__bottom-actions">
-                    <Link href={`/student/my-preprints/${item.id}`} className="user-card__link">
-                      Open →
-                    </Link>
-                  </div>
                 </div>
               </div>
             );

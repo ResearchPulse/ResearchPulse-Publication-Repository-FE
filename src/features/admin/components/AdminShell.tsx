@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { BrandMark, PageHeader } from '@hyperdata/design-system';
 import { ROUTES } from '@/app/router';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews';
 
@@ -13,7 +16,7 @@ const navItems: Array<{ key: AdminNavKey; label: string; href: string }> = [
 
 function NavGlyph({ type }: { type: AdminNavKey }) {
   if (type === 'dashboard') {
-    return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></svg>;
+    return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M4 4h7v7H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 13h7v7H4z" /></svg>;
   }
 
   if (type === 'submissions') {
@@ -44,6 +47,10 @@ export function AdminSidebar({ active }: { active: AdminNavKey }) {
 }
 
 export function Topbar({ title }: { title: string }) {
+  const { user } = useAuth();
+  const displayName = user?.name || user?.email || 'Administrator';
+  const initial = (user?.name?.[0] || user?.email?.[0] || 'A').toUpperCase();
+
   return (
     <header className="topbar">
       <div>
@@ -51,8 +58,8 @@ export function Topbar({ title }: { title: string }) {
         <h2 className="topbar-title">{title}</h2>
       </div>
       <div className="topbar-user">
-        <span className="avatar" aria-hidden="true">A</span>
-        <span>Administrator</span>
+        <span className="avatar" aria-hidden="true">{initial}</span>
+        <span>{displayName}</span>
       </div>
     </header>
   );

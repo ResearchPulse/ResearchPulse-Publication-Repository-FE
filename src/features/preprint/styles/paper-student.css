@@ -2042,105 +2042,6 @@
   color: #647381;
 }
 
-/* PDF Mockup Viewer */
-.student-pdf-viewer-mock {
-  border: 1px solid #dce4e9;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #64748b;
-}
-
-.student-pdf-viewer-toolbar {
-  background: #1e293b;
-  color: #ffffff;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.student-pdf-viewer-tools {
-  display: flex;
-  gap: 6px;
-}
-
-.student-pdf-btn {
-  background: #334155;
-  color: #ffffff;
-  border: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.student-pdf-page-preview {
-  background: #ffffff;
-  max-width: 600px;
-  margin: 24px auto;
-  padding: 40px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.student-pdf-page-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  font-weight: 700;
-  color: #94a3b8;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 8px;
-}
-
-.student-pdf-page-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.3;
-  margin: 0;
-}
-
-.student-pdf-page-authors {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: #0071bc;
-}
-
-.student-pdf-page-inst {
-  margin: 0;
-  font-size: 10px;
-  color: #64748b;
-}
-
-.student-pdf-page-abstract-box {
-  background: #f8fafc;
-  border-left: 2px solid #0071bc;
-  padding: 10px 12px;
-  font-size: 10.5px;
-  line-height: 1.5;
-  color: #334155;
-}
-
-.student-pdf-page-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 10px;
-}
-
-.student-pdf-line {
-  height: 7px;
-  background: #f1f5f9;
-  border-radius: 4px;
-}
-
 /* Reviews Feed */
 .student-reviews-feed {
   display: flex;
@@ -2628,6 +2529,11 @@
   margin-bottom: 20px;
 }
 
+.student-error-banner__retry {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
@@ -2686,6 +2592,234 @@
   }
   .student-version-badge-col {
     flex-direction: row;
+  }
+}
+
+/* ==========================================================================
+   Manuscript List Refresh
+   Summary-first cards keep the repository scannable without hiding workflow data.
+   ========================================================================== */
+.student-content {
+  --preprint-ink: oklch(25% 0.04 245);
+  --preprint-muted: oklch(48% 0.04 245);
+  --preprint-subtle: oklch(64% 0.03 245);
+  --preprint-line: oklch(88% 0.025 245);
+  --preprint-surface: oklch(99% 0.004 245);
+  --preprint-surface-muted: oklch(96% 0.015 245);
+  --preprint-surface-hover: oklch(98% 0.006 245);
+  --preprint-surface-card-hover: oklch(99.5% 0.006 240);
+  --preprint-blue: oklch(49% 0.17 250);
+  --preprint-blue-dark: oklch(40% 0.14 250);
+  --preprint-blue-soft: oklch(94% 0.035 232);
+  --preprint-blue-line: oklch(74% 0.1 240);
+  --preprint-green: oklch(43% 0.12 150);
+  --preprint-green-soft: oklch(94% 0.05 150);
+  --preprint-amber: oklch(50% 0.13 75);
+  --preprint-amber-soft: oklch(96% 0.045 90);
+  --preprint-amber-line: oklch(83% 0.09 82);
+  --preprint-amber-badge: oklch(92% 0.08 85);
+  --preprint-red: oklch(45% 0.16 25);
+  --preprint-red-soft: oklch(95% 0.035 25);
+  --preprint-radius: 12px;
+  --preprint-space-1: 4px;
+  --preprint-space-2: 8px;
+  --preprint-space-3: 12px;
+  --preprint-space-4: 16px;
+  --preprint-space-5: 24px;
+}
+
+.student-content .user-grid {
+  gap: var(--preprint-space-5);
+}
+
+.student-content .user-card {
+  min-height: 300px;
+  padding: var(--preprint-space-5);
+  border: 1px solid var(--preprint-line);
+  border-radius: var(--preprint-radius);
+  background: var(--preprint-surface);
+  box-shadow: none;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.student-content .user-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--preprint-blue-line);
+  background: var(--preprint-surface-card-hover);
+  box-shadow: none;
+}
+
+.student-content .user-card--needs-revision {
+  border-color: var(--preprint-amber-line);
+  background: var(--preprint-amber-soft);
+}
+
+.student-content .user-card__top {
+  margin-bottom: var(--preprint-space-4);
+}
+
+.student-content .user-badge {
+  min-height: 28px;
+  padding: var(--preprint-space-1) var(--preprint-space-2);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.student-content .user-badge--approved {
+  background: var(--preprint-green-soft);
+  color: var(--preprint-green);
+}
+
+.student-content .user-badge--revision {
+  background: var(--preprint-amber-badge);
+  color: var(--preprint-amber);
+}
+
+.student-content .user-badge--review {
+  background: var(--preprint-blue-soft);
+  color: var(--preprint-blue-dark);
+}
+
+.student-content .user-badge--draft {
+  background: var(--preprint-surface-muted);
+  color: var(--preprint-muted);
+}
+
+.student-content .user-badge--withdrawn {
+  background: var(--preprint-red-soft);
+  color: var(--preprint-red);
+}
+
+.student-content .user-card__version {
+  color: var(--preprint-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.student-content .user-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-bottom: var(--preprint-space-3);
+  color: var(--preprint-ink);
+  font-size: 20px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.student-content .user-card__title-link:focus-visible,
+.student-content .user-card__link:focus-visible,
+.student-content .user-card__preview-label:focus-visible {
+  outline: 3px solid var(--preprint-blue);
+  outline-offset: 4px;
+}
+
+.student-content .user-card__abstract {
+  display: -webkit-box;
+  min-height: calc(3 * 1.6em);
+  overflow: hidden;
+  margin-bottom: var(--preprint-space-4);
+  color: var(--preprint-muted);
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.student-content .user-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--preprint-space-3);
+  padding-top: var(--preprint-space-4);
+  border-top: 1px solid var(--preprint-line);
+  color: var(--preprint-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  flex-wrap: wrap;
+}
+
+.student-content .user-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--preprint-space-2);
+  min-width: 0;
+}
+
+.student-content .user-card__meta-item svg {
+  flex: 0 0 auto;
+  color: var(--preprint-blue);
+}
+
+.student-content .user-card__meta-item--date {
+  color: var(--preprint-subtle);
+}
+
+.student-content .user-card__bottom {
+  gap: var(--preprint-space-3);
+  padding-top: var(--preprint-space-4);
+  border-top-color: var(--preprint-line);
+}
+
+.student-content .user-card__file-state {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--preprint-space-2);
+  overflow: hidden;
+  color: var(--preprint-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-content .user-card__file-state svg {
+  flex: 0 0 auto;
+  color: var(--preprint-subtle);
+}
+
+.student-content .user-card__link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--preprint-space-2);
+  color: var(--preprint-blue-dark);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.student-content .user-card__link span {
+  transition: transform 180ms ease;
+}
+
+.student-content .user-card__link:hover span {
+  transform: translateX(2px);
+}
+
+@media (max-width: 768px) {
+  .student-content .user-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-content .user-card {
+    min-height: 0;
+    padding: var(--preprint-space-4);
+  }
+}
+
+@media (max-width: 520px) {
+  .student-content .user-card__file-state {
+    max-width: 52%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-content .user-card,
+  .student-content .user-card__link span {
+    transition-duration: 0ms;
+  }
+
+  .student-content .user-card:hover {
+    transform: none;
   }
 }
 
@@ -2907,6 +3041,9 @@
   font-size: 11px;
   color: #64748b;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .student-sidebar__logout-btn {

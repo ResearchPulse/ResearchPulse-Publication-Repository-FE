@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface StudentSidebarProps {
   revisionCount?: number;
@@ -11,12 +12,32 @@ interface StudentSidebarProps {
 }
 
 export function StudentSidebar({
-  revisionCount = 1,
-  totalCount = 3,
+  revisionCount = 0,
+  totalCount = 0,
   isOpen = false,
   onClose,
 }: StudentSidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Authenticated Student';
+  const displayOrg = user?.email || 'Student Workspace';
+
+  const getInitials = (name?: string, email?: string) => {
+    if (name?.trim()) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.slice(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return 'ST';
+  };
+
+  const initials = getInitials(user?.name, user?.email);
 
   const isRouteActive = (href: string) => {
     if (href === '/student/dashboard') {
@@ -182,12 +203,16 @@ export function StudentSidebar({
         <div className="student-sidebar__footer">
           <div className="student-sidebar__profile-card">
             <div className="student-sidebar__avatar">
-              <span>NA</span>
+              <span>{initials}</span>
               <span className="student-sidebar__status-dot" aria-label="Online" />
             </div>
             <div className="student-sidebar__profile-info">
-              <span className="student-sidebar__name">Nguyen Minh An</span>
-              <span className="student-sidebar__org">HCMUT • Author</span>
+              <span className="student-sidebar__name" title={displayName}>
+                {displayName}
+              </span>
+              <span className="student-sidebar__org" title={displayOrg}>
+                {displayOrg}
+              </span>
             </div>
             <Link
               href="/api/auth/logout"

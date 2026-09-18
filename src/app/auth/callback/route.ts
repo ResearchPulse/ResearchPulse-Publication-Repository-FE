@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { resolvePostLoginPath } from '../../../lib/auth-server';
-import { preprintApiBaseUrl, ssoClientId, ssoRedirectUri } from '../../../lib/oidc';
+import { getPreprintSsoConfig, preprintApiBaseUrl } from '../../../lib/oidc';
 import type { User } from '../../../shared/types';
 
 export const runtime = 'nodejs';
@@ -19,15 +19,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid OIDC callback' }, { status: 400 });
   }
 
-  const redirectUri = ssoRedirectUri(requestUrl.origin);
+  let ssoConfig;
+
+  try {
+    ssoConfig = await getPreprintSsoConfig(requestUrl.origin);
+  } catch {
+    return NextResponse.json(
+      { error: 'Preprint SSO configuration is unavailable' },
+      { status: 502 }
+    );
+  }
+
   const sessionResponse = await fetch(preprintApiBaseUrl() + '/api/v1/auth/sso/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       code,
       code_verifier: verifier,
-      client_id: ssoClientId(),
-      redirect_uri: redirectUri,
+      client_id: ssoConfig.clientId,
+      redirect_uri: ssoConfig.redirectUri,
     }),
     cache: 'no-store',
   });

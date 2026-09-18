@@ -33,7 +33,7 @@ export function StudentDashboardView() {
   }, [items, filterStatus]);
 
   const handleCopyCitation = (item: StudentPreprint) => {
-    const citation = `${item.authors.map((a) => a.name).join(', ')} (2026). "${item.title}." Hyperdata Lab Preprint Repository. DOI: ${item.doi || '10.5281/zenodo.hdl-preview'}`;
+    const citation = `${item.authors.map((a) => a.name).join(', ')}. "${item.title}." Hyperdata Lab Preprint Repository${item.doi ? `. DOI: ${item.doi}` : ''}`;
     navigator.clipboard.writeText(citation);
     setCopiedDoi(item.id);
     setTimeout(() => setCopiedDoi(null), 2500);
@@ -50,18 +50,16 @@ export function StudentDashboardView() {
         <div className="dashboard-hero__main">
           <div className="dashboard-hero__greeting">
             <span className="dashboard-hero__eyebrow">STUDENT RESEARCH SCHOLAR</span>
-            <h1 className="dashboard-hero__title">Welcome back, Nguyen Minh An 👋</h1>
+            <h1 className="dashboard-hero__title">Your research workspace</h1>
             <p className="dashboard-hero__subtitle">
-              Manage your manuscripts, track faculty mentorship assessments, and monitor priority timestamp verification.
+              Manage your manuscripts, verify extracted metadata, and track lecturer review decisions.
             </p>
           </div>
           <div className="dashboard-hero__tags">
             <span className="dashboard-hero__tag">
               <span className="dashboard-hero__tag-dot" />
-              Verified Author
+              Publication API connected
             </span>
-            <span className="dashboard-hero__tag">ID: STU-2026-HCMUT</span>
-            <span className="dashboard-hero__tag">VNU-HCM Univ. of Technology</span>
           </div>
         </div>
         <div className="dashboard-hero__action">
@@ -261,9 +259,9 @@ export function StudentDashboardView() {
                         </td>
                         <td className="dashboard-table__date">
                           {(() => {
-                            if (!item.updated_at) return 'Sep 14';
+                            if (!item.updated_at) return '—';
                             const d = new Date(item.updated_at);
-                            return isNaN(d.getTime()) ? 'Sep 14' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                           })()}
                         </td>
                         <td>
@@ -312,16 +310,16 @@ export function StudentDashboardView() {
                 <div className="dashboard-mentor-avatar">LT</div>
                 <div className="dashboard-mentor-content">
                   <div className="dashboard-mentor-top">
-                    <strong>Dr. Linh Tran</strong>
-                    <span className="dashboard-mentor-badge">Advisory Reviewer</span>
+                    <strong>{revisionItem?.reviews?.[0]?.reviewer_name || 'No reviewer activity'}</strong>
+                    <span className="dashboard-mentor-badge">Loaded from publication API</span>
                   </div>
                   <p className="dashboard-mentor-comment">
-                    &ldquo;Please update Figure 4 confidence intervals and provide the raw dataset repository link before final approval.&rdquo;
+                    {revisionItem?.reviews?.[0]?.comments || 'No reviewer comments have been returned yet.'}
                   </p>
                   <div className="dashboard-mentor-meta">
-                    <span>Mapping data literacy · v2</span>
-                    <Link href="/student/my-preprints/manuscript-stem-01?tab=reviews" className="dashboard-mentor-link">
-                      Respond →
+                    <span>{revisionItem?.title || 'No manuscript review activity'}</span>
+                    <Link href="/student/mentor-feedback" className="dashboard-mentor-link">
+                      Open feedback
                     </Link>
                   </div>
                 </div>
@@ -331,14 +329,14 @@ export function StudentDashboardView() {
                 <div className="dashboard-mentor-avatar dashboard-mentor-avatar--purple">NT</div>
                 <div className="dashboard-mentor-content">
                   <div className="dashboard-mentor-top">
-                    <strong>Assoc. Prof. Nguyen Van Thuan</strong>
-                    <span className="dashboard-mentor-badge dashboard-mentor-badge--neutral">Scope Review</span>
+                    <strong>Reviewer assignments</strong>
+                    <span className="dashboard-mentor-badge dashboard-mentor-badge--neutral">Publication API</span>
                   </div>
                   <p className="dashboard-mentor-comment">
-                    Assigned to peer review protocol evaluation for collaborative academic journals.
+                    Reviewer assignments and recommendations are managed in the admin workspace.
                   </p>
                   <div className="dashboard-mentor-meta">
-                    <span>Collaborative peer review · v1</span>
+                    <span>Review assignments are loaded from the publication API.</span>
                   </div>
                 </div>
               </div>
@@ -348,27 +346,19 @@ export function StudentDashboardView() {
           {/* Academic Deadlines Card */}
           <div className="dashboard-card dashboard-card--accent">
             <div className="dashboard-card__header">
-              <h2 className="dashboard-card__title">Upcoming Milestones</h2>
+              <h2 className="dashboard-card__title">Submission Guidance</h2>
             </div>
             <div className="dashboard-milestones">
               <div className="dashboard-milestone-item">
-                <div className="dashboard-milestone-date">
-                  <span className="dashboard-milestone-month">SEP</span>
-                  <span className="dashboard-milestone-day">25</span>
-                </div>
                 <div className="dashboard-milestone-info">
-                  <strong>Faculty Mentorship Sign-off</strong>
-                  <p>Deadline for Q3 manuscript revision approvals</p>
+                  <strong>Prepare your manuscript</strong>
+                  <p>Upload a PDF, verify the extracted metadata, and submit it for lecturer review.</p>
                 </div>
               </div>
               <div className="dashboard-milestone-item">
-                <div className="dashboard-milestone-date">
-                  <span className="dashboard-milestone-month">OCT</span>
-                  <span className="dashboard-milestone-day">15</span>
-                </div>
                 <div className="dashboard-milestone-info">
-                  <strong>Student Research Symposium</strong>
-                  <p>Camera-ready proceedings archiving</p>
+                  <strong>Track the decision</strong>
+                  <p>Lecturers submit recommendations; only an administrator can publish the preprint.</p>
                 </div>
               </div>
             </div>

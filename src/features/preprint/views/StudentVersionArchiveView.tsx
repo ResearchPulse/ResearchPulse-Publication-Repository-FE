@@ -1,15 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { StudentDashboardLayout } from '../components';
 import { usePreprintList } from '../hooks';
+import { studentPreprintApi } from '../api';
+import type { PreprintVersionInfo } from '../types';
 
 export function StudentVersionArchiveView() {
-  const { items } = usePreprintList();
+  const { items, loading: listLoading } = usePreprintList();
+  const [versionsByPublication, setVersionsByPublication] = useState<Record<string, PreprintVersionInfo[]>>({});
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionsError, setVersionsError] = useState<string | null>(null);
   const [selectedManuscriptId, setSelectedManuscriptId] = useState<string>('ALL');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [collapsedManuscripts, setCollapsedManuscripts] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (listLoading || items.length === 0) {
+      setVersionsByPublication({});
+      return;
+    }
+
+    let active = true;
+    setVersionsLoading(true);
+    setVersionsError(null);
+    void Promise.allSettled(items.map(async (item) => [item.id, await studentPreprintApi.versions(item.id)] as const))
+      .then((results) => {
+        if (!active) return;
+        const entries = results
+          .filter((result): result is PromiseFulfilledResult<readonly [string, PreprintVersionInfo[]]> => result.status === 'fulfilled')
+          .map((result) => result.value);
+        setVersionsByPublication(Object.fromEntries(entries));
+        if (results.some((result) => result.status === 'rejected')) {
+          setVersionsError('Some version histories could not be loaded. Open the manuscript to retry.');
+        }
+      })
+      .finally(() => {
+        if (active) setVersionsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [items, listLoading]);
 
   const toggleManuscript = (id: string) => {
     setCollapsedManuscripts((prev) => ({
@@ -24,9 +58,13 @@ export function StudentVersionArchiveView() {
     setTimeout(() => setCopiedHash(null), 2000);
   };
 
+  const manuscriptsWithVersions = items.map((item) => ({
+    ...item,
+    versions: versionsByPublication[item.id] || [],
+  }));
   const filteredManuscripts = selectedManuscriptId === 'ALL'
-    ? items
-    : items.filter((item) => item.id === selectedManuscriptId);
+    ? manuscriptsWithVersions
+    : manuscriptsWithVersions.filter((item) => item.id === selectedManuscriptId);
 
   return (
     <StudentDashboardLayout
@@ -37,12 +75,12 @@ export function StudentVersionArchiveView() {
       {/* Page Header */}
       <div className="dashboard-page-header">
         <div className="dashboard-page-header__left">
-          <span className="dashboard-hero__eyebrow">IMMUTABLE REVISION LEDGER</span>
+          <span className="dashboard-hero__eyebrow">VERSION HISTORY</span>
           <h1 className="dashboard-hero__title" style={{ fontSize: '24px', margin: '0 0 6px' }}>
             Permanent Version Archive &amp; Provenance
           </h1>
           <p className="dashboard-hero__subtitle" style={{ margin: 0 }}>
-            Every released version is permanently preserved with a cryptographic SHA-256 timestamp and author change notes.
+            Version history is loaded from the publication API for each manuscript.
           </p>
         </div>
         <div className="dashboard-page-header__right">
@@ -84,6 +122,13 @@ export function StudentVersionArchiveView() {
 
         {/* Version Lineages List */}
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          {(listLoading || versionsLoading) && (
+            <div className="student-loading-box">
+              <div className="student-spinner" />
+              <p>Loading version history…</p>
+            </div>
+          )}
+          {versionsError && <div className="student-error-banner">{versionsError}</div>}
           {filteredManuscripts.map((manuscript) => {
             const isExpanded = !collapsedManuscripts[manuscript.id];
 
@@ -98,7 +143,7 @@ export function StudentVersionArchiveView() {
                       </Link>
                     </h3>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                      DOI: {manuscript.doi || '10.5281/zenodo.hdl-preview'} &bull; {manuscript.versions?.length || 1} archived version(s)
+                      DOI: {manuscript.doi || 'DOI unavailable'} &bull; {manuscript.versions?.length || 0} archived version(s)
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -209,7 +254,7 @@ export function StudentVersionArchiveView() {
 
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', fontSize: '12px', color: '#64748b' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                <span>📄 {ver.file_name} ({ver.file_size || '2.4 MB'})</span>
+                                <span>PDF: {ver.file_name} ({ver.file_size || 'Size unavailable'})</span>
                                 {ver.sha256 && (
                                   <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
                                     SHA: {ver.sha256.substring(0, 16)}…
@@ -227,14 +272,16 @@ export function StudentVersionArchiveView() {
                                     {copiedHash === ver.sha256 ? 'Hash Copied!' : 'Copy Checksum'}
                                   </button>
                                 )}
-                                <a
-                                  href={`/downloads/${ver.file_name}`}
-                                  download
-                                  className="dashboard-table__cite-btn"
-                                  style={{ color: '#0071bc', borderColor: '#b8dcef' }}
-                                >
-                                  Download PDF
-                                </a>
+                                {ver.download_url && (
+                                  <a
+                                    href={ver.download_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="dashboard-table__action-btn"
+                                  >
+                                    Download PDF
+                                  </a>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -242,7 +289,7 @@ export function StudentVersionArchiveView() {
                       ))
                     ) : (
                       <div style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic' }}>
-                        Version 1.0 recorded on {manuscript.submitted_at ? new Date(manuscript.submitted_at).toLocaleDateString() : 'August 28, 2026'}.
+                        No version history is available from the publication API.
                       </div>
                     )}
                   </div>

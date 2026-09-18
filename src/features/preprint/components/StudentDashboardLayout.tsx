@@ -14,8 +14,8 @@ interface StudentDashboardLayoutProps {
 export function StudentDashboardLayout({
   title = 'Research Dashboard',
   children,
-  revisionCount = 1,
-  totalCount = 3,
+  revisionCount = 0,
+  totalCount = 0,
 }: StudentDashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
