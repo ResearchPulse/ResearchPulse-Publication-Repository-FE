@@ -1,292 +1,402 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { StudentDashboardLayout } from '../components';
+import { StudentShell } from '../components';
+import { studentPreprintApi } from '../api';
 import { usePreprintList } from '../hooks';
+import type { StudentPreprint } from '../types';
+
+type FeedbackFilter = 'ALL' | 'ACTION' | 'REVIEW' | 'APPROVED';
+type SortOption = 'UPDATED' | 'TITLE' | 'REVIEWER';
 
 export function StudentMentorFeedbackView() {
-  const { items } = usePreprintList();
-  const [filter, setFilter] = useState<'ALL' | 'ACTION' | 'REVIEW'>('ALL');
+  const { items, loading: listLoading, error: listError } = usePreprintList();
+  const [filter, setFilter] = useState<FeedbackFilter>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
+  const [reviewedManuscripts, setReviewedManuscripts] = useState<StudentPreprint[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<Error | null>(null);
 
-  // Collect all reviews across manuscripts
-  const revisionItems = items.filter((i) => i.status === 'NEEDS_REVISION');
-  const reviewItems = items.filter((i) => i.status === 'UNDER_REVIEW');
+  useEffect(() => {
+    let active = true;
+    if (items.length === 0) {
+      setReviewedManuscripts([]);
+      setReviewsLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setReviewsLoading(true);
+    setReviewsError(null);
+    Promise.all(items.map((item) => studentPreprintApi.get(item.id)))
+      .then((records) => {
+        if (active) {
+          // Include manuscripts that have feedback records or are currently under review
+          setReviewedManuscripts(
+            records.filter((record) => (record.reviews && record.reviews.length > 0) || record.status === 'UNDER_REVIEW'),
+          );
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) setReviewsError(reason instanceof Error ? reason : new Error('Unable to load reviewer feedback.'));
+      })
+      .finally(() => {
+        if (active) setReviewsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [items]);
+
+  // Counts for filter pills
+  const actionCount = useMemo(
+    () =>
+      items.filter(
+        (item) => item.status === 'NEEDS_REVISION' || item.reviews?.some((review) => review.decision === 'NEEDS_REVISION'),
+      ).length,
+    [items],
+  );
+
+  const reviewCount = useMemo(
+    () => items.filter((item) => item.status === 'UNDER_REVIEW').length,
+    [items],
+  );
+
+  const approvedCount = useMemo(
+    () => items.filter((item) => item.status === 'APPROVED' || item.status === 'PUBLISHED').length,
+    [items],
+  );
+
+  const totalTracked = useMemo(() => {
+    return reviewedManuscripts.length;
+  }, [reviewedManuscripts]);
+
+  // Filter and sort stream
+  const visibleManuscripts = useMemo(() => {
+    let result = reviewedManuscripts;
+
+    if (filter === 'ACTION') {
+      result = result.filter(
+        (item) => item.status === 'NEEDS_REVISION' || item.reviews?.some((review) => review.decision === 'NEEDS_REVISION'),
+      );
+    } else if (filter === 'REVIEW') {
+      result = result.filter((item) => item.status === 'UNDER_REVIEW');
+    } else if (filter === 'APPROVED') {
+      result = result.filter(
+        (item) =>
+          item.status === 'APPROVED' ||
+          item.status === 'PUBLISHED' ||
+          item.reviews?.some((review) => review.decision === 'APPROVED'),
+      );
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (item) =>
+          item.title.toLowerCase().includes(q) ||
+          item.discipline?.toLowerCase().includes(q) ||
+          item.reviews?.some((r) => r.reviewer_name?.toLowerCase().includes(q)),
+      );
+    }
+
+    return [...result].sort((a, b) => {
+      if (sortBy === 'TITLE') {
+        return a.title.localeCompare(b.title);
+      }
+      if (sortBy === 'REVIEWER') {
+        const nameA = a.reviews?.[0]?.reviewer_name || '';
+        const nameB = b.reviews?.[0]?.reviewer_name || '';
+        return nameA.localeCompare(nameB);
+      }
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+  }, [filter, reviewedManuscripts, searchQuery, sortBy]);
 
   return (
-    <StudentDashboardLayout
-      title="Mentor Feedback & Reviews"
-      revisionCount={revisionItems.length}
-      totalCount={items.length}
-    >
-      {/* Page Header */}
-      <div className="dashboard-page-header">
-        <div className="dashboard-page-header__left">
-          <span className="dashboard-hero__eyebrow">ACADEMIC PEER MENTORSHIP</span>
-          <h1 className="dashboard-hero__title" style={{ fontSize: '24px', margin: '0 0 6px' }}>
-            Faculty Mentor Feedback &amp; Reviews
-          </h1>
-          <p className="dashboard-hero__subtitle" style={{ margin: 0 }}>
-            Track evaluations from advisory faculty, revision checklists, and approval sign-offs.
-          </p>
+    <StudentShell title="Mentor Feedback & Reviews" showStandardHeader={false}>
+      {/* 1. Filter Toolbar (Synced identically with My Manuscripts / Hình 2) */}
+      <div className="student-filter-toolbar">
+        {/* Status Tab Pills */}
+        <div className="student-tabs-pills" role="tablist" aria-label="Filter feedback by status">
+          <button
+            type="button"
+            className={`student-tab-pill ${filter === 'ALL' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => setFilter('ALL')}
+          >
+            All <span className="student-tab-pill__count">{totalTracked}</span>
+          </button>
+          <button
+            type="button"
+            className={`student-tab-pill ${filter === 'REVIEW' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => setFilter('REVIEW')}
+          >
+            In Review <span className="student-tab-pill__count">{reviewCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`student-tab-pill ${filter === 'ACTION' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
+            onClick={() => setFilter('ACTION')}
+          >
+            Needs Revision <span className="student-tab-pill__count">{actionCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`student-tab-pill ${filter === 'APPROVED' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => setFilter('APPROVED')}
+          >
+            Approved <span className="student-tab-pill__count">{approvedCount}</span>
+          </button>
         </div>
-        <div className="dashboard-page-header__right">
-          <Link href="/student/my-preprints" className="dashboard-btn dashboard-btn--primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
+
+        {/* Search & Sort Actions */}
+        <div className="student-toolbar-actions">
+          <div className="student-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <span>My Manuscripts</span>
-          </Link>
-        </div>
-      </div>
+            <input
+              type="search"
+              placeholder="Search manuscripts, reviews..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="student-search-input"
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} className="student-search-clear">
+                ×
+              </button>
+            )}
+          </div>
 
-      {/* Metrics Row */}
-      <div className="dashboard-metrics-grid" style={{ marginBottom: '24px' }}>
-        <div className="dashboard-metric-card dashboard-metric-card--alert">
-          <div className="dashboard-metric-card__header">
-            <span className="dashboard-metric-card__label">Action Required</span>
-            <div className="dashboard-metric-card__icon dashboard-metric-card__icon--amber">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </div>
-          </div>
-          <div className="dashboard-metric-card__value">{revisionItems.length}</div>
-          <div className="dashboard-metric-card__trend dashboard-metric-card__trend--amber">
-            <span>Revisions requested by reviewer</span>
-          </div>
-        </div>
-
-        <div className="dashboard-metric-card">
-          <div className="dashboard-metric-card__header">
-            <span className="dashboard-metric-card__label">In Scope Evaluation</span>
-            <div className="dashboard-metric-card__icon dashboard-metric-card__icon--sky">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </div>
-          </div>
-          <div className="dashboard-metric-card__value">{reviewItems.length}</div>
-          <div className="dashboard-metric-card__trend dashboard-metric-card__trend--sky">
-            <span>Advisory review queue active</span>
-          </div>
-        </div>
-
-        <div className="dashboard-metric-card">
-          <div className="dashboard-metric-card__header">
-            <span className="dashboard-metric-card__label">Assigned Mentors</span>
-            <div className="dashboard-metric-card__icon dashboard-metric-card__icon--blue">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-          </div>
-          <div className="dashboard-metric-card__value">2</div>
-          <div className="dashboard-metric-card__trend dashboard-metric-card__trend--neutral">
-            <span>Senior faculty advisory board</span>
+          <div className="student-sort-box">
+            <span className="student-sort-label">Sort:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="student-sort-select"
+            >
+              <option value="UPDATED">Recently Updated</option>
+              <option value="TITLE">Title (A-Z)</option>
+              <option value="REVIEWER">Reviewer Name</option>
+            </select>
           </div>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-        <div className="dashboard-card__header">
-          <h2 className="dashboard-card__title">Mentor Feedback Stream</h2>
-          <div className="dashboard-card__filters">
-            <button
-              type="button"
-              className={`dashboard-filter-btn ${filter === 'ALL' ? 'dashboard-filter-btn--active' : ''}`}
-              onClick={() => setFilter('ALL')}
-            >
-              All Evaluations
-            </button>
-            <button
-              type="button"
-              className={`dashboard-filter-btn ${filter === 'ACTION' ? 'dashboard-filter-btn--active' : ''}`}
-              onClick={() => setFilter('ACTION')}
-            >
-              Action Required ({revisionItems.length})
-            </button>
-            <button
-              type="button"
-              className={`dashboard-filter-btn ${filter === 'REVIEW' ? 'dashboard-filter-btn--active' : ''}`}
-              onClick={() => setFilter('REVIEW')}
-            >
-              In Scope Review ({reviewItems.length})
-            </button>
+      {/* 2. Feedback Stream Content (Flat, Modern & Spacious) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        {listLoading || reviewsLoading ? (
+          <div className="student-loading-box">
+            <div className="student-spinner" />
+            <p>Loading reviewer feedback and academic evaluations…</p>
           </div>
-        </div>
-
-        {/* Feedback Cards List */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Item 1: Mapping data literacy */}
-          {(filter === 'ALL' || filter === 'ACTION') && (
-            <div className="dashboard-alert-banner" style={{ display: 'block', padding: '22px 24px', background: '#ffffff', border: '1px solid #fde68a' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="dashboard-mentor-avatar" style={{ background: '#0071bc', color: '#ffffff', width: '38px', height: '38px', fontSize: '13px' }}>
-                    LT
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: '15px', color: '#0f172a', display: 'block' }}>Dr. Linh Tran</strong>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>Advisory Board Chair &bull; Sep 14, 2026</span>
-                  </div>
-                </div>
-                <span className="user-badge user-badge--revision" style={{ padding: '4px 12px', fontSize: '12px' }}>
-                  NEEDS REVISION
-                </span>
-              </div>
-
-              <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', marginBottom: '14px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>MANUSCRIPT</span>
-                <h3 style={{ margin: '3px 0 0', fontSize: '16px', color: '#0f172a', fontWeight: 700 }}>
-                  <Link href="/student/my-preprints/manuscript-stem-01" style={{ color: 'inherit', textDecoration: 'none' }}>
-                    Mapping data literacy in undergraduate research (v2)
-                  </Link>
-                </h3>
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '4px' }}>Reviewer Critique:</strong>
-                <p style={{ margin: 0, fontSize: '14px', color: '#475569', lineHeight: 1.6, fontStyle: 'italic', background: '#fffdf5', padding: '12px 16px', borderRadius: '8px', borderLeft: '3px solid #d97706' }}>
-                  &ldquo;Please update Figure 4 confidence intervals and provide the raw dataset repository link before final approval. Methodological rigor in Section 3.2 looks significantly improved over v1.0.&rdquo;
-                </p>
-              </div>
-
-              <div style={{ marginBottom: '18px' }}>
-                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>Required Revision Items:</strong>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#475569', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <li>Add dataset repository link to camera-ready footer</li>
-                  <li>Export all figures at 300 DPI for conference printing</li>
-                  <li>Address two-way ANOVA confidence interval table</li>
-                </ul>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                <Link
-                  href="/student/my-preprints/manuscript-stem-01/edit"
-                  className="dashboard-btn dashboard-btn--primary"
-                  style={{ background: '#d97706' }}
-                >
-                  Open Revision Editor →
-                </Link>
-                <Link
-                  href="/student/my-preprints/manuscript-stem-01"
-                  className="dashboard-filter-btn"
-                  style={{ padding: '8px 16px', fontSize: '13px' }}
-                >
-                  View Manuscript Overview
-                </Link>
-                <Link
-                  href="/student/my-preprints/manuscript-stem-01/versions"
-                  className="dashboard-filter-btn"
-                  style={{ padding: '8px 16px', fontSize: '13px' }}
-                >
-                  Version Lineage
-                </Link>
-              </div>
+        ) : listError || reviewsError ? (
+          <div className="student-error" role="alert">
+            Error: {(listError || reviewsError)?.message}
+          </div>
+        ) : visibleManuscripts.length === 0 ? (
+          /* 3. Inspiring Academic Empty State */
+          <div className="student-empty-card">
+            <div className="student-empty-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
             </div>
-          )}
-
-          {/* Item 2: Collaborative peer review */}
-          {(filter === 'ALL' || filter === 'REVIEW') && (
-            <div className="dashboard-alert-banner" style={{ display: 'block', padding: '22px 24px', background: '#ffffff', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="dashboard-mentor-avatar" style={{ background: '#7c3aed', color: '#ffffff', width: '38px', height: '38px', fontSize: '13px' }}>
-                    NT
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: '15px', color: '#0f172a', display: 'block' }}>Assoc. Prof. Nguyen Van Thuan</strong>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>Faculty Scope Reviewer &bull; Sep 15, 2026</span>
-                  </div>
-                </div>
-                <span className="user-badge user-badge--review" style={{ padding: '4px 12px', fontSize: '12px' }}>
-                  UNDER REVIEW
-                </span>
-              </div>
-
-              <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', marginBottom: '14px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>MANUSCRIPT</span>
-                <h3 style={{ margin: '3px 0 0', fontSize: '16px', color: '#0f172a', fontWeight: 700 }}>
-                  <Link href="/student/my-preprints/manuscript-peerreview-03" style={{ color: 'inherit', textDecoration: 'none' }}>
-                    Collaborative peer review practices in student academic journals (v1)
-                  </Link>
-                </h3>
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '4px' }}>Reviewer Status:</strong>
-                <p style={{ margin: 0, fontSize: '14px', color: '#475569', lineHeight: 1.6, background: '#f0f9ff', padding: '12px 16px', borderRadius: '8px', borderLeft: '3px solid #0284c7' }}>
-                  Manuscript has passed initial editorial triage and is currently being evaluated under the double-blind rubric evaluation protocol. Expected completion by Sep 22, 2026.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                <Link
-                  href="/student/my-preprints/manuscript-peerreview-03"
-                  className="dashboard-btn dashboard-btn--primary"
-                >
-                  View Manuscript &amp; Timeline →
-                </Link>
-              </div>
+            <h3>
+              {searchQuery
+                ? 'No matching evaluations found'
+                : filter === 'ACTION'
+                ? 'No revision requests pending'
+                : filter === 'REVIEW'
+                ? 'No manuscripts currently under review'
+                : filter === 'APPROVED'
+                ? 'No approved manuscripts found'
+                : 'No reviewer feedback recorded yet'}
+            </h3>
+            <p>
+              {searchQuery
+                ? `We couldn't find any reviews or manuscripts matching "${searchQuery}". Try a different keyword.`
+                : filter === 'ACTION'
+                ? 'All lecturer revision requests have been addressed or resubmitted. Great work maintaining your research cadence!'
+                : filter === 'REVIEW'
+                ? 'You currently have no manuscripts in the faculty evaluation queue. Submit a new preprint to begin peer review.'
+                : filter === 'APPROVED'
+                ? 'Manuscripts approved by faculty mentors will appear here once cleared.'
+                : 'When you submit a manuscript, assigned faculty mentors review your preprint, provide constructive notes, and return revision items within the 48–72h mentorship window.'}
+            </p>
+            <div className="student-empty-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/student/my-preprints" className="student-btn student-btn--secondary">
+                View My Manuscripts
+              </Link>
+              <Link href="/student/my-preprints/new" className="student-btn student-btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Start New Submission</span>
+              </Link>
             </div>
-          )}
+          </div>
+        ) : (
+          visibleManuscripts.map((manuscript) => {
+            const latestReview = manuscript.reviews?.[0];
+            const isUnderReviewOnly = !latestReview && manuscript.status === 'UNDER_REVIEW';
 
-          {/* Item 3: Open methods */}
-          {(filter === 'ALL' || filter === 'REVIEW') && (
-            <div className="dashboard-alert-banner" style={{ display: 'block', padding: '22px 24px', background: '#ffffff', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="dashboard-mentor-avatar" style={{ background: '#0071bc', color: '#ffffff', width: '38px', height: '38px', fontSize: '13px' }}>
-                    LT
+            if (isUnderReviewOnly) {
+              return (
+                <article key={manuscript.id} className="mentor-review-card">
+                  <div className="mentor-review-header">
+                    <div className="mentor-reviewer-profile">
+                      <div className="mentor-avatar" style={{ background: '#0284c7' }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="mentor-reviewer-name">Faculty Reviewer Assigned</h4>
+                        <p className="mentor-reviewer-meta">Evaluation in progress · Expected SLA 48–72 hours</p>
+                      </div>
+                    </div>
+                    <span className="user-badge user-badge--review">UNDER REVIEW</span>
                   </div>
-                  <div>
-                    <strong style={{ fontSize: '15px', color: '#0f172a', display: 'block' }}>Dr. Linh Tran</strong>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>Assigned Advisor &bull; Sep 03, 2026</span>
+
+                  <div className="mentor-manuscript-strip">
+                    <div className="mentor-manuscript-strip__header">
+                      <span className="mentor-manuscript-tag">Manuscript</span>
+                      <span className="mentor-version-tag">v{manuscript.current_version || '1.0'}</span>
+                      {manuscript.discipline && (
+                        <span className="mentor-version-tag" style={{ color: '#0071bc', background: '#e0f2fe' }}>
+                          {manuscript.discipline}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="mentor-manuscript-title">
+                      <Link href={`/student/my-preprints/${manuscript.id}`}>
+                        {manuscript.title}
+                      </Link>
+                    </h3>
                   </div>
+
+                  <p style={{ margin: 0, fontSize: '13.5px', color: '#64748b', lineHeight: 1.6 }}>
+                    Your manuscript is currently in the faculty evaluation queue. You will be notified via email as soon as the mentor returns detailed comments.
+                  </p>
+
+                  <div className="mentor-review-actions">
+                    <Link
+                      href={`/student/my-preprints/${manuscript.id}`}
+                      className="student-btn student-btn--secondary"
+                    >
+                      View Manuscript Details →
+                    </Link>
+                  </div>
+                </article>
+              );
+            }
+
+            if (!latestReview) return null;
+            const needsRevision = latestReview.decision === 'NEEDS_REVISION';
+            const reviewerInitials =
+              latestReview.reviewer_name
+                ?.split(' ')
+                .map((w) => w[0])
+                .filter(Boolean)
+                .slice(-2)
+                .join('')
+                .toUpperCase() || 'FM';
+
+            return (
+              <article
+                key={manuscript.id}
+                className={`mentor-review-card ${needsRevision ? 'mentor-review-card--alert' : ''}`}
+              >
+                <div className="mentor-review-header">
+                  <div className="mentor-reviewer-profile">
+                    <div className="mentor-avatar">
+                      {reviewerInitials}
+                    </div>
+                    <div>
+                      <h4 className="mentor-reviewer-name">{latestReview.reviewer_name}</h4>
+                      <p className="mentor-reviewer-meta">
+                        {latestReview.reviewer_title || 'Faculty Mentor'} · {new Date(latestReview.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`user-badge ${needsRevision ? 'user-badge--revision' : 'user-badge--approved'}`}>
+                    {needsRevision ? 'NEEDS REVISION' : latestReview.decision}
+                  </span>
                 </div>
-                <span className="user-badge user-badge--review" style={{ padding: '4px 12px', fontSize: '12px' }}>
-                  UNDER REVIEW
-                </span>
-              </div>
 
-              <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', marginBottom: '14px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>MANUSCRIPT</span>
-                <h3 style={{ margin: '3px 0 0', fontSize: '16px', color: '#0f172a', fontWeight: 700 }}>
-                  <Link href="/student/my-preprints/manuscript-workflow-02" style={{ color: 'inherit', textDecoration: 'none' }}>
-                    Open methods for small research teams (v1)
-                  </Link>
-                </h3>
-              </div>
+                <div className="mentor-manuscript-strip">
+                  <div className="mentor-manuscript-strip__header">
+                    <span className="mentor-manuscript-tag">Manuscript</span>
+                    <span className="mentor-version-tag">v{manuscript.current_version || '1.0'}</span>
+                    {manuscript.discipline && (
+                      <span className="mentor-version-tag" style={{ color: '#0071bc', background: '#e0f2fe' }}>
+                        {manuscript.discipline}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mentor-manuscript-title">
+                    <Link href={`/student/my-preprints/${manuscript.id}`}>
+                      {manuscript.title}
+                    </Link>
+                  </h3>
+                </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '4px' }}>Reviewer Status:</strong>
-                <p style={{ margin: 0, fontSize: '14px', color: '#475569', lineHeight: 1.6, background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', borderLeft: '3px solid #94a3b8' }}>
-                  Assigned for methodological reproducibility check. Mentorship queue position #2.
-                </p>
-              </div>
+                <blockquote className={`mentor-comments-quote ${needsRevision ? 'mentor-comments-quote--alert' : ''}`}>
+                  &ldquo;{latestReview.comments || 'The lecturer did not provide additional comments.'}&rdquo;
+                </blockquote>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                <Link
-                  href="/student/my-preprints/manuscript-workflow-02"
-                  className="dashboard-btn dashboard-btn--primary"
-                >
-                  View Manuscript Details →
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+                {latestReview.recommendations && latestReview.recommendations.length > 0 && (
+                  <div className="mentor-action-items">
+                    <strong className="mentor-action-items__title">Action Items &amp; Required Revisions:</strong>
+                    <ul className="mentor-action-items__list">
+                      {latestReview.recommendations.map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="mentor-review-actions">
+                  {needsRevision ? (
+                    <>
+                      <Link
+                        href={`/student/my-preprints/${manuscript.id}/edit`}
+                        className="student-btn student-btn--primary"
+                        style={{ background: '#d97706', borderColor: '#d97706' }}
+                      >
+                        Open Revision Editor →
+                      </Link>
+                      <Link
+                        href={`/student/my-preprints/${manuscript.id}`}
+                        className="student-btn student-btn--secondary"
+                      >
+                        View Full Details
+                      </Link>
+                    </>
+                  ) : (
+                    <Link
+                      href={`/student/my-preprints/${manuscript.id}`}
+                      className="student-btn student-btn--secondary"
+                    >
+                      View Manuscript Details →
+                    </Link>
+                  )}
+                </div>
+              </article>
+            );
+          })
+        )}
       </div>
-    </StudentDashboardLayout>
+    </StudentShell>
   );
 }
 

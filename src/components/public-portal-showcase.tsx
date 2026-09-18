@@ -8,7 +8,7 @@ export function PublicPortalShowcase() {
 
       {/* Floating Card: Left (Research Trends & Activity) */}
       <div className="pl-floating-card pl-floating-card--left" aria-hidden="true">
-        <div className="pl-floating-card__title">Research activity</div>
+        <div className="pl-floating-card__title">Hoạt động nghiên cứu</div>
         <div className="pl-trend-chart">
           <svg viewBox="0 0 160 50" fill="none" className="pl-trend-svg">
             <path
@@ -33,7 +33,7 @@ export function PublicPortalShowcase() {
         </div>
         <div className="pl-trend-stat">
           <span className="pl-trend-badge">↑ +142%</span>
-          <span className="pl-trend-meta">Student preprint velocity</span>
+          <span className="pl-trend-meta">Tốc độ nộp bài của sinh viên</span>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export function PublicPortalShowcase() {
           <div className="pl-app-topbar__left">
             <HyperdataLogo size={22} showText={true} />
             <span className="pl-app-divider">/</span>
-            <span className="pl-app-location">Preprint Portal</span>
+            <span className="pl-app-location">Cổng Bản Thảo Học Thuật</span>
           </div>
 
           <div className="pl-app-topbar__search">
@@ -53,7 +53,7 @@ export function PublicPortalShowcase() {
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              <span>Search manuscripts, authors, topics...</span>
+              <span>Tìm kiếm bản thảo, tác giả, đề tài...</span>
             </span>
           </div>
 
@@ -65,7 +65,7 @@ export function PublicPortalShowcase() {
               </svg>
               <span className="pl-app-dot" />
             </div>
-            <div className="pl-app-avatar" aria-label="User profile">A</div>
+            <div className="pl-app-avatar" />
           </div>
         </div>
 
@@ -78,7 +78,7 @@ export function PublicPortalShowcase() {
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
-              <span>Workspace</span>
+              <span>Không gian</span>
             </div>
             <div className="pl-app-nav-item">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -87,28 +87,28 @@ export function PublicPortalShowcase() {
                 <line x1="16" y1="13" x2="8" y2="13" />
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
-              <span>My Manuscripts</span>
+              <span>Bản thảo của tôi</span>
             </div>
             <div className="pl-app-nav-item">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              <span>Review Notes</span>
+              <span>Góp ý bình duyệt</span>
             </div>
             <div className="pl-app-nav-item">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              <span>Versions</span>
+              <span>Lịch sử sửa đổi</span>
             </div>
           </aside>
 
           {/* Feed Panel */}
           <main className="pl-app-feed">
             <div className="pl-feed-head">
-              <div className="pl-feed-head__title">Recent Manuscripts in Review</div>
-              <span className="pl-feed-head__link">See all 14 manuscripts →</span>
+              <div className="pl-feed-head__title">Bản thảo đang bình duyệt gần đây</div>
+              <span className="pl-feed-head__link">Xem tất cả 14 bản thảo →</span>
             </div>
 
             <div className="pl-feed-list">
@@ -122,14 +122,14 @@ export function PublicPortalShowcase() {
                 </div>
                 <div className="pl-feed-card__content">
                   <div className="pl-feed-card__title">
-                    Mapping data literacy in undergraduate STEM research
+                    Phân tích dữ liệu học máy trong mạng nơ-ron tích chập
                   </div>
                   <div className="pl-feed-card__meta">
-                    Nguyen Minh An • Version 2.0 • Computer Science
+                    Nguyễn Văn An • Phiên bản 2.0 • Khoa học Máy tính
                   </div>
                 </div>
                 <div className="pl-feed-card__badge pl-badge--approved">
-                  Approved
+                  Đã duyệt
                 </div>
               </div>
 
@@ -143,14 +143,14 @@ export function PublicPortalShowcase() {
                 </div>
                 <div className="pl-feed-card__content">
                   <div className="pl-feed-card__title">
-                    A reproducible workflow framework for laboratory notebooks
+                    Quy trình kiểm thử tự động với môi trường Cloud-native
                   </div>
                   <div className="pl-feed-card__meta">
-                    Tran Gia Huy • Version 1.2 • Open Methods
+                    Trần Gia Huy • Phiên bản 1.2 • Kỹ thuật Phần mềm
                   </div>
                 </div>
                 <div className="pl-feed-card__badge pl-badge--review">
-                  Under Review
+                  Đang phản biện
                 </div>
               </div>
 
@@ -164,14 +164,14 @@ export function PublicPortalShowcase() {
                 </div>
                 <div className="pl-feed-card__content">
                   <div className="pl-feed-card__title">
-                    Collaborative peer review practices in student academic journals
+                    Thiết kế hệ thống đề xuất sản phẩm thời gian thực
                   </div>
                   <div className="pl-feed-card__meta">
-                    Le Ha My • Version 1.0 • Research Integrity
+                    Lê Hà My • Phiên bản 1.0 • Hệ thống thông tin
                   </div>
                 </div>
                 <div className="pl-feed-card__badge pl-badge--revision">
-                  Revision Requested
+                  Yêu cầu sửa đổi
                 </div>
               </div>
             </div>
@@ -181,7 +181,7 @@ export function PublicPortalShowcase() {
 
       {/* Floating Card: Right Top (Editorial Review Breakdown) */}
       <div className="pl-floating-card pl-floating-card--right-top" aria-hidden="true">
-        <div className="pl-floating-card__title">Editorial breakdown</div>
+        <div className="pl-floating-card__title">Thống kê bình duyệt</div>
         <div className="pl-donut-widget">
           {/* Donut Chart SVG */}
           <svg viewBox="0 0 42 42" className="pl-donut-svg">
@@ -210,15 +210,15 @@ export function PublicPortalShowcase() {
           <div className="pl-donut-legend">
             <div className="pl-legend-item">
               <span className="pl-legend-dot pl-legend-dot--blue" />
-              <span>Approved (62%)</span>
+              <span>Đã phê duyệt (62%)</span>
             </div>
             <div className="pl-legend-item">
               <span className="pl-legend-dot pl-legend-dot--green" />
-              <span>Under review (24%)</span>
+              <span>Đang phản biện (24%)</span>
             </div>
             <div className="pl-legend-item">
               <span className="pl-legend-dot pl-legend-dot--slate" />
-              <span>In revision (14%)</span>
+              <span>Đang sửa đổi (14%)</span>
             </div>
           </div>
         </div>
@@ -235,8 +235,8 @@ export function PublicPortalShowcase() {
             </svg>
           </div>
           <div>
-            <div className="pl-impact-title">From manuscript to milestone</div>
-            <div className="pl-impact-text">Faculty verified • Publication ready</div>
+            <div className="pl-impact-title">Từ bản thảo đến công trình học thuật</div>
+            <div className="pl-impact-text">Giảng viên bảo chứng • Sẵn sàng xuất bản</div>
           </div>
         </div>
       </div>

@@ -7,6 +7,17 @@ import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import type { StudentPreprint } from '../types';
 
+function formatUpdatedDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Recently updated';
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
 export function PreprintListView() {
   const { items, loading, error, apiPending } = usePreprintList();
   const [selectedTab, setSelectedTab] = useState<'ALL' | PreprintStatus>('ALL');
@@ -21,6 +32,11 @@ export function PreprintListView() {
     const approved = items.filter((i) => i.status === 'APPROVED' || i.status === 'PUBLISHED').length;
     const drafts = items.filter((i) => i.status === 'DRAFT').length;
     return { total, underReview, needsRevision, approved, drafts };
+  }, [items]);
+
+  // Needs revision item for priority callout
+  const revisionItem = useMemo(() => {
+    return items.find((i) => i.status === 'NEEDS_REVISION');
   }, [items]);
 
   // Filtered and sorted manuscripts
@@ -65,30 +81,40 @@ export function PreprintListView() {
 
   return (
     <StudentShell title="My Manuscripts" showStandardHeader={false}>
-      {/* Dashboard Page Header */}
-      <div className="dashboard-page-header">
-        <div className="dashboard-page-header__left">
-          <span className="dashboard-hero__eyebrow">MANUSCRIPT REPOSITORY</span>
-          <h1 className="dashboard-hero__title" style={{ fontSize: '24px', margin: '0 0 6px' }}>My Manuscripts</h1>
-          <p className="dashboard-hero__subtitle" style={{ margin: 0 }}>
-            Prepare, revise, and track your preprints in the Hyperdata Lab repository.
-          </p>
-        </div>
-        <div className="dashboard-page-header__right">
-          <Link href="/student/my-preprints/new" className="dashboard-btn dashboard-btn--primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>Start a Submission</span>
-          </Link>
-        </div>
-      </div>
-
       {/* Notice Banner */}
       {apiPending && (
-        <div className="user-notice" style={{ marginTop: '16px', marginBottom: '20px' }}>
+        <div className="user-notice" style={{ marginTop: '0', marginBottom: '20px' }}>
           Preprint API is unavailable, so preview data is shown. Your work is not affected.
+        </div>
+      )}
+
+      {/* Urgent Action Alert (Revision Required) */}
+      {revisionItem && (
+        <div className="dashboard-alert-banner" style={{ marginBottom: '20px' }}>
+          <div className="dashboard-alert-banner__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <div className="dashboard-alert-banner__content">
+            <div className="dashboard-alert-banner__header">
+              <strong className="dashboard-alert-banner__title">Action Required: Revision Requested</strong>
+              <span className="dashboard-alert-banner__badge">Version {revisionItem.current_version}</span>
+            </div>
+            <p className="dashboard-alert-banner__desc">
+              Faculty reviewer <strong>{revisionItem.reviews?.[0]?.reviewer_name || 'Advisory Reviewer'}</strong> requested updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.
+            </p>
+          </div>
+          <div className="dashboard-alert-banner__action">
+            <Link
+              href={`/student/my-preprints/${revisionItem.id}`}
+              className="dashboard-alert-banner__btn"
+            >
+              Review Comments &amp; Revise →
+            </Link>
+          </div>
         </div>
       )}
 
@@ -263,47 +289,46 @@ export function PreprintListView() {
         </div>
       )}
 
-      {/* 2-Column Card Grid matching user screenshot */}
+      {/* Manuscripts Table View */}
       {!loading && !error && filteredItems.length > 0 && (
-        <div className="user-grid">
-          {filteredItems.map((item: StudentPreprint) => {
-            const hasRevisions = item.status === 'NEEDS_REVISION';
-            const latestReview = item.reviews?.[0];
-
-            return (
-              <div key={item.id} className={`user-card ${hasRevisions ? 'user-card--needs-revision' : ''}`}>
-                {/* Top: Status badge on left, Version on right */}
-                <div className="user-card__top">
-                  {renderStatusBadge(item.status)}
-                  <span className="user-card__version">v{item.current_version}</span>
-                </div>
-
-                {/* Middle: Title & Abstract matching user screenshot */}
-                <div className="user-card__body">
-                  <h2 className="user-card__title">
-                    <Link href={`/student/my-preprints/${item.id}`} className="user-card__title-link">
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Manuscripts repository list">
+            <thead>
+              <tr>
+                <th style={{ width: '48%' }}>Manuscript</th>
+                <th>Discipline</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map((item: StudentPreprint) => (
+                <tr key={item.id}>
+                  <td className="dashboard-table__title-cell">
+                    <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
                       {item.title}
                     </Link>
-                  </h2>
-                  <p className="user-card__abstract">
-                    {item.abstract ? item.abstract : 'No abstract provided.'}
-                  </p>
-                </div>
-
-                {/* Bottom: Preview item on left, Open -> on right */}
-                <div className="user-card__bottom">
-                  <Link href={`/student/my-preprints/${item.id}`} className="user-card__preview-label">
-                    Preview item
-                  </Link>
-                  <div className="user-card__bottom-actions">
-                    <Link href={`/student/my-preprints/${item.id}`} className="user-card__link">
-                      Open →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                    <span className="dashboard-table__sha">
+                      {item.sha256 ? `SHA-256: ${item.sha256.substring(0, 16)}…` : 'Cryptographic timestamp pending'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>
+                  </td>
+                  <td>
+                    <span className="dashboard-version-pill">v{item.current_version}</span>
+                  </td>
+                  <td>
+                    {renderStatusBadge(item.status)}
+                  </td>
+                  <td className="dashboard-table__date">
+                    {formatUpdatedDate(item.updated_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </StudentShell>

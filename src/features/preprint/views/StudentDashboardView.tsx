@@ -2,16 +2,16 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/features/auth/hooks';
 import { StudentDashboardLayout } from '../components';
 import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
-import type { StudentPreprint } from '../types';
 
 export function StudentDashboardView() {
+  const { user } = useAuth();
+  const displayName = user?.name || user?.email || 'Scholar';
   const { items, loading, error } = usePreprintList();
   const [filterStatus, setFilterStatus] = useState<'ALL' | PreprintStatus>('ALL');
-  const [copiedDoi, setCopiedDoi] = useState<string | null>(null);
-
   // Metrics calculation
   const metrics = useMemo(() => {
     const total = items.length;
@@ -32,50 +32,15 @@ export function StudentDashboardView() {
     return items.filter((i) => i.status === filterStatus);
   }, [items, filterStatus]);
 
-  const handleCopyCitation = (item: StudentPreprint) => {
-    const citation = `${item.authors.map((a) => a.name).join(', ')} (2026). "${item.title}." Hyperdata Lab Preprint Repository. DOI: ${item.doi || '10.5281/zenodo.hdl-preview'}`;
-    navigator.clipboard.writeText(citation);
-    setCopiedDoi(item.id);
-    setTimeout(() => setCopiedDoi(null), 2500);
-  };
-
   return (
     <StudentDashboardLayout
       title="Research Dashboard"
       revisionCount={metrics.needsRevision}
       totalCount={metrics.total}
     >
-      {/* 1. Scholar Welcome Hero Banner */}
-      <div className="dashboard-hero">
-        <div className="dashboard-hero__main">
-          <div className="dashboard-hero__greeting">
-            <span className="dashboard-hero__eyebrow">STUDENT RESEARCH SCHOLAR</span>
-            <h1 className="dashboard-hero__title">Welcome back, Nguyen Minh An 👋</h1>
-            <p className="dashboard-hero__subtitle">
-              Manage your manuscripts, track faculty mentorship assessments, and monitor priority timestamp verification.
-            </p>
-          </div>
-          <div className="dashboard-hero__tags">
-            <span className="dashboard-hero__tag">
-              <span className="dashboard-hero__tag-dot" />
-              Verified Author
-            </span>
-            <span className="dashboard-hero__tag">ID: STU-2026-HCMUT</span>
-            <span className="dashboard-hero__tag">VNU-HCM Univ. of Technology</span>
-          </div>
-        </div>
-        <div className="dashboard-hero__action">
-          <Link href="/student/my-preprints/new" className="dashboard-btn dashboard-btn--primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>Submit New Preprint</span>
-          </Link>
-        </div>
-      </div>
 
-      {/* 2. Urgent Action Alert (Revision Required) */}
+      {/* Urgent Action Alert (Revision Required) */}
+
       {revisionItem && (
         <div className="dashboard-alert-banner">
           <div className="dashboard-alert-banner__icon">
@@ -173,203 +138,169 @@ export function StudentDashboardView() {
         </div>
       </div>
 
-      {/* 4. Two-Column Dashboard Layout */}
-      <div className="dashboard-grid">
-        {/* Left Column: Recent Manuscripts & Research Stepper */}
-        <div className="dashboard-grid__primary">
-          {/* Recent Manuscripts Section */}
-          <div className="dashboard-card">
-            <div className="dashboard-card__header">
-              <div>
-                <h2 className="dashboard-card__title">Recent Manuscripts</h2>
-                <p className="dashboard-card__desc">Review submission progress and cryptographic validation</p>
-              </div>
-              <div className="dashboard-card__filters">
-                <button
-                  type="button"
-                  className={`dashboard-filter-btn ${filterStatus === 'ALL' ? 'dashboard-filter-btn--active' : ''}`}
-                  onClick={() => setFilterStatus('ALL')}
-                >
-                  All ({metrics.total})
-                </button>
-                <button
-                  type="button"
-                  className={`dashboard-filter-btn ${filterStatus === 'NEEDS_REVISION' ? 'dashboard-filter-btn--active' : ''}`}
-                  onClick={() => setFilterStatus('NEEDS_REVISION')}
-                >
-                  Action ({metrics.needsRevision})
-                </button>
-                <button
-                  type="button"
-                  className={`dashboard-filter-btn ${filterStatus === 'UNDER_REVIEW' ? 'dashboard-filter-btn--active' : ''}`}
-                  onClick={() => setFilterStatus('UNDER_REVIEW')}
-                >
-                  In Review ({metrics.underReview})
-                </button>
+      {/* 4. Full-Width Recent Manuscripts Section */}
+      <div className="dashboard-card">
+        <div className="dashboard-card__header">
+          <div>
+            <h2 className="dashboard-card__title">Recent Manuscripts</h2>
+            <p className="dashboard-card__desc">Review submission progress and cryptographic validation</p>
+          </div>
+          <div className="dashboard-card__filters">
+            <button
+              type="button"
+              className={`dashboard-filter-btn ${filterStatus === 'ALL' ? 'dashboard-filter-btn--active' : ''}`}
+              onClick={() => setFilterStatus('ALL')}
+            >
+              All ({metrics.total})
+            </button>
+            <button
+              type="button"
+              className={`dashboard-filter-btn ${filterStatus === 'NEEDS_REVISION' ? 'dashboard-filter-btn--active' : ''}`}
+              onClick={() => setFilterStatus('NEEDS_REVISION')}
+            >
+              Action ({metrics.needsRevision})
+            </button>
+            <button
+              type="button"
+              className={`dashboard-filter-btn ${filterStatus === 'UNDER_REVIEW' ? 'dashboard-filter-btn--active' : ''}`}
+              onClick={() => setFilterStatus('UNDER_REVIEW')}
+            >
+              In Review ({metrics.underReview})
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="dashboard-loading">Loading manuscripts…</div>
+        ) : error ? (
+          <div className="dashboard-error">Error: {error.message}</div>
+        ) : displayedItems.length === 0 ? (
+          <div className="dashboard-empty">No manuscripts found for this filter.</div>
+        ) : (
+          <div className="dashboard-table-wrapper">
+            <table className="dashboard-table dashboard-table--repository">
+              <thead>
+                <tr>
+                  <th style={{ width: '48%' }}>Manuscript</th>
+                  <th>Discipline</th>
+                  <th>Version</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedItems.map((item) => (
+                  <tr key={item.id}>
+                    <td className="dashboard-table__title-cell">
+                      <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
+                        {item.title}
+                      </Link>
+                      <span className="dashboard-table__sha">
+                        {item.sha256 ? `SHA-256: ${item.sha256.substring(0, 16)}…` : 'Cryptographic timestamp pending'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>
+                    </td>
+                    <td>
+                      <span className="dashboard-version-pill">v{item.current_version}</span>
+                    </td>
+                    <td>
+                      {item.status === 'NEEDS_REVISION' && (
+                        <span className="user-badge user-badge--revision">NEEDS REVISION</span>
+                      )}
+                      {item.status === 'UNDER_REVIEW' && (
+                        <span className="user-badge user-badge--review">UNDER REVIEW</span>
+                      )}
+                      {(item.status === 'APPROVED' || item.status === 'PUBLISHED') && (
+                        <span className="user-badge user-badge--approved">APPROVED</span>
+                      )}
+                      {item.status === 'DRAFT' && (
+                        <span className="user-badge user-badge--draft">DRAFT</span>
+                      )}
+                    </td>
+                    <td className="dashboard-table__date">
+                      {(() => {
+                        if (!item.updated_at) return '—';
+                        const d = new Date(item.updated_at);
+                        return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      })()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="dashboard-card__footer">
+          <Link href="/student/my-preprints" className="dashboard-card__view-all">
+            View all manuscripts in repository →
+          </Link>
+        </div>
+      </div>
+
+      {/* 5. Bottom Widgets: Faculty Advisory Activity & Guidance */}
+      <div className="dashboard-widgets-grid">
+        {/* Faculty Review Feedback Feed */}
+        <div className="dashboard-card">
+          <div className="dashboard-card__header">
+            <h2 className="dashboard-card__title">Faculty Advisory Activity</h2>
+          </div>
+          <div className="dashboard-mentor-list">
+            <div className="dashboard-mentor-item">
+              <div className="dashboard-mentor-avatar">LT</div>
+              <div className="dashboard-mentor-content">
+                <div className="dashboard-mentor-top">
+                  <strong>{revisionItem?.reviews?.[0]?.reviewer_name || 'No reviewer activity'}</strong>
+                  <span className="dashboard-mentor-badge">Loaded from publication API</span>
+                </div>
+                <p className="dashboard-mentor-comment">
+                  {revisionItem?.reviews?.[0]?.comments || 'No reviewer comments have been returned yet.'}
+                </p>
+                <div className="dashboard-mentor-meta">
+                  <span>{revisionItem?.title || 'No manuscript review activity'}</span>
+                  <Link href="/student/mentor-feedback" className="dashboard-mentor-link">
+                    Open feedback
+                  </Link>
+                </div>
               </div>
             </div>
 
-            {loading ? (
-              <div className="dashboard-loading">Loading manuscripts…</div>
-            ) : error ? (
-              <div className="dashboard-error">Error: {error.message}</div>
-            ) : displayedItems.length === 0 ? (
-              <div className="dashboard-empty">No manuscripts found for this filter.</div>
-            ) : (
-              <div className="dashboard-table-wrapper">
-                <table className="dashboard-table">
-                  <thead>
-                    <tr>
-                      <th>Manuscript</th>
-                      <th>Discipline</th>
-                      <th>Version</th>
-                      <th>Status</th>
-                      <th>Updated</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayedItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="dashboard-table__title-cell">
-                          <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
-                            {item.title}
-                          </Link>
-                          <span className="dashboard-table__sha">
-                            {item.sha256 ? `SHA-256: ${item.sha256.substring(0, 16)}…` : 'Cryptographic timestamp pending'}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>
-                        </td>
-                        <td>
-                          <span className="dashboard-version-pill">v{item.current_version}</span>
-                        </td>
-                        <td>
-                          {item.status === 'NEEDS_REVISION' && (
-                            <span className="user-badge user-badge--revision">NEEDS REVISION</span>
-                          )}
-                          {item.status === 'UNDER_REVIEW' && (
-                            <span className="user-badge user-badge--review">UNDER REVIEW</span>
-                          )}
-                          {(item.status === 'APPROVED' || item.status === 'PUBLISHED') && (
-                            <span className="user-badge user-badge--approved">APPROVED</span>
-                          )}
-                          {item.status === 'DRAFT' && (
-                            <span className="user-badge user-badge--draft">DRAFT</span>
-                          )}
-                        </td>
-                        <td className="dashboard-table__date">
-                          {(() => {
-                            if (!item.updated_at) return 'Sep 14';
-                            const d = new Date(item.updated_at);
-                            return isNaN(d.getTime()) ? 'Sep 14' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                          })()}
-                        </td>
-                        <td>
-                          <div className="dashboard-table__actions">
-                            <Link
-                              href={`/student/my-preprints/${item.id}`}
-                              className="dashboard-table__action-btn"
-                              title="Open Manuscript"
-                            >
-                              Open →
-                            </Link>
-                            <button
-                              type="button"
-                              className="dashboard-table__cite-btn"
-                              onClick={() => handleCopyCitation(item)}
-                              title="Copy Citation"
-                            >
-                              {copiedDoi === item.id ? 'Copied!' : 'Cite'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="dashboard-mentor-item">
+              <div className="dashboard-mentor-avatar dashboard-mentor-avatar--purple">NT</div>
+              <div className="dashboard-mentor-content">
+                <div className="dashboard-mentor-top">
+                  <strong>Reviewer assignments</strong>
+                  <span className="dashboard-mentor-badge dashboard-mentor-badge--neutral">Publication API</span>
+                </div>
+                <p className="dashboard-mentor-comment">
+                  Reviewer assignments and recommendations are managed in the admin workspace.
+                </p>
+                <div className="dashboard-mentor-meta">
+                  <span>Review assignments are loaded from the publication API.</span>
+                </div>
               </div>
-            )}
-
-            <div className="dashboard-card__footer">
-              <Link href="/student/my-preprints" className="dashboard-card__view-all">
-                View all manuscripts in repository →
-              </Link>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Faculty Mentorship Activity & Deadlines */}
-        <div className="dashboard-grid__secondary">
-          {/* Faculty Review Feedback Feed */}
-          <div className="dashboard-card">
-            <div className="dashboard-card__header">
-              <h2 className="dashboard-card__title">Faculty Advisory Activity</h2>
-            </div>
-            <div className="dashboard-mentor-list">
-              <div className="dashboard-mentor-item">
-                <div className="dashboard-mentor-avatar">LT</div>
-                <div className="dashboard-mentor-content">
-                  <div className="dashboard-mentor-top">
-                    <strong>Dr. Linh Tran</strong>
-                    <span className="dashboard-mentor-badge">Advisory Reviewer</span>
-                  </div>
-                  <p className="dashboard-mentor-comment">
-                    &ldquo;Please update Figure 4 confidence intervals and provide the raw dataset repository link before final approval.&rdquo;
-                  </p>
-                  <div className="dashboard-mentor-meta">
-                    <span>Mapping data literacy · v2</span>
-                    <Link href="/student/my-preprints/manuscript-stem-01?tab=reviews" className="dashboard-mentor-link">
-                      Respond →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className="dashboard-mentor-item">
-                <div className="dashboard-mentor-avatar dashboard-mentor-avatar--purple">NT</div>
-                <div className="dashboard-mentor-content">
-                  <div className="dashboard-mentor-top">
-                    <strong>Assoc. Prof. Nguyen Van Thuan</strong>
-                    <span className="dashboard-mentor-badge dashboard-mentor-badge--neutral">Scope Review</span>
-                  </div>
-                  <p className="dashboard-mentor-comment">
-                    Assigned to peer review protocol evaluation for collaborative academic journals.
-                  </p>
-                  <div className="dashboard-mentor-meta">
-                    <span>Collaborative peer review · v1</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Academic Guidance Card */}
+        <div className="dashboard-card dashboard-card--accent">
+          <div className="dashboard-card__header">
+            <h2 className="dashboard-card__title">Submission Guidance</h2>
           </div>
-
-          {/* Academic Deadlines Card */}
-          <div className="dashboard-card dashboard-card--accent">
-            <div className="dashboard-card__header">
-              <h2 className="dashboard-card__title">Upcoming Milestones</h2>
-            </div>
-            <div className="dashboard-milestones">
-              <div className="dashboard-milestone-item">
-                <div className="dashboard-milestone-date">
-                  <span className="dashboard-milestone-month">SEP</span>
-                  <span className="dashboard-milestone-day">25</span>
-                </div>
-                <div className="dashboard-milestone-info">
-                  <strong>Faculty Mentorship Sign-off</strong>
-                  <p>Deadline for Q3 manuscript revision approvals</p>
-                </div>
+          <div className="dashboard-milestones">
+            <div className="dashboard-milestone-item">
+              <div className="dashboard-milestone-info">
+                <strong>Prepare your manuscript</strong>
+                <p>Upload a PDF, verify the extracted metadata, and submit it for lecturer review.</p>
               </div>
-              <div className="dashboard-milestone-item">
-                <div className="dashboard-milestone-date">
-                  <span className="dashboard-milestone-month">OCT</span>
-                  <span className="dashboard-milestone-day">15</span>
-                </div>
-                <div className="dashboard-milestone-info">
-                  <strong>Student Research Symposium</strong>
-                  <p>Camera-ready proceedings archiving</p>
-                </div>
+            </div>
+            <div className="dashboard-milestone-item">
+              <div className="dashboard-milestone-info">
+                <strong>Track the decision</strong>
+                <p>Lecturers submit recommendations; only an administrator can publish the preprint.</p>
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface StudentTopbarProps {
   onToggleSidebar?: () => void;
@@ -12,20 +12,42 @@ interface StudentTopbarProps {
 export function StudentTopbar({
   onToggleSidebar,
   title = 'Research Dashboard',
-  revisionCount = 1,
+  revisionCount = 0,
 }: StudentTopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setShowNotifications(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showNotifications]);
 
   return (
     <header className="student-topbar">
       <div className="student-topbar__left">
         {onToggleSidebar && (
-          <button
-            type="button"
-            className="student-topbar__menu-btn"
-            onClick={onToggleSidebar}
-            aria-label="Toggle Sidebar Navigation"
-          >
+          <button type="button" className="student-topbar__menu-btn" onClick={onToggleSidebar} aria-label="Toggle Sidebar Navigation">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="12" x2="21" y2="12" />
               <line x1="3" y1="6" x2="21" y2="6" />
@@ -42,22 +64,15 @@ export function StudentTopbar({
       </div>
 
       <div className="student-topbar__right">
-        {/* Search Box */}
         <div className="student-topbar__search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <input
-            type="text"
-            placeholder="Search manuscripts, DOIs, reviews..."
-            className="student-topbar__search-input"
-            aria-label="Search manuscripts"
-          />
+          <input type="text" placeholder="Search manuscripts, DOIs, reviews..." className="student-topbar__search-input" aria-label="Search manuscripts" />
         </div>
 
-        {/* Notification Bell Dropdown */}
-        <div className="student-topbar__notif-wrapper">
+        <div className="student-topbar__notif-wrapper" ref={notifRef}>
           <button
             type="button"
             className="student-topbar__notif-btn"
@@ -75,41 +90,30 @@ export function StudentTopbar({
             <div className="student-topbar__notif-popover">
               <div className="student-topbar__notif-header">
                 <strong>Academic Alerts</strong>
-                <span className="student-topbar__notif-count">{revisionCount} New</span>
+                <span className="student-topbar__notif-count">{revisionCount}</span>
               </div>
               <div className="student-topbar__notif-list">
-                <Link
-                  href="/student/my-preprints/manuscript-stem-01?tab=reviews"
-                  className="student-topbar__notif-item"
-                  onClick={() => setShowNotifications(false)}
-                >
-                  <div className="student-topbar__notif-item-icon student-topbar__notif-item-icon--amber">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
+                {revisionCount > 0 ? (
+                  <Link href="/student/mentor-feedback" className="student-topbar__notif-item" onClick={() => setShowNotifications(false)}>
+                    <div className="student-topbar__notif-item-icon student-topbar__notif-item-icon--amber">!</div>
+                    <div className="student-topbar__notif-item-text">
+                      <p className="student-topbar__notif-item-title">Reviewer feedback available</p>
+                      <p className="student-topbar__notif-item-desc">Open Mentor Feedback to review the latest lecturer comments.</p>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="student-topbar__notif-empty">
+                    <p>No new academic alerts.</p>
                   </div>
-                  <div className="student-topbar__notif-item-text">
-                    <p className="student-topbar__notif-item-title">Revision Requested</p>
-                    <p className="student-topbar__notif-item-desc">
-                      Dr. Linh Tran requested statistical updates on <em>Mapping data literacy</em>.
-                    </p>
-                    <span className="student-topbar__notif-item-time">2 hours ago</span>
-                  </div>
-                </Link>
+                )}
               </div>
               <div className="student-topbar__notif-footer">
-                <Link
-                  href="/student/mentor-feedback"
-                  onClick={() => setShowNotifications(false)}
-                >
-                  View all mentor notes →
-                </Link>
+                <Link href="/student/mentor-feedback" onClick={() => setShowNotifications(false)}>View mentor feedback →</Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Primary Action Button */}
         <Link href="/student/my-preprints/new" className="student-topbar__cta">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
