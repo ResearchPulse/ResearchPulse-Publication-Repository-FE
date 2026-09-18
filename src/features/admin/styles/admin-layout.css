@@ -167,6 +167,555 @@
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
+  gap: 6px;
+  transition: color 0.15s ease;
+}
+
+.back-link:hover {
+  color: #005a96;
+}
+
+/* ==========================================================================
+   Editorial Detail Components (PDF, Authors, Versions, Timeline, Reviews)
+   ========================================================================== */
+
+/* Manuscript Header */
+.manuscript-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.manuscript-meta-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0071bc;
+  margin-bottom: 6px;
+}
+
+.manuscript-detail-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* Abstract Box */
+.manuscript-abstract-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.manuscript-abstract-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.manuscript-abstract-text {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #334155;
+  margin: 0;
+}
+
+/* Primary PDF Asset Card */
+.pdf-asset-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease;
+}
+
+.pdf-asset-card:hover {
+  border-color: #cbd5e1;
+}
+
+.pdf-asset-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pdf-asset-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.pdf-asset-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.pdf-asset-meta {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pdf-asset-hash {
+  font-family: monospace;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Author Chips Grid */
+.authors-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.author-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.author-chip-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0071bc;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.author-chip-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.author-chip-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.author-chip-affil {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Version History Cards */
+.version-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.version-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+}
+
+.version-card-item:hover {
+  border-color: #cbd5e1;
+}
+
+.version-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.version-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.version-pill--current {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.version-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.version-card-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Audit Timeline */
+.audit-timeline-container {
+  position: relative;
+  padding-left: 28px;
+  margin: 16px 0 10px;
+}
+
+.audit-timeline-container::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 9px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.audit-timeline-entry {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.audit-timeline-entry:last-child {
+  margin-bottom: 0;
+}
+
+.audit-timeline-node {
+  position: absolute;
+  top: 2px;
+  left: -28px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #0071bc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audit-timeline-node::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0071bc;
+}
+
+.audit-timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.audit-timeline-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.audit-timeline-actor {
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.audit-timeline-desc {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 3px;
+}
+
+.audit-timeline-time {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+/* Reviewer Evidence Cards */
+.reviewer-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.reviewer-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+  transition: all 0.15s ease;
+}
+
+.reviewer-card--revision {
+  border-color: #fde68a;
+  background: #fffdfa;
+}
+
+.reviewer-card--publish {
+  border-color: #a7f3d0;
+  background: #fafdfc;
+}
+
+.reviewer-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.reviewer-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reviewer-avatar-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0071bc 0%, #0284c7 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.reviewer-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.reviewer-role {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.reviewer-comment-bubble {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #0071bc;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: #334155;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+}
+
+.reviewer-comment-bubble--alert {
+  border-left-color: #d97706;
+  background: #fffbeb;
+}
+
+/* Lecturer Assignment Selectable List */
+.lecturer-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.lecturer-select-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.lecturer-select-item:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.lecturer-select-item--active {
+  border-color: #0071bc;
+  background: #f0f7ff;
+}
+
+.lecturer-select-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: #0071bc;
+  cursor: pointer;
+}
+
+.lecturer-select-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.lecturer-select-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.lecturer-select-email {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* Administrator Decision Card */
+.admin-decision-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.admin-decision-title {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+
+.admin-decision-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.admin-decision-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-btn-decision {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.admin-btn-decision--publish {
+  background: #059669;
+  color: #ffffff;
+  border-color: #059669;
+}
+
+.admin-btn-decision--publish:hover:not(:disabled) {
+  background: #047857;
+}
+
+.admin-btn-decision--revision {
+  background: #d97706;
+  color: #ffffff;
+  border-color: #d97706;
+}
+
+.admin-btn-decision--revision:hover:not(:disabled) {
+  background: #b45309;
+}
+
+.admin-btn-decision--reject {
+  background: #ffffff;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.admin-btn-decision--reject:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.admin-btn-decision--reopen {
+  background: #0071bc;
+  color: #ffffff;
+  border-color: #0071bc;
+}
+
+.admin-btn-decision--reopen:hover:not(:disabled) {
+  background: #005a96;
+}
+
+.admin-btn-decision:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ==========================================================================

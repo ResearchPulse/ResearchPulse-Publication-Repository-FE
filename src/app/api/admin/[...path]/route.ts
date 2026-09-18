@@ -4,7 +4,7 @@ import { preprintApiBaseUrl } from '../../../../lib/oidc';
 
 export const runtime = 'nodejs';
 
-const allowedRoots = new Set(['users', 'overview', 'publications']);
+const allowedRoots = new Set(['users', 'overview', 'publications', 'reviews']);
 const allowedMethods = new Set(['GET', 'POST', 'PATCH', 'PUT', 'DELETE']);
 
 type RouteContext = {
@@ -19,6 +19,7 @@ function isAllowedAdminPath(path: string[], method: string) {
   const [root, id, resource, action] = path;
 
   if (root === 'overview') return method === 'GET' && path.length === 1;
+  if (root === 'reviews') return method === 'GET' && path.length === 1;
 
   if (root === 'users') {
     if (path.length === 1) return method === 'GET';
