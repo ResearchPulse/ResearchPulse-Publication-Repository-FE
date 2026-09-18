@@ -1,4 +1,4 @@
-import type { StudentPreprint, PreprintVersionInfo, ReviewNote } from '../types';
+import type { StudentPreprint, PreprintVersionInfo, ReviewNote, PreprintAnalysis } from '../types';
 
 export class ApiUnavailableError extends Error {
   code = 'API_NOT_AVAILABLE' as const;
@@ -23,6 +23,9 @@ type BackendAuthor = {
   id?: string;
   name: string;
   email?: string | null;
+  studentId?: string | null;
+  role?: 'STUDENT' | 'LECTURER' | 'ADMIN';
+  userId?: string | null;
   affiliation?: string | null;
   orderIndex?: number;
 };
@@ -47,6 +50,7 @@ type BackendVersion = {
   abstract?: string | null;
   doi?: string | null;
   publicationDate?: string | null;
+  discipline?: string | null;
   keywords?: string[];
   fileName: string;
   fileSize?: number | null;
@@ -78,6 +82,7 @@ type BackendPublication = {
   abstract?: string | null;
   doi?: string | null;
   publicationDate?: string | null;
+  discipline?: string | null;
   keywords: string[];
   objectKey: string;
   fileSize?: number | null;
@@ -144,6 +149,41 @@ function mapReview(review: BackendReview): ReviewNote {
   };
 }
 
+function mapAnalysis(analysis: {
+  title?: string | null;
+  abstract?: string | null;
+  doi?: string | null;
+  publicationDate?: string | null;
+  keywords: string[];
+  authors: Array<BackendAuthor & {
+    verification?: {
+      status: 'VERIFIED' | 'UNREGISTERED' | 'MISSING_IDENTIFIER' | 'INACTIVE';
+      reason?: string;
+      user?: { id: string };
+    };
+  }>;
+}): PreprintAnalysis {
+  return {
+    title: analysis.title,
+    abstract: analysis.abstract,
+    doi: analysis.doi,
+    publicationDate: analysis.publicationDate,
+    keywords: [],
+    authors: analysis.authors.map((author, index) => ({
+      name: author.name,
+      email: author.email || '',
+      studentId: author.studentId || undefined,
+      role: author.role || 'STUDENT',
+      userId: author.userId || author.verification?.user?.id,
+      verificationStatus: author.verification?.status,
+      verificationReason: author.verification?.reason,
+      institution: author.affiliation || '',
+      isPrimary: index === 0,
+      isCorresponding: index === 0,
+    })),
+  };
+}
+
 function mapVersion(version: BackendVersion): PreprintVersionInfo {
   return {
     version: version.version,
@@ -160,6 +200,9 @@ function mapVersion(version: BackendVersion): PreprintVersionInfo {
     authors: (version.authors || []).map((author, index) => ({
       name: author.name,
       email: author.email || '',
+      studentId: author.studentId || undefined,
+      role: author.role,
+      userId: author.userId || undefined,
       institution: author.affiliation || '',
       isPrimary: index === 0,
       isCorresponding: index === 0,
@@ -189,7 +232,7 @@ function normalizePublication(
     title: publication.title || fileNameFromObjectKey(publication.objectKey) || 'Untitled manuscript',
     titleNeedsInput: !publication.title?.trim(),
     abstract: publication.abstract || undefined,
-    discipline: '',
+    discipline: publication.discipline || '',
     keywords: publication.keywords || [],
     status,
     current_version: currentVersion,
@@ -197,6 +240,9 @@ function normalizePublication(
     authors: (publication.authors || []).map((author, index) => ({
       name: author.name,
       email: author.email || '',
+      studentId: author.studentId || undefined,
+      role: author.role,
+      userId: author.userId || undefined,
       institution: author.affiliation || '',
       isPrimary: index === 0,
       isCorresponding: index === 0,
@@ -277,9 +323,40 @@ export const studentPreprintApi = {
     return normalizePublication(publication, reviews, versions, timeline);
   },
 
-  upload: async (file: File): Promise<StudentPreprint> => {
+  analyze: async (file: File): Promise<PreprintAnalysis> => {
     const formData = new FormData();
     formData.append('file', file);
+    const analysis = await request<Parameters<typeof mapAnalysis>[0]>('/analyze', {
+      method: 'POST',
+      body: formData,
+    });
+    return mapAnalysis(analysis);
+  },
+
+  upload: async (
+    file: File,
+    intent: 'DRAFT' | 'SUBMIT',
+    metadata: {
+      title?: string;
+      abstract?: string;
+      doi?: string;
+      publicationDate?: string;
+      discipline?: string;
+      keywords: string[];
+      authors: Array<{
+        name: string;
+        email?: string;
+        studentId?: string;
+        role?: 'STUDENT' | 'LECTURER' | 'ADMIN';
+        affiliation?: string;
+        orderIndex?: number;
+      }>;
+    },
+  ): Promise<StudentPreprint> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('intent', intent);
+    formData.append('metadata', JSON.stringify(metadata));
     const publication = await request<BackendPublication>('/upload-direct', {
       method: 'POST',
       body: formData,
@@ -311,8 +388,11 @@ export const studentPreprintApi = {
     payload: {
       title?: string;
       abstract?: string;
+      doi?: string;
+      publicationDate?: string;
+      discipline?: string;
       keywords?: string[];
-      authors?: Array<{ name: string; email?: string; affiliation?: string; orderIndex?: number }>;
+      authors?: Array<{ name: string; email?: string; studentId?: string; role?: 'STUDENT' | 'LECTURER' | 'ADMIN'; affiliation?: string; orderIndex?: number }>;
     }
   ): Promise<StudentPreprint> => {
     const publication = await request<BackendPublication>('/' + encodeURIComponent(id), {
@@ -326,6 +406,13 @@ export const studentPreprintApi = {
     await request(`/` + encodeURIComponent(id) + '/status', {
       method: 'PATCH',
       body: JSON.stringify({ status: 'REVIEWING' }),
+    });
+    return studentPreprintApi.get(id);
+  },
+
+  mockSubmit: async (id: string): Promise<StudentPreprint> => {
+    await request(`/` + encodeURIComponent(id) + '/dev-submit', {
+      method: 'POST',
     });
     return studentPreprintApi.get(id);
   },

@@ -122,8 +122,17 @@
 
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
-  gap: 22px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.detail-grid__sidebar {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .detail-panel {
@@ -158,6 +167,43 @@
   line-height: 1.45;
 }
 
+/* Top Back Navigation */
+.admin-detail-top-nav {
+  margin-bottom: 20px;
+}
+
+.admin-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #0071bc;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.18s ease;
+}
+
+.admin-back-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #005a96;
+  transform: translateX(-2px);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.07);
+}
+
+.admin-back-btn svg {
+  transition: transform 0.18s ease;
+}
+
+.admin-back-btn:hover svg {
+  transform: translateX(-2px);
+}
+
 .back-link {
   display: inline-flex;
   min-height: 44px;
@@ -179,7 +225,78 @@
    Editorial Detail Components (PDF, Authors, Versions, Timeline, Reviews)
    ========================================================================== */
 
-/* Manuscript Header */
+/* Status Badge - Unsquished Pill Guarantee */
+.status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  min-height: 28px !important;
+  padding: 4px 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+  border-radius: 9999px !important;
+  text-transform: uppercase !important;
+}
+
+/* Manuscript Meta Strip */
+.manuscript-meta-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+
+.manuscript-meta-strip__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manuscript-meta-pill {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+.manuscript-meta-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.manuscript-meta-date {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.manuscript-meta-uploader {
+  font-size: 12.5px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.manuscript-meta-strip__right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Legacy Header Support */
 .manuscript-detail-header {
   display: flex;
   align-items: flex-start;
@@ -654,7 +771,19 @@
 
 .admin-decision-buttons {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-decision-buttons .admin-btn-decision--publish {
+  width: 100%;
+  padding: 11px 18px;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.2);
+}
+
+.admin-decision-sub-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
