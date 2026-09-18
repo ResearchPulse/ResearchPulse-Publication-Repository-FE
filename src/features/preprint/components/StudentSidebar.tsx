@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuth } from '@/features/auth/hooks';
+import Image from 'next/image';
+
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface StudentSidebarProps {
   revisionCount?: number;
@@ -12,8 +14,8 @@ interface StudentSidebarProps {
 }
 
 export function StudentSidebar({
-  revisionCount = 1,
-  totalCount = 3,
+  revisionCount = 0,
+  totalCount = 0,
   isOpen = false,
   onClose,
 }: StudentSidebarProps) {
@@ -22,10 +24,37 @@ export function StudentSidebar({
   const displayName = user?.name || user?.email || 'Student';
   const displayOrg = user?.role === 'STUDENT' ? 'Student • Author' : (user?.role || 'Author');
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Authenticated Student';
+  const displayOrg = user?.email || 'Student Workspace';
+
+  const getInitials = (name?: string, email?: string) => {
+    if (name?.trim()) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.slice(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return 'ST';
+  };
+
+  const initials = getInitials(user?.name, user?.email);
 
   const isRouteActive = (href: string) => {
-    if (href === '/student/dashboard') {
-      return pathname === '/student/dashboard' || pathname === '/student';
+    if (href === '/student/my-preprints') {
+      return (
+        pathname === '/student/my-preprints' ||
+        pathname === '/student' ||
+        pathname === '/student/dashboard' ||
+        (pathname.startsWith('/student/my-preprints/') &&
+          pathname !== '/student/my-preprints/new' &&
+          !pathname.includes('/versions'))
+      );
     }
     if (href === '/student/mentor-feedback') {
       return pathname.startsWith('/student/mentor-feedback');
@@ -35,14 +64,6 @@ export function StudentSidebar({
     }
     if (href === '/student/my-preprints/new') {
       return pathname === '/student/my-preprints/new';
-    }
-    if (href === '/student/my-preprints') {
-      return (
-        pathname === '/student/my-preprints' ||
-        (pathname.startsWith('/student/my-preprints/') &&
-          pathname !== '/student/my-preprints/new' &&
-          !pathname.includes('/versions'))
-      );
     }
     return pathname === href;
   };
@@ -63,16 +84,15 @@ export function StudentSidebar({
         <div className="student-sidebar__brand">
           <Link href="/" className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
             <div className="student-sidebar__logo-lockup">
-              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect width="32" height="32" rx="8" fill="#0071bc" />
-                <rect x="7.5" y="11" width="3.5" height="11" rx="1.75" fill="#ffffff" />
-                <rect x="14.25" y="6.5" width="3.5" height="19" rx="1.75" fill="#ffffff" />
-                <rect x="21" y="10" width="3.5" height="13" rx="1.75" fill="#ffffff" />
-              </svg>
-              <div className="student-sidebar__brand-text-group">
-                <span className="student-sidebar__brand-name">hyperlabdata</span>
-                <span className="student-sidebar__brand-sub">Scholar Portal</span>
-              </div>
+              <Image
+                src="/hyperdata-lab-logo.png"
+                alt="Hyperdata Lab Logo"
+                width={28}
+                height={28}
+                style={{ borderRadius: '6px', objectFit: 'contain' }}
+                priority
+              />
+              <span className="student-sidebar__brand-name">Hyperdata Lab</span>
             </div>
           </Link>
 
@@ -93,22 +113,6 @@ export function StudentSidebar({
           {/* Group: Core Workspace */}
           <div className="student-sidebar__group">
             <span className="student-sidebar__group-title">WORKSPACE</span>
-
-            <Link
-              href="/student/dashboard"
-              className={`student-sidebar__link ${isRouteActive('/student/dashboard') ? 'student-sidebar__link--active' : ''}`}
-              onClick={onClose}
-            >
-              <span className="student-sidebar__icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="9" />
-                  <rect x="14" y="3" width="7" height="5" />
-                  <rect x="14" y="12" width="7" height="9" />
-                  <rect x="3" y="16" width="7" height="5" />
-                </svg>
-              </span>
-              <span className="student-sidebar__text">Dashboard</span>
-            </Link>
 
             <Link
               href="/student/my-preprints"
@@ -191,8 +195,14 @@ export function StudentSidebar({
               <span className="student-sidebar__status-dot" aria-label="Online" />
             </div>
             <div className="student-sidebar__profile-info">
-              <span className="student-sidebar__name">{displayName}</span>
-              <span className="student-sidebar__org">{displayOrg}</span>
+
+              <span className="student-sidebar__name" title={displayName}>
+                {displayName}
+              </span>
+              <span className="student-sidebar__org" title={displayOrg}>
+                {displayOrg}
+              </span>
+
             </div>
             <Link
               href="/api/auth/logout"

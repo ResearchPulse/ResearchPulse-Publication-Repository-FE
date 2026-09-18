@@ -49,7 +49,7 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
       actions={
         item && (
           <div className="student-detail-top-actions">
-            {item.status === 'NEEDS_REVISION' && (
+            {(item.status === 'NEEDS_REVISION' || item.status === 'DRAFT') && (
               <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
                 <span>Submit New Version →</span>
               </Link>
@@ -133,16 +133,18 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
                         </div>
                       )}
 
-                      <a
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          alert(`Downloading: ${ver.file_name}`);
-                        }}
-                        className="student-action-link student-action-link--primary"
-                      >
-                        Download PDF
-                      </a>
+                      {ver.download_url ? (
+                        <a
+                          href={ver.download_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="student-action-link student-action-link--primary"
+                        >
+                          Download PDF
+                        </a>
+                      ) : (
+                        <span className="student-action-link">PDF unavailable</span>
+                      )}
                     </div>
                   </div>
                 </div>

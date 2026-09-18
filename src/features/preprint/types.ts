@@ -22,11 +22,12 @@ export type ReviewNote = {
 
 export type TimelineEvent = {
   id: string;
-  type: 'DRAFT_CREATED' | 'FILE_UPLOADED' | 'SUBMITTED' | 'ASSIGNED' | 'REVISION_REQUESTED' | 'APPROVED' | 'PUBLISHED';
+  type: 'DRAFT_CREATED' | 'FILE_UPLOADED' | 'SUBMITTED' | 'ASSIGNED' | 'REVISION_REQUESTED' | 'REVIEW_SUBMITTED' | 'REJECTED' | 'REOPENED' | 'APPROVED' | 'PUBLISHED';
   title: string;
   description: string;
   actor: string;
   timestamp: string;
+  version?: string | null;
 };
 
 export type PreprintVersionInfo = {
@@ -38,21 +39,28 @@ export type PreprintVersionInfo = {
   file_size: string;
   sha256?: string;
   status: PreprintStatus;
+  is_current?: boolean;
+  submitted_at?: string;
+  download_url?: string;
+  authors?: Author[];
 };
 
 export type StudentPreprint = {
   id: string;
   title: string;
+  titleNeedsInput?: boolean;
   abstract?: string;
   discipline: string;
   keywords: string[];
   status: PreprintStatus;
   current_version: number;
+  revision_required?: boolean;
   authors: Author[];
   supervisor?: string;
   file_name?: string;
   file_size?: string;
   sha256?: string;
+  download_url?: string;
   doi?: string;
   updated_at: string;
   submitted_at?: string;

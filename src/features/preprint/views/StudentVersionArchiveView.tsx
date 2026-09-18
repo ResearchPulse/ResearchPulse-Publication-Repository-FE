@@ -1,15 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { StudentDashboardLayout } from '../components';
+import { StudentShell } from '../components';
 import { usePreprintList } from '../hooks';
+import { studentPreprintApi } from '../api';
+import type { PreprintVersionInfo } from '../types';
 
 export function StudentVersionArchiveView() {
-  const { items } = usePreprintList();
+  const { items, loading: listLoading } = usePreprintList();
+  const [versionsByPublication, setVersionsByPublication] = useState<Record<string, PreprintVersionInfo[]>>({});
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionsError, setVersionsError] = useState<string | null>(null);
   const [selectedManuscriptId, setSelectedManuscriptId] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [collapsedManuscripts, setCollapsedManuscripts] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (listLoading || items.length === 0) {
+      setVersionsByPublication({});
+      return;
+    }
+
+    let active = true;
+    setVersionsLoading(true);
+    setVersionsError(null);
+    void Promise.allSettled(items.map(async (item) => [item.id, await studentPreprintApi.versions(item.id)] as const))
+      .then((results) => {
+        if (!active) return;
+        const entries = results
+          .filter((result): result is PromiseFulfilledResult<readonly [string, PreprintVersionInfo[]]> => result.status === 'fulfilled')
+          .map((result) => result.value);
+        setVersionsByPublication(Object.fromEntries(entries));
+        if (results.some((result) => result.status === 'rejected')) {
+          setVersionsError('Some version histories could not be loaded. Open the manuscript to retry.');
+        }
+      })
+      .finally(() => {
+        if (active) setVersionsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [items, listLoading]);
 
   const toggleManuscript = (id: string) => {
     setCollapsedManuscripts((prev) => ({
@@ -24,178 +59,255 @@ export function StudentVersionArchiveView() {
     setTimeout(() => setCopiedHash(null), 2000);
   };
 
-  const filteredManuscripts = selectedManuscriptId === 'ALL'
-    ? items
-    : items.filter((item) => item.id === selectedManuscriptId);
+  const manuscriptsWithVersions = useMemo(() => {
+    return items.map((item) => ({
+      ...item,
+      versions: versionsByPublication[item.id] || [],
+    }));
+  }, [items, versionsByPublication]);
+
+  const filteredManuscripts = useMemo(() => {
+    let list = selectedManuscriptId === 'ALL'
+      ? manuscriptsWithVersions
+      : manuscriptsWithVersions.filter((item) => item.id === selectedManuscriptId);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.discipline?.toLowerCase().includes(q) ||
+          m.doi?.toLowerCase().includes(q) ||
+          m.versions?.some(
+            (v) =>
+              v.sha256?.toLowerCase().includes(q) ||
+              v.change_summary?.toLowerCase().includes(q) ||
+              v.file_name?.toLowerCase().includes(q),
+          ),
+      );
+    }
+    return list;
+  }, [manuscriptsWithVersions, selectedManuscriptId, searchQuery]);
+
+  const isAllCollapsed = useMemo(() => {
+    if (filteredManuscripts.length === 0) return false;
+    return filteredManuscripts.every((m) => collapsedManuscripts[m.id]);
+  }, [filteredManuscripts, collapsedManuscripts]);
+
+  const toggleAllCollapse = () => {
+    if (isAllCollapsed) {
+      setCollapsedManuscripts({});
+    } else {
+      const all: Record<string, boolean> = {};
+      filteredManuscripts.forEach((m) => {
+        all[m.id] = true;
+      });
+      setCollapsedManuscripts(all);
+    }
+  };
 
   return (
-    <StudentDashboardLayout
-      title="Version Archive"
-      revisionCount={items.filter((i) => i.status === 'NEEDS_REVISION').length}
-      totalCount={items.length}
-    >
-      {/* Page Header */}
-      <div className="dashboard-page-header">
-        <div className="dashboard-page-header__left">
-          <span className="dashboard-hero__eyebrow">IMMUTABLE REVISION LEDGER</span>
-          <h1 className="dashboard-hero__title" style={{ fontSize: '24px', margin: '0 0 6px' }}>
-            Permanent Version Archive &amp; Provenance
-          </h1>
-          <p className="dashboard-hero__subtitle" style={{ margin: 0 }}>
-            Every released version is permanently preserved with a cryptographic SHA-256 timestamp and author change notes.
-          </p>
+    <StudentShell title="Version Archive" showStandardHeader={false}>
+      {/* 1. Filter & Search Toolbar (Synced identically with My Manuscripts) */}
+      <div className="student-filter-toolbar">
+        {/* Left: Dropdown select manuscript */}
+        <div className="student-sort-box" style={{ gap: '8px' }}>
+          <span className="student-sort-label" style={{ fontWeight: 600, color: '#475569' }}>
+            Manuscript:
+          </span>
+          <select
+            value={selectedManuscriptId}
+            onChange={(e) => setSelectedManuscriptId(e.target.value)}
+            className="student-sort-select"
+            style={{ maxWidth: '340px' }}
+            aria-label="Filter versions by manuscript"
+          >
+            <option value="ALL">All Manuscripts ({items.length})</option>
+            {items.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title || 'Untitled Manuscript'}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className="dashboard-page-header__right">
-          <Link href="/student/my-preprints/new" className="dashboard-btn dashboard-btn--primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+
+        {/* Right: Search Input & Toggle All Button */}
+        <div className="student-toolbar-actions">
+          <div className="student-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <span>New Submission</span>
-          </Link>
+            <input
+              type="search"
+              placeholder="Search title, DOI, SHA-256..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="student-search-input"
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} className="student-search-clear">
+                ×
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="student-btn student-btn--secondary archive-toggle-all-btn"
+            onClick={toggleAllCollapse}
+            aria-label={isAllCollapsed ? 'Expand all manuscript versions' : 'Collapse all manuscript versions'}
+          >
+            <span>{isAllCollapsed ? 'Expand All' : 'Collapse All'}</span>
+          </button>
         </div>
       </div>
 
-      {/* Manuscript Filter Selector */}
-      <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-        <div className="dashboard-card__header">
-          <h2 className="dashboard-card__title">Select Manuscript to Inspect Lineage</h2>
-          <div className="dashboard-card__filters" style={{ flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className={`dashboard-filter-btn ${selectedManuscriptId === 'ALL' ? 'dashboard-filter-btn--active' : ''}`}
-              onClick={() => setSelectedManuscriptId('ALL')}
-            >
-              All Manuscripts ({items.length})
-            </button>
-            {items.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`dashboard-filter-btn ${selectedManuscriptId === m.id ? 'dashboard-filter-btn--active' : ''}`}
-                onClick={() => setSelectedManuscriptId(m.id)}
-                title={m.title}
-              >
-                {m.title.length > 25 ? `${m.title.substring(0, 25)}…` : m.title}
-              </button>
-            ))}
+      {/* 2. Version Lineages Content Stream */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {(listLoading || versionsLoading) && (
+          <div className="student-loading-box">
+            <div className="student-spinner" />
+            <p>Loading cryptographic version archives and provenance…</p>
           </div>
-        </div>
+        )}
 
-        {/* Version Lineages List */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          {filteredManuscripts.map((manuscript) => {
-            const isExpanded = !collapsedManuscripts[manuscript.id];
+        {versionsError && (
+          <div className="student-error" role="alert">
+            {versionsError}
+          </div>
+        )}
 
-            return (
-              <div key={manuscript.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '28px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+        {!listLoading && !versionsLoading && filteredManuscripts.length === 0 && (
+          <div className="student-empty-card">
+            <div className="student-empty-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <h3>
+              {searchQuery ? 'No matching version archives found' : 'No manuscript archives yet'}
+            </h3>
+            <p>
+              {searchQuery
+                ? `No version history matches "${searchQuery}". Try searching by manuscript title, DOI, or SHA-256 hash.`
+                : 'You have not submitted any preprints yet. Submit your first manuscript to establish cryptographic version timestamps and permanent provenance.'}
+            </p>
+            <div className="student-empty-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <Link href="/student/my-preprints" className="student-btn student-btn--secondary">
+                View My Manuscripts
+              </Link>
+              <Link href="/student/my-preprints/new" className="student-btn student-btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Start New Submission</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {!listLoading && !versionsLoading && filteredManuscripts.map((manuscript) => {
+          const isExpanded = !collapsedManuscripts[manuscript.id];
+
+          return (
+            <article key={manuscript.id} className="archive-manuscript-card">
+              {/* Manuscript Header */}
+              <div className="archive-manuscript-header">
+                <div className="archive-manuscript-meta">
                   <div>
                     <span className="dashboard-badge-tag">{manuscript.discipline || 'General'}</span>
-                    <h3 style={{ margin: '6px 0 2px', fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                      <Link href={`/student/my-preprints/${manuscript.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                        {manuscript.title}
-                      </Link>
-                    </h3>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                      DOI: {manuscript.doi || '10.5281/zenodo.hdl-preview'} &bull; {manuscript.versions?.length || 1} archived version(s)
-                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Link
-                      href={`/student/my-preprints/${manuscript.id}`}
-                      className="dashboard-table__action-btn"
-                      style={{ fontSize: '13px' }}
-                    >
-                      View Full Manuscript →
+                  <h3 className="archive-manuscript-title">
+                    <Link href={`/student/my-preprints/${manuscript.id}`}>
+                      {manuscript.title}
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => toggleManuscript(manuscript.id)}
-                      className="dashboard-table__action-btn"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '32px',
-                        height: '32px',
-                        padding: 0,
-                        cursor: 'pointer',
-                        color: '#0f172a',
-                        borderRadius: '6px',
-                      }}
-                      title={isExpanded ? 'Thu gọn' : 'Xổ xuống'}
-                      aria-label="Toggle versions"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s ease',
-                        }}
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </button>
+                  </h3>
+                  <div className="archive-manuscript-subinfo">
+                    <span>
+                      <strong>DOI:</strong> {manuscript.doi || 'DOI Pending / Not Assigned'}
+                    </span>
+                    <span>&bull;</span>
+                    <span>
+                      {manuscript.versions?.length || 0} permanent version(s) recorded
+                    </span>
                   </div>
                 </div>
 
-                {/* Version Cards */}
-                {isExpanded && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {manuscript.versions && manuscript.versions.length > 0 ? (
-                      manuscript.versions.map((ver, idx) => (
+                <div className="archive-manuscript-actions">
+                  <Link
+                    href={`/student/my-preprints/${manuscript.id}`}
+                    className="student-btn student-btn--secondary student-btn--sm"
+                  >
+                    View Details →
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => toggleManuscript(manuscript.id)}
+                    className={`archive-toggle-btn ${isExpanded ? 'archive-toggle-btn--expanded' : ''}`}
+                    title={isExpanded ? 'Collapse versions' : 'Expand versions'}
+                    aria-label="Toggle versions list"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Version Lineage Timeline */}
+              {isExpanded && (
+                <div className="archive-timeline-container">
+                  {manuscript.versions && manuscript.versions.length > 0 ? (
+                    manuscript.versions.map((ver, idx) => {
+                      const isLatest = idx === 0;
+
+                      return (
                         <div
                           key={ver.version}
-                          className="student-version-card"
-                          style={{
-                            background: idx === 0 ? '#f0f9ff' : '#ffffff',
-                            border: idx === 0 ? '1px solid #bae6fd' : '1px solid #e2e8f0',
-                            borderRadius: '12px',
-                            padding: '18px 22px',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '18px',
-                          }}
+                          className={`archive-version-item ${isLatest ? 'archive-version-item--latest' : ''}`}
                         >
-                          <div
-                            style={{
-                              width: '52px',
-                              height: '52px',
-                              borderRadius: '10px',
-                              background: idx === 0 ? '#0071bc' : '#f1f5f9',
-                              color: idx === 0 ? '#ffffff' : '#475569',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 800,
-                              fontSize: '15px',
-                              flexShrink: 0,
-                            }}
-                          >
+                          {/* Version Badge Node */}
+                          <div className={`archive-version-badge ${isLatest ? 'archive-version-badge--latest' : ''}`}>
                             <span>v{ver.version}</span>
-                            {idx === 0 && <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>Latest</span>}
+                            {isLatest && <span className="archive-version-badge__sub">Latest</span>}
                           </div>
 
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                              <strong style={{ fontSize: '15px', color: '#0f172a' }}>
-                                Version {ver.version_label || `v${ver.version}`} Release
-                              </strong>
+                          {/* Version Info & Provenance */}
+                          <div className="archive-version-content">
+                            <div className="archive-version-header">
+                              <div>
+                                <strong className="archive-version-title">
+                                  Version {ver.version_label || `v${ver.version}`} Release
+                                </strong>
+                                {ver.created_at && (
+                                  <span className="archive-version-date">
+                                    &bull; Archived on {new Date(ver.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </span>
+                                )}
+                              </div>
                               <span
                                 className={`user-badge ${
                                   ver.status === 'APPROVED'
                                     ? 'user-badge--approved'
                                     : ver.status === 'NEEDS_REVISION'
                                     ? 'user-badge--revision'
+                                    : ver.status === 'UNDER_REVIEW'
+                                    ? 'user-badge--review'
                                     : 'user-badge--draft'
                                 }`}
                               >
@@ -203,56 +315,81 @@ export function StudentVersionArchiveView() {
                               </span>
                             </div>
 
-                            <p style={{ margin: '0 0 10px', fontSize: '13.5px', color: '#475569', lineHeight: 1.5 }}>
-                              <strong>Change Summary:</strong> {ver.change_summary || 'Initial draft version submitted for evaluation.'}
+                            <p className="archive-change-summary">
+                              <strong>Change Summary:</strong> {ver.change_summary || 'Initial camera-ready version submitted for archive.'}
                             </p>
 
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', fontSize: '12px', color: '#64748b' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                <span>📄 {ver.file_name} ({ver.file_size || '2.4 MB'})</span>
+                            {/* Cryptographic Provenance Bar */}
+                            <div className="archive-provenance-bar">
+                              <div className="archive-provenance-info">
+                                <span className="archive-file-tag">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                  </svg>
+                                  {ver.file_name} ({ver.file_size || 'Size unavailable'})
+                                </span>
                                 {ver.sha256 && (
-                                  <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
-                                    SHA: {ver.sha256.substring(0, 16)}…
+                                  <span className="archive-sha-tag" title={ver.sha256}>
+                                    SHA-256: {ver.sha256.substring(0, 10)}…{ver.sha256.substring(ver.sha256.length - 6)}
                                   </span>
                                 )}
                               </div>
 
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div className="archive-actions-group">
                                 {ver.sha256 && (
                                   <button
                                     type="button"
-                                    className="dashboard-table__cite-btn"
+                                    className={`archive-cite-btn ${copiedHash === ver.sha256 ? 'archive-cite-btn--copied' : ''}`}
                                     onClick={() => handleCopyHash(ver.sha256!)}
                                   >
-                                    {copiedHash === ver.sha256 ? 'Hash Copied!' : 'Copy Checksum'}
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      {copiedHash === ver.sha256 ? (
+                                        <polyline points="20 6 9 17 4 12" />
+                                      ) : (
+                                        <>
+                                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                        </>
+                                      )}
+                                    </svg>
+                                    <span>{copiedHash === ver.sha256 ? 'Hash Copied!' : 'Copy Checksum'}</span>
                                   </button>
                                 )}
-                                <a
-                                  href={`/downloads/${ver.file_name}`}
-                                  download
-                                  className="dashboard-table__cite-btn"
-                                  style={{ color: '#0071bc', borderColor: '#b8dcef' }}
-                                >
-                                  Download PDF
-                                </a>
+                                {ver.download_url && (
+                                  <a
+                                    href={ver.download_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="student-btn student-btn--secondary"
+                                    style={{ fontSize: '12px', padding: '5px 10px', gap: '5px' }}
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                      <polyline points="7 10 12 15 17 10" />
+                                      <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    <span>Download PDF</span>
+                                  </a>
+                                )}
                               </div>
                             </div>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic' }}>
-                        Version 1.0 recorded on {manuscript.submitted_at ? new Date(manuscript.submitted_at).toLocaleDateString() : 'August 28, 2026'}.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic', padding: '8px 0' }}>
+                      No version history is recorded for this manuscript yet.
+                    </div>
+                  )}
+                </div>
+              )}
+            </article>
+          );
+        })}
       </div>
-    </StudentDashboardLayout>
+    </StudentShell>
   );
 }
 
