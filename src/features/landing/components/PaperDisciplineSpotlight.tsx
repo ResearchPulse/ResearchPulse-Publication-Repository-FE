@@ -181,7 +181,7 @@ export function PaperDisciplineSpotlight() {
             </div>
 
             <h3 className="paper-card-title">
-              <a href="/api/auth/login?next=/student/my-preprints">{item.title}</a>
+              <a href="/login?next=/student/my-preprints">{item.title}</a>
             </h3>
 
             <p className="paper-card-authors">{item.authors}</p>
