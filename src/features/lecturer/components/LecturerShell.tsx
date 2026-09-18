@@ -18,8 +18,8 @@ export interface LecturerShellProps {
 export function LecturerShell({ active, title, pendingCount, children }: LecturerShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
-  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Dr. Alan Turing';
-  const displayRole = user?.email || 'alan.turing@hyperdata.org';
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Lecturer';
+  const displayRole = user?.role === 'LECTURER' ? 'Faculty Reviewer' : user?.role === 'ADMIN' ? 'Administrator' : user?.email || 'Reviewer';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -32,7 +32,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
     if (email) {
       return email.slice(0, 2).toUpperCase();
     }
-    return 'AT';
+    return 'L';
   };
 
   const initials = getInitials(user?.name, user?.email);

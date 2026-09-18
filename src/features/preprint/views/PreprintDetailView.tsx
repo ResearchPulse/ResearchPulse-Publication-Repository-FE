@@ -2,20 +2,35 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
 import { usePreprintDetail } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
+
+const NativePdfViewer = dynamic(
+  () => import('../components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="student-loading-box" style={{ padding: '60px 20px' }}>
+        <div className="student-spinner" />
+        <p>Loading manuscript reader…</p>
+      </div>
+    ),
+  }
+);
 
 interface PreprintDetailViewProps {
   id: string;
 }
 
-type TabType = 'OVERVIEW' | 'REVIEWS' | 'TIMELINE';
+type TabType = 'OVERVIEW' | 'PDF_VIEW' | 'REVIEWS' | 'TIMELINE';
 
 export function PreprintDetailView({ id }: PreprintDetailViewProps) {
   const { item, loading, error } = usePreprintDetail(id);
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
   const [copiedDoi, setCopiedDoi] = useState(false);
+  const [pdfExpanded, setPdfExpanded] = useState(false);
 
   const handleCopyDoi = () => {
     if (!item?.doi) return;
@@ -256,6 +271,22 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             </button>
             <button
               type="button"
+              className={`student-detail-tab ${activeTab === 'PDF_VIEW' ? 'student-detail-tab--active' : ''}`}
+              onClick={() => setActiveTab('PDF_VIEW')}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                <span>Manuscript PDF</span>
+              </span>
+            </button>
+            <button
+              type="button"
               className={`student-detail-tab ${activeTab === 'REVIEWS' ? 'student-detail-tab--active' : ''}`}
               onClick={() => setActiveTab('REVIEWS')}
             >
@@ -341,7 +372,32 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             </div>
           )}
 
-          {/* Tab 2: Faculty Mentorship & Reviews */}
+          {/* Tab 2: Manuscript PDF Direct Reader */}
+          {activeTab === 'PDF_VIEW' && (
+            <div className="student-tab-panel" style={{ marginTop: '20px' }}>
+              {item.download_url ? (
+                <NativePdfViewer
+                  url={item.download_url}
+                  fileName={item.file_name || `${item.title?.substring(0, 50) || 'manuscript'}.pdf`}
+                />
+              ) : (
+                <div className="student-empty-card" style={{ padding: '60px 20px' }}>
+                  <div className="student-empty-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#647381" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="12" y1="18" x2="12" y2="12" />
+                      <line x1="9" y1="15" x2="15" y2="15" />
+                    </svg>
+                  </div>
+                  <h3>PDF Preview Not Available</h3>
+                  <p>The manuscript PDF file is currently being processed or archived in cloud storage.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Faculty Mentorship & Reviews */}
           {activeTab === 'REVIEWS' && (
             <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               {item.reviews && item.reviews.length > 0 ? (

@@ -1,12 +1,167 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudentShell } from '../components';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintAnalysis } from '../types';
+
+const DISCIPLINES = [
+  'Computer Science & Artificial Intelligence',
+  'Information Technology & Software Engineering',
+  'Data Science & Machine Learning',
+  'Electrical & Electronics Engineering',
+  'Mathematics & Applied Statistics',
+  'Physics & Materials Science',
+  'Biological & Medical Sciences',
+  'Environmental & Earth Sciences',
+  'Social Sciences & Economics',
+  'Interdisciplinary Scientific Research',
+];
+
+interface SearchableDisciplineSelectProps {
+  value: string;
+  onChange: (val: string) => void;
+}
+
+function SearchableDisciplineSelect({ value, onChange }: SearchableDisciplineSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const filtered = DISCIPLINES.filter((d) =>
+    d.toLowerCase().includes(searchQuery.toLowerCase().trim())
+  );
+
+  const handleToggle = () => {
+    const nextState = !isOpen;
+    setIsOpen(nextState);
+    if (nextState) {
+      setSearchQuery('');
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  };
+
+  const handleSelect = (item: string) => {
+    onChange(item);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="student-searchable-select" ref={containerRef}>
+      <button
+        type="button"
+        id="field-discipline"
+        className={`student-searchable-select__trigger ${isOpen ? 'student-searchable-select__trigger--open' : ''}`}
+        onClick={handleToggle}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className={value ? 'student-searchable-select__value' : 'student-searchable-select__placeholder'}>
+          {value || 'Select a research discipline'}
+        </span>
+        <svg
+          className={`student-searchable-select__arrow ${isOpen ? 'student-searchable-select__arrow--open' : ''}`}
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="student-searchable-select__dropdown" role="listbox">
+          <div className="student-searchable-select__search-wrapper">
+            <svg
+              className="student-searchable-select__search-icon"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="student-searchable-select__search-input"
+              placeholder="Search discipline..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+
+          <ul className="student-searchable-select__options">
+            {filtered.length > 0 ? (
+              filtered.map((item) => {
+                const isSelected = item === value;
+                return (
+                  <li
+                    key={item}
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`student-searchable-select__option ${
+                      isSelected ? 'student-searchable-select__option--selected' : ''
+                    }`}
+                    onClick={() => handleSelect(item)}
+                  >
+                    <span>{item}</span>
+                    {isSelected && (
+                      <svg
+                        className="student-searchable-select__check"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </li>
+                );
+              })
+            ) : (
+              <li className="student-searchable-select__option--empty">
+                No research disciplines found
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface PreprintEditorViewProps {
   id?: string;
@@ -157,9 +312,14 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setAuthors(authors.filter((_, authorIndex) => authorIndex !== index + 1));
   };
 
+  const showError = (msg: string) => {
+    setFormError(msg);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (submitNow: boolean, useMockSubmit = false) => {
     if (isAnalyzing) {
-      setFormError('Please wait for GROBID extraction to finish before saving or submitting.');
+      showError('Please wait for GROBID extraction to finish before saving or submitting.');
       return;
     }
 
@@ -167,17 +327,17 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
     if (submitNow && !useMockSubmit) {
       if (!isEditing && !file) {
-        setFormError('A PDF manuscript file is required before submitting for faculty review.');
+        showError('A PDF manuscript file is required before submitting for faculty review.');
         return;
       }
       if ((originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required) && !changeSummary.trim()) {
-        setFormError('Please provide a Summary of Changes addressing the reviewer comments.');
+        showError('Please provide a Summary of Changes addressing the reviewer comments.');
         return;
       }
     }
 
     if (!isEditing && !file) {
-      setFormError('Attach a PDF manuscript before saving this draft.');
+      showError('Attach a PDF manuscript before saving this draft.');
       return;
     }
 
@@ -205,16 +365,16 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         return role === 'STUDENT' ? !author.studentId?.trim() : !author.email?.trim();
       });
       if (incompleteAuthors.length > 0) {
-        setFormError('Cần đăng ký thành viên');
+        showError('Cần đăng ký thành viên (Các tác giả phải có MSSV hoặc Email).');
         return;
       }
       }
       if (!discipline.trim()) {
-        setFormError('Research Discipline / Field is required before submitting.');
+        showError('Research Discipline / Field is required before submitting.');
         return;
       }
       if (!title.trim()) {
-        setFormError('Manuscript title is required before submitting.');
+        showError('Manuscript title is required before submitting.');
         return;
       }
     }
@@ -263,7 +423,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       router.push(`/student/my-preprints/${publicationId}`);
       router.refresh();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
+      showError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
     } finally {
       setIsSubmitting(false);
     }
@@ -656,24 +816,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <label htmlFor="field-discipline" className="student-field__label">
                   Research Discipline / Field <span className="student-required">*</span>
                 </label>
-                <select
-                  id="field-discipline"
-                  className="student-select"
+                <SearchableDisciplineSelect
                   value={discipline}
-                  onChange={(e) => setDiscipline(e.target.value)}
-                >
-                  <option value="">Select a research discipline</option>
-                  <option value="Computer Science & Artificial Intelligence">Computer Science & Artificial Intelligence</option>
-                  <option value="Information Technology & Software Engineering">Information Technology & Software Engineering</option>
-                  <option value="Data Science & Machine Learning">Data Science & Machine Learning</option>
-                  <option value="Electrical & Electronics Engineering">Electrical & Electronics Engineering</option>
-                  <option value="Mathematics & Applied Statistics">Mathematics & Applied Statistics</option>
-                  <option value="Physics & Materials Science">Physics & Materials Science</option>
-                  <option value="Biological & Medical Sciences">Biological & Medical Sciences</option>
-                  <option value="Environmental & Earth Sciences">Environmental & Earth Sciences</option>
-                  <option value="Social Sciences & Economics">Social Sciences & Economics</option>
-                  <option value="Interdisciplinary Scientific Research">Interdisciplinary Scientific Research</option>
-                </select>
+                  onChange={setDiscipline}
+                />
               </div>
 
               <div className="student-field">

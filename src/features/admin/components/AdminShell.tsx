@@ -30,7 +30,7 @@ export function AdminSidebar({
 }) {
   const { user } = useAuth();
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Administrator';
-  const displayRole = user?.email || 'admin@hyperdata.org';
+  const displayRole = user?.role === 'ADMIN' ? 'System Administrator' : user?.email || 'Administrator';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -157,7 +157,7 @@ export function AdminSidebar({
           </Link>
 
           <Link
-            href={ROUTES.LECTURER.PROFILE}
+            href={ROUTES.ADMIN.PROFILE}
             className={`student-sidebar__link ${active === 'profile' ? 'student-sidebar__link--active' : ''}`}
             onClick={onClose}
           >

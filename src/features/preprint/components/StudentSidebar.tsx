@@ -22,8 +22,8 @@ export function StudentSidebar({
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Authenticated Student';
-  const displayOrg = user?.email || 'Student Workspace';
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Student';
+  const displayOrg = user?.studentId ? `Student ID: ${user.studentId}` : (user?.role === 'STUDENT' ? 'Student Workspace' : user?.email || 'Workspace');
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
