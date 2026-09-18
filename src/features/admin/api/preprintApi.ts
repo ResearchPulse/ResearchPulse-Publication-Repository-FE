@@ -53,6 +53,13 @@ export type AdminReview = {
   createdAt: string;
   updatedAt: string;
   reviewer?: { id: string; name?: string | null; email: string };
+  publication?: {
+    id: string;
+    title?: string | null;
+    status: AdminPublicationStatus;
+    currentVersionLabel?: string;
+    uploader?: { id: string; name?: string | null; email: string };
+  };
 };
 
 export type AdminVersion = {
@@ -158,6 +165,11 @@ export const preprintApi = {
       pagination: body.pagination || { page: params.page || 1, limit: params.limit || 20, total: 0, totalPages: 1 },
     })),
   getSubmission: (id: string) => request<AdminPublication>(`/api/v1/publications/${id}`),
+  listAllReviews: (params: { page?: number; limit?: number; recommendation?: string; search?: string } = {}) =>
+    requestResponse<AdminReview[]>(`/api/v1/admin/reviews${queryString(params)}`).then((body) => ({
+      items: body.data || [],
+      pagination: body.pagination || { page: params.page || 1, limit: params.limit || 20, total: (body.data || []).length, totalPages: 1 },
+    })),
   getReviews: (id: string) => request<AdminReview[]>(`/api/v1/publications/${id}/reviews`),
   getVersions: (id: string) => request<AdminVersion[]>(`/api/v1/publications/${id}/versions`),
   getTimeline: (id: string) => request<AdminTimelineEvent[]>(`/api/v1/publications/${id}/timeline`),

@@ -174,7 +174,16 @@ function normalizePublication(
   timeline: BackendTimelineEvent[] = [],
 ): StudentPreprint {
   const currentVersion = publication.currentVersion?.version || versions.find((version) => version.isCurrent)?.version || 1;
-  const revisionRequired = publication.status === 'DRAFTING' && Boolean(publication.currentVersion?.submittedAt);
+  const allReviews = reviews.length > 0 ? reviews : ((publication as any).reviews || []);
+  const hasNeedsRevision = allReviews.some((r: any) => r.recommendation === 'NEEDS_REVISION' || r.decision === 'NEEDS_REVISION');
+  const isDraftWithSubmission = publication.status === 'DRAFTING' && Boolean(publication.currentVersion?.submittedAt);
+  const revisionRequired = isDraftWithSubmission || hasNeedsRevision;
+
+  let status: StudentPreprint['status'] = mapStatus(publication.status);
+  if (hasNeedsRevision || isDraftWithSubmission) {
+    status = 'NEEDS_REVISION';
+  }
+
   return {
     id: publication.id,
     title: publication.title || fileNameFromObjectKey(publication.objectKey) || 'Untitled manuscript',
@@ -182,7 +191,7 @@ function normalizePublication(
     abstract: publication.abstract || undefined,
     discipline: '',
     keywords: publication.keywords || [],
-    status: mapStatus(publication.status),
+    status,
     current_version: currentVersion,
     revision_required: revisionRequired,
     authors: (publication.authors || []).map((author, index) => ({
@@ -254,7 +263,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const studentPreprintApi = {
   listMine: async (): Promise<{ items: StudentPreprint[] }> => {
     const publications = await request<BackendPublication[]>('/?mine=true');
-    return { items: publications.map((publication) => normalizePublication(publication)) };
+    return { items: publications.map((publication) => normalizePublication(publication, (publication as any).reviews || [])) };
   },
 
   get: async (id: string): Promise<StudentPreprint> => {
