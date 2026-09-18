@@ -17,6 +17,7 @@ export const ROUTES = {
     SUBMISSIONS: '/admin/submissions',
     SUBMISSION_DETAIL: (id: string | number) => `/admin/submissions/${id}`,
     REVIEWS: '/admin/reviews',
+    USERS: '/admin/users',
   },
   LECTURER: {
     ROOT: '/lecturer',

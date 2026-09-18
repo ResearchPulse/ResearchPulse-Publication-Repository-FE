@@ -7,22 +7,19 @@ export function AdminReviewsView() {
   return (
     <AdminShell active="reviews" title="Reviews">
       <AdminPageHeader
-        eyebrow="Reviewer workspace"
+        eyebrow="Review oversight"
         title="Reviews"
-        description="See assigned work and keep feedback close to the submitted version."
+        description="Review assignments and lecturer recommendations are shown on each submission record."
         actions={
           <Link href={ROUTES.ADMIN.SUBMISSIONS}>
             <Button variant="secondary">Browse submissions</Button>
           </Link>
         }
       />
-      <div className="preview-note">
-        Review assignments will load after the Preprint BE assignment endpoint is connected.
-      </div>
       <div className="ui-panel">
         <EmptyState
-          title="No live reviews yet"
-          description="Connect the API to load assignments for the signed-in lecturer."
+          title="Open a submission to review progress"
+          description="The Admin role can view all lecturer assignments and recommendations from the submission detail page."
         />
       </div>
     </AdminShell>
