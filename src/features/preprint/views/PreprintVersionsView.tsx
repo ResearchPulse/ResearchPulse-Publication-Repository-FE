@@ -2,15 +2,53 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { StudentShell } from '../components';
+import { LecturerShell } from '@/features/lecturer/components';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintVersionInfo } from '../types';
+import { TimelineSkeleton } from '@/components/skeleton';
 
 interface PreprintVersionsViewProps {
   id: string;
 }
 
+function PreprintVersionsShell({
+  isLecturer,
+  title,
+  actions,
+  children,
+}: {
+  isLecturer: boolean;
+  title: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return isLecturer ? (
+    <LecturerShell active="submissions" title={title}>
+      {actions && <div style={{ marginBottom: '20px' }}>{actions}</div>}
+      {children}
+    </LecturerShell>
+  ) : (
+    <StudentShell
+      title={title}
+      kicker="Manuscript Lineage & Provenance"
+      actions={actions}
+    >
+      {children}
+    </StudentShell>
+  );
+}
+
 export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const isLecturer = user?.role === 'LECTURER' || (pathname?.startsWith('/lecturer/') ?? false);
+  const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
+  const editPath = isLecturer ? `${workspacePath}/new?id=${id}` : `${workspacePath}/${id}/edit`;
+  const detailPath = `${workspacePath}/${id}`;
+
   const [item, setItem] = useState<StudentPreprint | null>(null);
   const [versions, setVersions] = useState<PreprintVersionInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,37 +74,28 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
     };
   }, [id]);
 
+  const pageTitle = item ? `Version History: ${item.title}` : 'Version History';
+
   return (
-    <StudentShell
-      title={item ? `Version History: ${item.title}` : 'Version History'}
-      kicker="Manuscript Lineage & Provenance"
-      breadcrumbs={[
-        { label: 'Preprint Portal', href: '/' },
-        { label: 'My Manuscripts', href: '/student/my-preprints' },
-        { label: item ? item.title.substring(0, 24) + '…' : 'Details', href: `/student/my-preprints/${id}` },
-        { label: 'Versions' },
-      ]}
+    <PreprintVersionsShell
+      isLecturer={isLecturer}
+      title={pageTitle}
       actions={
         item && (
           <div className="student-detail-top-actions">
             {(item.status === 'NEEDS_REVISION' || item.status === 'DRAFT') && (
-              <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
+              <Link href={editPath} className="student-btn student-btn--warning">
                 <span>Submit New Version →</span>
               </Link>
             )}
-            <Link href={`/student/my-preprints/${item.id}`} className="student-btn student-btn--secondary">
+            <Link href={detailPath} className="student-btn student-btn--secondary">
               <span>Back to Manuscript</span>
             </Link>
           </div>
         )
       }
     >
-      {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading version history ledger…</p>
-        </div>
-      )}
+      {loading && <TimelineSkeleton count={3} />}
 
       {error && (
         <div className="student-error-banner">
@@ -153,7 +182,7 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
           </div>
         </div>
       )}
-    </StudentShell>
+    </PreprintVersionsShell>
   );
 }
 

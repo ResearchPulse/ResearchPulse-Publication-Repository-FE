@@ -3,12 +3,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StudentShell } from '../components';
+import { FeedbackCardSkeleton } from '@/components/skeleton';
 import { studentPreprintApi } from '../api';
 import { usePreprintList } from '../hooks';
 import type { StudentPreprint } from '../types';
 
 type FeedbackFilter = 'ALL' | 'ACTION' | 'REVIEW' | 'APPROVED';
 type SortOption = 'UPDATED' | 'TITLE' | 'REVIEWER';
+
+function FeedbackCommentBubble({ comment }: { comment: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = comment.length > 220;
+
+  return (
+    <div className="mentor-feedback-card__comment-box">
+      <blockquote className={`mentor-feedback-card__comment-text ${!expanded && isLong ? 'mentor-feedback-card__comment-text--clamped' : ''}`}>
+        &ldquo;{comment}&rdquo;
+      </blockquote>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="mentor-feedback-card__toggle-btn"
+        >
+          {expanded ? 'Show less ▴' : 'Show more ▾'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function StudentMentorFeedbackView() {
   const { items, loading: listLoading, error: listError } = usePreprintList();
@@ -192,10 +215,7 @@ export function StudentMentorFeedbackView() {
       {/* 2. Feedback Stream Content (Flat, Modern & Spacious) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
         {listLoading || reviewsLoading ? (
-          <div className="student-loading-box">
-            <div className="student-spinner" />
-            <p>Loading reviewer feedback and academic evaluations…</p>
-          </div>
+          <FeedbackCardSkeleton count={3} />
         ) : listError || reviewsError ? (
           <div className="student-error" role="alert">
             Error: {(listError || reviewsError)?.message}
@@ -250,26 +270,30 @@ export function StudentMentorFeedbackView() {
 
             if (isUnderReviewOnly) {
               return (
-                <article key={manuscript.id} className="mentor-review-card">
-                  <div className="mentor-review-header">
-                    <div className="mentor-reviewer-profile">
-                      <div className="mentor-avatar" style={{ background: '#0284c7' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <article key={manuscript.id} className="mentor-feedback-card mentor-feedback-card--review">
+                  <div className="mentor-feedback-card__header">
+                    <div className="mentor-feedback-card__reviewer">
+                      <div className="reviewer-avatar-circle">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" />
                           <polyline points="12 6 12 12 16 14" />
                         </svg>
                       </div>
                       <div>
-                        <h4 className="mentor-reviewer-name">Faculty Reviewer Assigned</h4>
-                        <p className="mentor-reviewer-meta">Evaluation in progress · Expected SLA 48–72 hours</p>
+                        <h4 className="mentor-feedback-card__name">Faculty Reviewer Assigned</h4>
+                        <p className="mentor-feedback-card__meta">Evaluation in progress · Expected SLA 48–72 hours</p>
                       </div>
                     </div>
                     <span className="user-badge user-badge--review">UNDER REVIEW</span>
                   </div>
 
-                  <div className="mentor-manuscript-strip">
-                    <div className="mentor-manuscript-strip__header">
-                      <span className="mentor-manuscript-tag">Manuscript</span>
+                  <div className="mentor-feedback-card__manuscript">
+                    <h3 className="mentor-feedback-card__title">
+                      <Link href={`/student/my-preprints/${manuscript.id}`}>
+                        {manuscript.title}
+                      </Link>
+                    </h3>
+                    <div className="mentor-feedback-card__tags">
                       <span className="mentor-version-tag">v{manuscript.current_version || '1.0'}</span>
                       {manuscript.discipline && (
                         <span className="mentor-version-tag" style={{ color: '#0071bc', background: '#e0f2fe' }}>
@@ -277,18 +301,15 @@ export function StudentMentorFeedbackView() {
                         </span>
                       )}
                     </div>
-                    <h3 className="mentor-manuscript-title">
-                      <Link href={`/student/my-preprints/${manuscript.id}`}>
-                        {manuscript.title}
-                      </Link>
-                    </h3>
                   </div>
 
-                  <p style={{ margin: 0, fontSize: '13.5px', color: '#64748b', lineHeight: 1.6 }}>
-                    Your manuscript is currently in the faculty evaluation queue. You will be notified via email as soon as the mentor returns detailed comments.
-                  </p>
+                  <div className="mentor-feedback-card__comment-box">
+                    <p className="mentor-feedback-card__comment-text" style={{ fontStyle: 'normal', color: '#64748b' }}>
+                      Your manuscript is currently in the faculty evaluation queue. You will be notified via email as soon as the mentor returns detailed comments.
+                    </p>
+                  </div>
 
-                  <div className="mentor-review-actions">
+                  <div className="mentor-feedback-card__actions">
                     <Link
                       href={`/student/my-preprints/${manuscript.id}`}
                       className="student-btn student-btn--secondary"
@@ -302,6 +323,17 @@ export function StudentMentorFeedbackView() {
 
             if (!latestReview) return null;
             const needsRevision = latestReview.decision === 'NEEDS_REVISION';
+            const isApproved = latestReview.decision === 'APPROVED';
+            const isRejected = latestReview.decision === 'REJECTED';
+
+            const cardModifier = needsRevision
+              ? 'mentor-feedback-card--alert'
+              : isApproved
+              ? 'mentor-feedback-card--approved'
+              : isRejected
+              ? 'mentor-feedback-card--withdrawn'
+              : 'mentor-feedback-card--review';
+
             const reviewerInitials =
               latestReview.reviewer_name
                 ?.split(' ')
@@ -314,28 +346,32 @@ export function StudentMentorFeedbackView() {
             return (
               <article
                 key={manuscript.id}
-                className={`mentor-review-card ${needsRevision ? 'mentor-review-card--alert' : ''}`}
+                className={`mentor-feedback-card ${cardModifier}`}
               >
-                <div className="mentor-review-header">
-                  <div className="mentor-reviewer-profile">
-                    <div className="mentor-avatar">
+                <div className="mentor-feedback-card__header">
+                  <div className="mentor-feedback-card__reviewer">
+                    <div className="reviewer-avatar-circle">
                       {reviewerInitials}
                     </div>
                     <div>
-                      <h4 className="mentor-reviewer-name">{latestReview.reviewer_name}</h4>
-                      <p className="mentor-reviewer-meta">
+                      <h4 className="mentor-feedback-card__name">{latestReview.reviewer_name}</h4>
+                      <p className="mentor-feedback-card__meta">
                         {latestReview.reviewer_title || 'Faculty Mentor'} · {new Date(latestReview.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                       </p>
                     </div>
                   </div>
-                  <span className={`user-badge ${needsRevision ? 'user-badge--revision' : 'user-badge--approved'}`}>
+                  <span className={`user-badge ${needsRevision ? 'user-badge--revision' : isApproved ? 'user-badge--approved' : isRejected ? 'user-badge--withdrawn' : 'user-badge--review'}`}>
                     {needsRevision ? 'NEEDS REVISION' : latestReview.decision}
                   </span>
                 </div>
 
-                <div className="mentor-manuscript-strip">
-                  <div className="mentor-manuscript-strip__header">
-                    <span className="mentor-manuscript-tag">Manuscript</span>
+                <div className="mentor-feedback-card__manuscript">
+                  <h3 className="mentor-feedback-card__title">
+                    <Link href={`/student/my-preprints/${manuscript.id}`}>
+                      {manuscript.title}
+                    </Link>
+                  </h3>
+                  <div className="mentor-feedback-card__tags">
                     <span className="mentor-version-tag">v{manuscript.current_version || '1.0'}</span>
                     {manuscript.discipline && (
                       <span className="mentor-version-tag" style={{ color: '#0071bc', background: '#e0f2fe' }}>
@@ -343,16 +379,11 @@ export function StudentMentorFeedbackView() {
                       </span>
                     )}
                   </div>
-                  <h3 className="mentor-manuscript-title">
-                    <Link href={`/student/my-preprints/${manuscript.id}`}>
-                      {manuscript.title}
-                    </Link>
-                  </h3>
                 </div>
 
-                <blockquote className={`mentor-comments-quote ${needsRevision ? 'mentor-comments-quote--alert' : ''}`}>
-                  &ldquo;{latestReview.comments || 'The lecturer did not provide additional comments.'}&rdquo;
-                </blockquote>
+                <FeedbackCommentBubble
+                  comment={latestReview.comments || 'The lecturer did not provide additional comments.'}
+                />
 
                 {latestReview.recommendations && latestReview.recommendations.length > 0 && (
                   <div className="mentor-action-items">
@@ -365,7 +396,7 @@ export function StudentMentorFeedbackView() {
                   </div>
                 )}
 
-                <div className="mentor-review-actions">
+                <div className="mentor-feedback-card__actions">
                   {needsRevision ? (
                     <>
                       <Link

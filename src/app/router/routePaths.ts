@@ -25,6 +25,7 @@ export const ROUTES = {
     REVIEWS: '/lecturer/reviews',
     REVIEW_DETAIL: (id: string | number) => `/lecturer/reviews/${id}`,
     SUBMISSIONS: '/lecturer/submissions',
+    SUBMISSION_DETAIL: (id: string | number) => `/lecturer/submissions/${id}`,
     NEW_SUBMISSION: '/lecturer/submissions/new',
     PROFILE: '/lecturer/profile',
   },

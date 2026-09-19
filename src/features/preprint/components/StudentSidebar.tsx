@@ -129,21 +129,6 @@ export function StudentSidebar({
                 <span className="student-sidebar__badge">{totalCount}</span>
               )}
             </Link>
-
-            <Link
-              href="/student/my-preprints/new"
-              className={`student-sidebar__link ${isRouteActive('/student/my-preprints/new') ? 'student-sidebar__link--active' : ''}`}
-              onClick={onClose}
-            >
-              <span className="student-sidebar__icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="16" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
-                </svg>
-              </span>
-              <span className="student-sidebar__text">New Submission</span>
-            </Link>
           </div>
 
           {/* Group: Mentorship & Quality */}

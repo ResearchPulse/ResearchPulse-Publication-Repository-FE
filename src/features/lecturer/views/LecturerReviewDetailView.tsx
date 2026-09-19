@@ -4,28 +4,109 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Button, ErrorState, Field, LoadingState, Notice, PageHeader, Panel, StatusBadge, TextArea } from '@hyperdata/design-system';
+import { Button, ErrorState, Field, Notice, PageHeader, Panel, StatusBadge, TextArea } from '@hyperdata/design-system';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { LecturerShell } from '../components';
+import { DetailSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerRecommendation, type LecturerReviewDetail } from '../api';
 
-const NativePdfViewer = dynamic(
-  () => import('../../preprint/components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="lecturer-pdf-empty" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-        <div className="student-spinner" />
-        <p>Loading manuscript document reader…</p>
-      </div>
-    ),
-  }
-);
 
 function formatFileSize(bytes?: number | null) {
   if (!bytes || bytes <= 0) return 'Size unavailable';
   return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function ReviewAuthorsList({
+  authors,
+  fallback,
+}: {
+  authors?: { name: string }[];
+  fallback: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!authors || authors.length === 0) {
+    return <span>{fallback}</span>;
+  }
+
+  if (authors.length <= 3) {
+    return <span>{authors.map((a) => a.name).join(', ')}</span>;
+  }
+
+  const visible = expanded ? authors : authors.slice(0, 3);
+  const remaining = authors.length - 3;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <span>
+        {visible.map((a) => a.name).join(', ')}
+        {!expanded && ` …`}
+      </span>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: '2px 0',
+          color: '#64748b',
+          fontSize: '11.5px',
+          fontWeight: 500,
+          cursor: 'pointer',
+          alignSelf: 'flex-start',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+      >
+        <span>{expanded ? 'Hide details' : 'Show details'}</span>
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+          }}
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function formatDate(value?: string | null) {
+  return value ? new Date(value).toLocaleString() : '—';
+}
+
+function ReviewCommentItem({ comment }: { comment: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = comment.length > 120 || comment.includes('\n');
+
+  return (
+    <div className="simple-reviewer-item__comment-wrapper">
+      <div className={`simple-reviewer-item__comment ${isLong && !expanded ? 'simple-reviewer-item__comment--clamped' : ''}`}>
+        &ldquo;{comment}&rdquo;
+      </div>
+      {isLong && (
+        <button
+          type="button"
+          className="simple-reviewer-item__toggle-btn"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? 'Show less ▴' : 'Show more ▾'}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function LecturerReviewDetailView({ publicationId }: { publicationId: string }) {
@@ -79,11 +160,15 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
   const isSecondary = myReview?.assignmentRole === 'SECONDARY';
   const submitted = Boolean(myReview?.submittedAt);
 
-  // Filter submitted secondary peer reviews (visible to Primary Lecturer)
+  // Filter all secondary peer reviews (visible to Primary Lecturer)
   const secondaryReviews = useMemo(() => {
     if (!detail?.reviews) return [];
-    return detail.reviews.filter((r) => r.id !== myReview?.id && r.assignmentRole === 'SECONDARY' && r.submittedAt);
+    return detail.reviews.filter((r) => r.id !== myReview?.id && r.assignmentRole === 'SECONDARY');
   }, [detail, myReview?.id]);
+
+  const secondarySubmittedCount = useMemo(() => {
+    return secondaryReviews.filter((r) => Boolean(r.submittedAt || r.recommendation)).length;
+  }, [secondaryReviews]);
 
   // Sync review data if myReview resolves after initial load
   useEffect(() => {
@@ -138,7 +223,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
           primaryDecision === 'PUBLISHED'
             ? 'Manuscript published successfully!'
             : primaryDecision === 'DRAFTING'
-            ? 'Manuscript returned to student author for revision (DRAFTING).'
+            ? 'Manuscript returned to author for revision (DRAFTING).'
             : 'Manuscript rejected.'
         );
       } else {
@@ -160,32 +245,28 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
     }
   }
 
-  if (loading) return <LecturerShell active="reviews" title="Review manuscript"><LoadingState label="Loading manuscript" /></LecturerShell>;
+  if (loading) return <LecturerShell active="reviews" title="Review manuscript"><DetailSkeleton /></LecturerShell>;
   if (error && !detail) return <LecturerShell active="reviews" title="Review manuscript"><ErrorState title="Manuscript unavailable" description={error} action={<Link href={ROUTES.LECTURER.REVIEWS}><Button variant="secondary">Back to queue</Button></Link>} /></LecturerShell>;
   if (!detail) return null;
 
   const title = detail.publication.title?.trim() || currentVersion?.fileName || 'Untitled manuscript';
-  const uploader = detail.publication.uploader?.name || detail.publication.uploader?.email || 'Student author unavailable';
+  const isFaculty = detail.publication.uploader?.role === 'LECTURER';
+  const uploader = detail.publication.uploader?.name || (isFaculty ? 'Anonymous Author' : 'Student Author');
 
   return (
     <LecturerShell active="reviews" title="Review manuscript">
-      <Link className="lecturer-back-link" href={ROUTES.LECTURER.REVIEWS}>← Back to review queue</Link>
+      <div className="admin-detail-top-nav">
+        <Link className="admin-back-btn" href={ROUTES.LECTURER.REVIEWS}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          <span>Back to review queue</span>
+        </Link>
+      </div>
       <PageHeader
-        eyebrow={isPrimary ? 'Primary Lecturer Review (Chuyên môn chính)' : 'Secondary Peer Review (Phản biện độc lập)'}
         title={title}
-        description={`${uploader} · ${currentVersion?.versionLabel || 'Current version'} · ${detail.publication.status}`}
       />
-
-      {isPrimary ? (
-        <Notice tone="info" title="Primary Academic Authority (Giảng viên chính)">
-          You are the assigned Primary Lecturer for this round. You have full academic authority to evaluate peer reviews and finalize the publication decision (Publish, Return to Drafting, or Reject).
-        </Notice>
-      ) : (
-        <Notice tone="info" title="Independent Peer Reviewer (Giảng viên phụ)">
-          You are assigned as a Secondary Reviewer for this round. Please provide your independent academic evaluation and recommendation. Your findings assist the Primary Lecturer in finalizing the lifecycle decision.
-        </Notice>
-      )}
-
       <div className="lecturer-detail-grid">
         <Panel className="lecturer-pdf-panel">
           <div className="lecturer-panel-heading">
@@ -193,11 +274,17 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
               <span className="lecturer-panel-eyebrow">Manuscript PDF</span>
               <h2>{currentVersion?.fileName || 'Current PDF'}</h2>
             </div>
+            {downloadUrl ? (
+              <a className="ui-button ui-button--secondary" href={downloadUrl} target="_blank" rel="noreferrer">
+                Open PDF
+              </a>
+            ) : null}
           </div>
           {downloadUrl ? (
-            <NativePdfViewer
-              url={downloadUrl}
-              fileName={currentVersion?.fileName || 'Current PDF'}
+            <iframe
+              className="lecturer-pdf-viewer"
+              src={downloadUrl}
+              title={`PDF preview for ${title}`}
             />
           ) : (
             <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>
@@ -211,10 +298,28 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
           <Panel className="lecturer-metadata-panel">
             <span className="lecturer-panel-eyebrow">Manuscript information</span>
             <dl className="lecturer-metadata-list">
-              <div><dt>Student</dt><dd>{uploader}</dd></div>
+              <div>
+                <dt>Author</dt>
+                <dd>
+                  {uploader}{' '}
+                  {isFaculty ? (
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>(Double-Blind)</span>
+                  ) : detail.publication.uploader?.email ? (
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>({detail.publication.uploader.email})</span>
+                  ) : null}
+                </dd>
+              </div>
               <div><dt>Status</dt><dd><StatusBadge status={detail.publication.status} /></dd></div>
               <div><dt>Role</dt><dd><strong>{isPrimary ? 'Primary Lecturer (Lead)' : isSecondary ? 'Secondary Reviewer' : 'Reviewer'}</strong></dd></div>
-              <div><dt>Authors</dt><dd>{detail.publication.authors?.map((author) => author.name).join(', ') || 'Author details unavailable'}</dd></div>
+              <div>
+                <dt>Authors</dt>
+                <dd>
+                  <ReviewAuthorsList
+                    authors={detail.publication.authors}
+                    fallback={isFaculty ? 'Anonymous Author (Double-Blind Review)' : uploader}
+                  />
+                </dd>
+              </div>
               <div><dt>Keywords</dt><dd>{detail.publication.keywords?.join(', ') || 'No keywords provided'}</dd></div>
             </dl>
           </Panel>
@@ -222,56 +327,88 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
           {/* Secondary Reviewers Feedback (visible only to Primary Lecturer) */}
           {isPrimary && (
             <Panel className="lecturer-secondary-panel">
-              <div className="lecturer-panel-heading">
+              <div className="lecturer-panel-heading" style={{ marginBottom: '8px' }}>
                 <div>
                   <span className="lecturer-panel-eyebrow">Peer Review Evidence</span>
-                  <h2>Secondary Reviewers ({secondaryReviews.length}/2 submitted)</h2>
+                  <h2>Secondary Reviewers ({secondarySubmittedCount}/{secondaryReviews.length || 2} submitted)</h2>
                 </div>
               </div>
               {secondaryReviews.length === 0 ? (
                 <p className="lecturer-muted" style={{ fontStyle: 'italic', margin: 0 }}>
-                  Secondary reviewers have not submitted their evaluations yet. You may still proceed with your workflow decision at any time.
+                  Secondary reviewers have not been assigned yet.
                 </p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {secondaryReviews.map((rev) => (
-                    <div
-                      key={rev.id}
-                      style={{
-                        padding: '12px 14px',
-                        border: '1px solid var(--hd-line)',
-                        borderRadius: '8px',
-                        background: '#f8fafc',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                        <div>
-                          <strong style={{ fontSize: '13px', color: 'var(--hd-ink)' }}>
-                            {rev.reviewer?.name || rev.reviewer?.email || 'Secondary Reviewer'}
-                          </strong>
-                          {rev.submittedAt && (
-                            <span style={{ fontSize: '11.5px', color: 'var(--hd-muted)', marginLeft: '8px' }}>
-                              {new Date(rev.submittedAt).toLocaleDateString()}
-                            </span>
-                          )}
+                <div className="simple-reviewer-list" style={{ borderTop: '1px solid #f1f5f9', marginTop: '6px', marginBottom: 0 }}>
+                  {secondaryReviews.map((rev) => {
+                    const isNeedsRevision = rev.recommendation === 'NEEDS_REVISION';
+                    const isPublish = rev.recommendation === 'PUBLISH';
+                    const isReject = rev.recommendation === 'REJECT';
+                    const initials =
+                      rev.reviewer?.name
+                        ?.split(' ')
+                        .map((n) => n[0])
+                        .filter(Boolean)
+                        .slice(-2)
+                        .join('')
+                        .toUpperCase() || 'SR';
+
+                    return (
+                      <div className="simple-reviewer-item" key={rev.id}>
+                        <div className="simple-reviewer-item__main">
+                          <div className="simple-reviewer-item__left">
+                            <div className="simple-reviewer-item__avatar">{initials}</div>
+                            <div className="simple-reviewer-item__info">
+                              <div className="simple-reviewer-item__name-line">
+                                <span className="simple-reviewer-item__name">
+                                  {rev.reviewer?.name || rev.reviewer?.email || rev.reviewerId}
+                                </span>
+                                <span className="simple-reviewer-item__role-tag simple-reviewer-item__role-tag--secondary">
+                                  Secondary
+                                </span>
+                              </div>
+                              <p className="simple-reviewer-item__sub">
+                                Independent Reviewer · {formatDate(rev.submittedAt || rev.updatedAt || rev.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="simple-reviewer-item__badge">
+                            {isNeedsRevision && (
+                              <span className="user-badge user-badge--revision" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
+                                Needs Revision
+                              </span>
+                            )}
+                            {isPublish && (
+                              <span className="user-badge user-badge--approved" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
+                                Recommend Publish
+                              </span>
+                            )}
+                            {isReject && (
+                              <span className="user-badge user-badge--withdrawn" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
+                                Recommend Reject
+                              </span>
+                            )}
+                            {!rev.recommendation && (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  color: '#94a3b8',
+                                  background: '#f8fafc',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #e2e8f0',
+                                }}
+                              >
+                                Pending
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          {rev.recommendation === 'PUBLISH' && <StatusBadge status="PUBLISHED" />}
-                          {rev.recommendation === 'NEEDS_REVISION' && <StatusBadge status="NEEDS_REVISION" />}
-                          {rev.recommendation === 'REJECT' && <StatusBadge status="REJECTED" />}
-                        </div>
+
+                        {rev.comment && <ReviewCommentItem comment={rev.comment} />}
                       </div>
-                      {rev.comment ? (
-                        <div style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--hd-ink)', whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>
-                          &ldquo;{rev.comment}&rdquo;
-                        </div>
-                      ) : (
-                        <p style={{ fontSize: '12px', color: 'var(--hd-muted)', margin: 0, fontStyle: 'italic' }}>
-                          No detailed comments provided.
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Panel>
@@ -310,6 +447,40 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
               {error ? <div className="lecturer-form-error" role="alert">{error}</div> : null}
               {success ? <Notice tone="success">{success}</Notice> : null}
 
+              {/* Segmented Decision Pill Group (System Style) */}
+              <div className="segmented-pill-group" role="radiogroup" aria-label="Decision">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isPrimary ? primaryDecision === 'PUBLISHED' : recommendation === 'PUBLISH'}
+                  className={`segmented-pill-btn ${(isPrimary ? primaryDecision === 'PUBLISHED' : recommendation === 'PUBLISH') ? 'segmented-pill-btn--active' : ''}`}
+                  onClick={() => (isPrimary ? setPrimaryDecision('PUBLISHED') : setRecommendation('PUBLISH'))}
+                  disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
+                >
+                  Publish
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isPrimary ? primaryDecision === 'DRAFTING' : recommendation === 'NEEDS_REVISION'}
+                  className={`segmented-pill-btn ${(isPrimary ? primaryDecision === 'DRAFTING' : recommendation === 'NEEDS_REVISION') ? 'segmented-pill-btn--active' : ''}`}
+                  onClick={() => (isPrimary ? setPrimaryDecision('DRAFTING') : setRecommendation('NEEDS_REVISION'))}
+                  disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
+                >
+                  Revision
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isPrimary ? primaryDecision === 'REJECTED' : recommendation === 'REJECT'}
+                  className={`segmented-pill-btn ${(isPrimary ? primaryDecision === 'REJECTED' : recommendation === 'REJECT') ? 'segmented-pill-btn--active' : ''}`}
+                  onClick={() => (isPrimary ? setPrimaryDecision('REJECTED') : setRecommendation('REJECT'))}
+                  disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
+                >
+                  Reject
+                </button>
+              </div>
+
               <Field
                 label={isPrimary ? 'Evaluation & requirements' : 'Comments'}
                 hint={
@@ -322,68 +493,16 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                   value={comment}
                   onChange={(event) => setComment(event.target.value)}
                   rows={6}
-                  placeholder={
-                    isPrimary
-                      ? 'Write your academic evaluation and specific requirements for the author...'
-                      : 'Write your academic evaluation and specific feedback for this manuscript...'
-                  }
+                  placeholder="Enter your evaluation comments..."
                   disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
                 />
               </Field>
 
               {isPrimary ? (
-                <fieldset className="lecturer-recommendation">
-                  <legend>Workflow Decision</legend>
-                  {([
-                    ['PUBLISHED', 'Publish paper', 'The manuscript meets academic standards and is approved for publication.'],
-                    ['DRAFTING', 'Return to drafting (Needs revision)', 'The student author must address the issues specified in the comments above before the next round.'],
-                    ['REJECTED', 'Reject paper', 'The manuscript is rejected and not eligible for publication.']
-                  ] as const).map(([value, label, description]) => (
-                    <label
-                      className={primaryDecision === value ? 'lecturer-recommendation__option lecturer-recommendation__option--active' : 'lecturer-recommendation__option'}
-                      key={value}
-                    >
-                      <input
-                        type="radio"
-                        name="primaryDecision"
-                        value={value}
-                        checked={primaryDecision === value}
-                        onChange={() => setPrimaryDecision(value)}
-                        disabled={saving || detail.publication.status !== 'REVIEWING'}
-                      />
-                      <span><strong>{label}</strong><small>{description}</small></span>
-                    </label>
-                  ))}
-                </fieldset>
-              ) : (
-                <fieldset className="lecturer-recommendation">
-                  <legend>Recommendation</legend>
-                  {([
-                    ['PUBLISH', 'Recommend publish', 'Recommend publication to the Primary Lecturer.'],
-                    ['NEEDS_REVISION', 'Needs revision', 'The student author should address specific issues before the next round.'],
-                    ['REJECT', 'Recommend reject', 'The manuscript is not ready for publication in its current form.']
-                  ] as const).map(([value, label, description]) => (
-                    <label
-                      className={recommendation === value ? 'lecturer-recommendation__option lecturer-recommendation__option--active' : 'lecturer-recommendation__option'}
-                      key={value}
-                    >
-                      <input
-                        type="radio"
-                        name="recommendation"
-                        value={value}
-                        checked={recommendation === value}
-                        onChange={() => setRecommendation(value)}
-                        disabled={saving || detail.publication.status !== 'REVIEWING'}
-                      />
-                      <span><strong>{label}</strong><small>{description}</small></span>
-                    </label>
-                  ))}
-                </fieldset>
-              )}
-
-              {isPrimary ? (
                 detail.publication.status === 'REVIEWING' ? (
-                  <Button type="submit" loading={saving}>Submit decision</Button>
+                  <Button type="submit" loading={saving} style={{ width: '100%' }}>
+                    Submit
+                  </Button>
                 ) : (
                   <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid var(--hd-line)', borderRadius: '6px', fontSize: '13px', color: 'var(--hd-muted)' }}>
                     Workflow decision finalized as <strong>{detail.publication.status}</strong>.
@@ -391,7 +510,9 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                 )
               ) : (
                 detail.publication.status === 'REVIEWING' ? (
-                  <Button type="submit" loading={saving}>{submitted ? 'Update review' : 'Submit review'}</Button>
+                  <Button type="submit" loading={saving} style={{ width: '100%' }}>
+                    Submit
+                  </Button>
                 ) : (
                   <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid var(--hd-line)', borderRadius: '6px', fontSize: '13px', color: 'var(--hd-muted)' }}>
                     Review period is closed for this round.
@@ -403,10 +524,6 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
           </Panel>
         </div>
       </div>
-      <Panel className="lecturer-history-panel">
-        <div className="lecturer-panel-heading"><div><span className="lecturer-panel-eyebrow">Provenance</span><h2>Version and timeline</h2></div></div>
-        <div className="lecturer-history-grid"><div><h3>Versions</h3>{detail.versions.length ? detail.versions.map((version) => <div className="lecturer-history-row" key={version.id}><strong>{version.versionLabel}</strong><span>{version.fileName}{version.isCurrent ? ' · current' : ' · archived'}</span></div>) : <p className="lecturer-muted">No version history available.</p>}</div><div><h3>Timeline</h3>{detail.timeline.length ? detail.timeline.slice(-5).reverse().map((event) => <div className="lecturer-history-row" key={event.id}><strong>{event.title}</strong><span>{event.description}</span></div>) : <p className="lecturer-muted">No timeline events available.</p>}</div></div>
-      </Panel>
     </LecturerShell>
   );
 }

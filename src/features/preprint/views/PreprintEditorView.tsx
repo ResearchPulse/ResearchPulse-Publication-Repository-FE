@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudentShell } from '../components';
 import { LecturerShell } from '@/features/lecturer/components';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintAnalysis } from '../types';
+import { FormSkeleton } from '@/components/skeleton';
 
 const DISCIPLINES = [
   'Computer Science & Artificial Intelligence',
@@ -186,9 +187,11 @@ function PreprintWorkspaceShell({
 
 export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const pathname = usePathname();
+  const { user, loading: authLoading } = useAuth();
   const isEditing = Boolean(id);
   const isLecturer = user?.role === 'LECTURER';
+  const isLecturerRoute = pathname?.startsWith('/lecturer/') ?? false;
   const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
   const devMockSubmitEnabled = process.env.NEXT_PUBLIC_DEV_MOCK_SUBMIT === 'true';
 
@@ -330,12 +333,21 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setAuthors(authors.filter((_, authorIndex) => authorIndex !== index + 1));
   };
 
+  const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
+  const isReadOnly = Boolean(originalItem && originalItem.status !== 'DRAFT' && !isRevisionMode);
+  const latestReview = originalItem?.reviews?.[0];
+
   const showError = (msg: string) => {
     setFormError(msg);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (submitNow: boolean, useMockSubmit = false) => {
+    if (isReadOnly) {
+      setFormError('Bản thảo đã nộp và đang trong quá trình xét duyệt, không thể chỉnh sửa.');
+      return;
+    }
+
     if (isAnalyzing) {
       showError('Please wait for GROBID extraction to finish before saving or submitting.');
       return;
@@ -362,8 +374,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     const basePrimaryAuthor = {
       name: primaryAuthorName,
       email: primaryAuthorEmail,
-      studentId: user?.studentId || '',
-      role: 'STUDENT' as const,
+      studentId: isLecturer ? undefined : (user?.studentId || ''),
+      role: isLecturer ? ('LECTURER' as const) : ('STUDENT' as const),
       institution: primaryAuthorInst,
       isPrimary: true,
       isCorresponding: true,
@@ -379,13 +391,13 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     if (submitNow) {
       if (!useMockSubmit) {
         const incompleteAuthors = uniqueAuthors.filter((author) => {
-        const role = author.role || (author.studentId ? 'STUDENT' : 'LECTURER');
-        return role === 'STUDENT' ? !author.studentId?.trim() : !author.email?.trim();
-      });
-      if (incompleteAuthors.length > 0) {
-        showError('Cần đăng ký thành viên (Các tác giả phải có MSSV hoặc Email).');
-        return;
-      }
+          const role = author.role || (author.studentId ? 'STUDENT' : (isLecturer ? 'LECTURER' : 'STUDENT'));
+          return role === 'STUDENT' ? !author.studentId?.trim() : !author.email?.trim();
+        });
+        if (incompleteAuthors.length > 0) {
+          showError('Cần đăng ký thành viên (Các tác giả phải có MSSV hoặc Email).');
+          return;
+        }
       }
       if (!discipline.trim()) {
         showError('Research Discipline / Field is required before submitting.');
@@ -419,7 +431,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       if (!isEditing) {
         const uploadedPublication = await studentPreprintApi.upload(file!, submitNow && !useMockSubmit ? 'SUBMIT' : 'DRAFT', metadata);
         if (useMockSubmit) await studentPreprintApi.mockSubmit(uploadedPublication.id);
-      router.push(`${workspacePath}/${uploadedPublication.id}`);
+        router.push(`${workspacePath}/${uploadedPublication.id}`);
         router.refresh();
         return;
       }
@@ -433,6 +445,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       }
 
       await studentPreprintApi.update(publicationId, metadata);
+      if (isLecturer) {
+        await studentPreprintApi.setPrivate(publicationId, isPrivate);
+      }
       if (submitNow) {
         if (useMockSubmit) await studentPreprintApi.mockSubmit(publicationId);
         else await studentPreprintApi.submit(publicationId);
@@ -447,12 +462,11 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     }
   };
 
-  const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
-  const latestReview = originalItem?.reviews?.[0];
+
 
   const primaryAuthor = authors[0] || originalItem?.authors?.[0];
-  const primaryAuthorName = primaryAuthor?.name || user?.name || user?.email?.split('@')[0] || 'Logged-in Student';
-  const primaryAuthorEmail = primaryAuthor?.email || user?.email || 'student@university.edu.vn';
+  const primaryAuthorName = primaryAuthor?.name || user?.name || user?.email?.split('@')[0] || (isLecturer ? 'Logged-in Lecturer' : 'Logged-in Student');
+  const primaryAuthorEmail = primaryAuthor?.email || user?.email || (isLecturer ? 'lecturer@university.edu.vn' : 'student@university.edu.vn');
   const primaryAuthorStudentId = primaryAuthor?.studentId || user?.studentId || '';
   const primaryAuthorInst = primaryAuthor?.institution || 'University Research Faculty';
   const primaryInitials = primaryAuthorName
@@ -461,21 +475,91 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     .filter(Boolean)
     .slice(0, 2)
     .join('')
-    .toUpperCase() || 'ST';
+    .toUpperCase() || (isLecturer ? 'GV' : 'ST');
+
+  if (authLoading) {
+    return (
+      <main
+        role="status"
+        aria-live="polite"
+        style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px', color: '#64748b' }}
+      >
+        Loading workspace…
+      </main>
+    );
+  }
+
+  if (isLecturerRoute && user?.role !== 'LECTURER') {
+    return (
+      <main
+        role="alert"
+        style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px', color: '#b91c1c' }}
+      >
+        This workspace requires an active Lecturer account.
+      </main>
+    );
+  }
 
   return (
     <PreprintWorkspaceShell
       isLecturer={isLecturer}
-      title={isRevisionMode ? `Revise Manuscript: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}` : isEditing ? 'Edit Manuscript Draft' : 'Start a New Preprint'}
-      kicker={isRevisionMode ? 'Revision Submission' : 'Manuscript Registration'}
+      title={
+        isReadOnly
+          ? `Bản thảo: ${originalItem?.status === 'UNDER_REVIEW' ? 'Đang xét duyệt' : originalItem?.status}`
+          : isRevisionMode
+            ? `Revise Manuscript: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
+            : isEditing
+              ? 'Edit Manuscript Draft'
+              : 'Start a New Preprint'
+      }
+      kicker={isReadOnly ? 'Submitted Manuscript' : isRevisionMode ? 'Revision Submission' : 'Manuscript Registration'}
     >
       {loadingInitial ? (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading manuscript details…</p>
-        </div>
+        <FormSkeleton />
       ) : (
         <div className="student-editor-container">
+          {/* Read-only Alert Banner */}
+          {isReadOnly && (
+            <div
+              className="student-editor-status-banner"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                padding: '16px 20px',
+                marginBottom: '20px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '10px',
+                color: '#1e40af',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <div>
+                  <strong style={{ fontSize: '15px', display: 'block', marginBottom: '2px', color: '#1e3a8a' }}>
+                    Bản thảo đang trong trạng thái {originalItem?.status === 'UNDER_REVIEW' ? 'Đang xét duyệt (Under Review)' : originalItem?.status}
+                  </strong>
+                  <span style={{ fontSize: '13.5px', color: '#3b82f6' }}>
+                    Bản thảo đã nộp không thể chỉnh sửa trực tiếp. Dữ liệu bản thảo được khóa trong quá trình thẩm định.
+                  </span>
+                </div>
+              </div>
+              <Link
+                href={`${workspacePath}/${originalItem?.id || id}`}
+                className="student-btn student-btn--primary"
+                style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                Xem chi tiết bản thảo →
+              </Link>
+            </div>
+          )}
+
           {/* Reviewer Feedback Callout for Revisions */}
           {isRevisionMode && latestReview && (
             <div className="student-editor-revision-alert">
@@ -522,7 +606,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
             className="student-form"
             onSubmit={(e) => {
               e.preventDefault();
-              handleSubmit(false);
+              if (!isReadOnly) handleSubmit(false);
             }}
           >
             {/* Step 01: Upload Manuscript PDF (trên cùng) */}
@@ -589,18 +673,20 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFile(null);
-                      setFileName(null);
-                      setFileSize(null);
-                      setFileHash(null);
-                    }}
-                    className="student-file-remove-btn"
-                  >
-                    Replace
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFile(null);
+                        setFileName(null);
+                        setFileSize(null);
+                        setFileHash(null);
+                      }}
+                      className="student-file-remove-btn"
+                    >
+                      Replace
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -674,7 +760,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <span className="student-author-pill">Corresponding</span>
                   </div>
                   <span className="student-author-meta">
-                    {primaryAuthorEmail} • {primaryAuthorStudentId || 'MSSV chưa nhập'} • {primaryAuthorInst}
+                    {primaryAuthorEmail} • {isLecturer ? 'Giảng viên' : (primaryAuthorStudentId || 'MSSV chưa nhập')} • {primaryAuthorInst}
                   </span>
                   <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'MISSING_IDENTIFIER'}`}>
                     {authors[0]?.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
@@ -698,19 +784,21 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       {ca.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeCoAuthor(idx)}
-                    className="student-author-remove"
-                    title="Remove author"
-                  >
-                    ×
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={() => removeCoAuthor(idx)}
+                      className="student-author-remove"
+                      title="Remove author"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
 
               {/* Add Co-author Box */}
-              {showAddAuthor ? (
+              {!isReadOnly && (showAddAuthor ? (
                 <div className="student-add-author-box">
                   <h4>Add Co-Author</h4>
                   <div className="student-form-row">
@@ -773,7 +861,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   </svg>
                   <span>Add Contributing Co-Author</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Step 03: Manuscript Metadata & Discipline (chờ GROBID extract ra) */}
@@ -828,6 +916,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   placeholder="e.g., Mapping data literacy in undergraduate STEM research"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
 
@@ -843,16 +932,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   placeholder="e.g. Computer Science, Biomedical Engineering"
                   value={discipline}
                   onChange={(e) => setDiscipline(e.target.value)}
-
+                  disabled={isReadOnly}
                 />
               </div>
-
-              {isLecturer && (
-                <label className="student-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} />
-                  <span className="student-field__label" style={{ margin: 0 }}>Keep this Lecturer manuscript Private while drafting</span>
-                </label>
-              )}
 
               <div className="student-field">
                 <label htmlFor="field-keywords" className="student-field__label">
@@ -865,6 +947,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   placeholder="e.g. Data Literacy, STEM Education, Statistical Integrity"
                   value={keywordsInput}
                   onChange={(e) => setKeywordsInput(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
 
@@ -882,8 +965,62 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   placeholder="Summarize the core research question, empirical methodology, primary findings, and scientific significance..."
                   value={abstractText}
                   onChange={(e) => setAbstractText(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
+
+              {isLecturer && (
+                <div
+                  className={`lecturer-privacy-card ${isPrivate ? 'lecturer-privacy-card--active' : ''}`}
+                  onClick={!isReadOnly ? () => setIsPrivate(!isPrivate) : undefined}
+                  role="button"
+                  tabIndex={isReadOnly ? -1 : 0}
+                  style={isReadOnly ? { cursor: 'default', opacity: 0.85 } : undefined}
+                  onKeyDown={(e) => {
+                    if (!isReadOnly && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      setIsPrivate(!isPrivate);
+                    }
+                  }}
+                >
+                  <div className="lecturer-privacy-card__main">
+                    <div className="lecturer-privacy-card__icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </div>
+                    <div className="lecturer-privacy-card__content">
+                      <div className="lecturer-privacy-card__title-row">
+                        <span className="lecturer-privacy-card__title">Keep Manuscript in Private Faculty Archive</span>
+                        <span className={`lecturer-privacy-card__badge ${isPrivate ? 'lecturer-privacy-card__badge--private' : ''}`}>
+                          {isPrivate ? 'Private Draft' : 'Standard Review Flow'}
+                        </span>
+                      </div>
+                      <p className="lecturer-privacy-card__desc">
+                        When enabled, this draft is strictly confidential to your lecturer workspace. It will not be sent to faculty review committees or visible to administrators until you decide to change visibility.
+                      </p>
+                    </div>
+                  </div>
+                  <label
+                    className="lecturer-toggle-switch"
+                    htmlFor="toggle-private-manuscript"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      id="toggle-private-manuscript"
+                      type="checkbox"
+                      checked={isPrivate}
+                      onChange={(e) => setIsPrivate(e.target.checked)}
+                      disabled={isReadOnly}
+                      className="lecturer-toggle-switch__input"
+                      role="switch"
+                      aria-checked={isPrivate}
+                    />
+                    <span className="lecturer-toggle-switch__slider" />
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Sticky/Bottom Action Bar */}
@@ -893,38 +1030,53 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </Link>
 
               <div className="student-form-actions-right">
-                <button
-                  type="button"
-                  onClick={() => handleSubmit(false)}
-                  disabled={isSubmitting || isAnalyzing}
-                  className="student-btn student-btn--secondary"
-                >
-                  {isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Saving…' : 'Save as Draft'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSubmit(true)}
-                  disabled={isSubmitting || isAnalyzing}
-                  className="student-btn student-btn--primary student-btn--shimmer"
-                >
-                  <span>{isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Submitting…' : isRevisionMode ? 'Submit Revised Version' : 'Submit for Faculty Review'}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </button>
-
-                {devMockSubmitEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleSubmit(true, true)}
-                    disabled={isSubmitting || isAnalyzing}
-                    className="student-btn student-btn--secondary"
-                    title="Development-only: bypass author account verification"
+                {isReadOnly ? (
+                  <Link
+                    href={`${workspacePath}/${originalItem?.id || id}`}
+                    className="student-btn student-btn--primary"
                   >
-                    {isSubmitting ? 'Mock submittingâ€¦' : 'Mock submit (local)'}
-                  </button>
+                    <span>Xem chi tiết bản thảo</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(false)}
+                      disabled={isSubmitting || isAnalyzing}
+                      className="student-btn student-btn--secondary"
+                    >
+                      {isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Saving…' : 'Save as Draft'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(true)}
+                      disabled={isSubmitting || isAnalyzing}
+                      className="student-btn student-btn--primary student-btn--shimmer"
+                    >
+                      <span>{isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Submitting…' : isRevisionMode ? 'Submit Revised Version' : 'Submit for Faculty Review'}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+
+                    {devMockSubmitEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => handleSubmit(true, true)}
+                        disabled={isSubmitting || isAnalyzing}
+                        className="student-btn student-btn--secondary"
+                        title="Development-only: bypass author account verification"
+                      >
+                        {isSubmitting ? 'Mock submitting…' : 'Mock submit (local)'}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

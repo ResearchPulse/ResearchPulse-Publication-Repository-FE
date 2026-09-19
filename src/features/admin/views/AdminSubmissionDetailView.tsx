@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminShell, AdminPageHeader } from '../components';
+import { DetailSkeleton } from '@/components/skeleton';
 import {
   adminApi,
   type AdminPublication,
@@ -96,6 +97,72 @@ function ReviewCommentItem({ comment }: { comment: string }) {
           onClick={() => setExpanded(!expanded)}
         >
           {expanded ? 'Show less ▴' : 'Show more ▾'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ContributingAuthorsList({ authors }: { authors?: AdminPublication['authors'] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!authors || authors.length === 0) {
+    return <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>No author data available.</p>;
+  }
+
+  const visibleAuthors = expanded ? authors : authors.slice(0, 3);
+  const remainingCount = authors.length - 3;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div className="authors-chip-grid">
+        {visibleAuthors.map((author, idx) => (
+          <div className="author-chip" key={author.id || idx}>
+            <div className="author-chip-avatar">{author.name.charAt(0).toUpperCase()}</div>
+            <div className="author-chip-info">
+              <span className="author-chip-name">{author.name}</span>
+              {author.affiliation && <span className="author-chip-affil">{author.affiliation}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {authors.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            alignSelf: 'flex-start',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'none',
+            border: 'none',
+            padding: '2px 0',
+            cursor: 'pointer',
+            color: '#64748b',
+            fontSize: '12px',
+            fontWeight: 500,
+          }}
+        >
+          <span>{expanded ? 'Hide details' : 'Show details'}</span>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+            }}
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </button>
       )}
     </div>
@@ -464,7 +531,9 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [decisionMessage, setDecisionMessage] = useState<string | null>(null);
+  const [assignmentMessage, setAssignmentMessage] = useState<string | null>(null);
+  const [visibilityMessage, setVisibilityMessage] = useState<string | null>(null);
   const [lecturers, setLecturers] = useState<AdminUser[]>([]);
   const [primaryReviewerId, setPrimaryReviewerId] = useState('');
   const [secondaryReviewerIds, setSecondaryReviewerIds] = useState<string[]>([]);
@@ -530,6 +599,18 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       .catch(() => setLecturers([]));
   }, []);
 
+  const authorUserIds = new Set<string>();
+  if (publication?.uploader?.id) {
+    authorUserIds.add(publication.uploader.id);
+  }
+  publication?.authors?.forEach((author) => {
+    if (author.email) {
+      const match = lecturers.find((l) => l.email?.toLowerCase() === author.email?.toLowerCase());
+      if (match) authorUserIds.add(match.id);
+    }
+  });
+  const eligibleLecturers = lecturers.filter((lecturer) => !authorUserIds.has(lecturer.id));
+
   const changeStatus = async (status: 'PUBLISHED' | 'REJECTED' | 'DRAFTING') => {
     const actionLabel = status === 'PUBLISHED' ? 'publish' : status === 'DRAFTING' ? 'request revision for' : 'reject';
     if (!publication || !window.confirm(`Confirm action to ${actionLabel} this manuscript?`)) return;
@@ -537,13 +618,13 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
     if (!reason) return;
 
     setBusy(true);
-    setMessage(null);
+    setDecisionMessage(null);
     try {
       const updated = await adminApi.changeStatus(id, status, reason);
       setPublication((current) => current ? { ...current, ...updated, status } : current);
-      setMessage(`Manuscript successfully moved to ${status}.`);
+      setDecisionMessage(`Manuscript successfully moved to ${status}.`);
     } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to change manuscript status.');
+      setDecisionMessage(reason instanceof Error ? reason.message : 'Unable to change manuscript status.');
     } finally {
       setBusy(false);
     }
@@ -551,18 +632,18 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
 
   const assignReviewers = async () => {
     if (!primaryReviewerId || secondaryReviewerIds.length !== 2) {
-      setMessage('Select exactly one primary lecturer and two secondary lecturers.');
+      setAssignmentMessage('Select exactly one primary lecturer and two secondary lecturers.');
       return;
     }
     setAssignmentBusy(true);
-    setMessage(null);
+    setAssignmentMessage(null);
     try {
       const assigned = await adminApi.assignReviewers(id, primaryReviewerId, secondaryReviewerIds);
       setReviews(assigned);
       setPastReviews([]);
-      setMessage('Primary and secondary lecturers assigned for this review round.');
+      setAssignmentMessage('Primary and secondary lecturers assigned for this review round.');
     } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to assign lecturers.');
+      setAssignmentMessage(reason instanceof Error ? reason.message : 'Unable to assign lecturers.');
     } finally {
       setAssignmentBusy(false);
     }
@@ -587,7 +668,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
     }
   };
 
-  const currentRound = reviews[0]?.round || publication?.currentVersion?.version || 1;
+  const currentRound = publication?.reviewRound || reviews[0]?.round || publication?.currentVersion?.version || 1;
 
   const pastRounds = useMemo(() => {
     if (!pastReviews.length) return [];
@@ -604,13 +685,13 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
 
   const saveVisibility = async () => {
     setVisibilityBusy(true);
-    setMessage(null);
+    setVisibilityMessage(null);
     try {
       const updated = await adminApi.updateVisibility(id, audiences);
       setPublication((current) => current ? { ...current, ...updated } : current);
-      setMessage('Audience visibility saved.');
+      setVisibilityMessage('Audience visibility saved.');
     } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to save audience visibility.');
+      setVisibilityMessage(reason instanceof Error ? reason.message : 'Unable to save audience visibility.');
     } finally {
       setVisibilityBusy(false);
     }
@@ -639,7 +720,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
         </Link>
       </div>
 
-      {loading && <div className="preview-note" role="status">Loading manuscript record...</div>}
+      {loading && <DetailSkeleton />}
       {error && <div className="preview-note" role="alert">Unable to load manuscript: {error}</div>}
       {historyError && !error && <div className="preview-note" role="status">{historyError}</div>}
 
@@ -652,13 +733,12 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                 <span className="manuscript-meta-pill">
                   {formatVersionLabel(publication.currentVersion?.versionLabel, publication.currentVersion?.version)}
                 </span>
-                <span className="manuscript-meta-tag">Student Research</span>
                 <span className="manuscript-meta-date">
                   Updated {formatDate(publication.updatedAt)}
                 </span>
                 {publication.uploader?.email && (
-                  <span className="manuscript-meta-uploader">
-                    Author: {publication.uploader?.name || publication.uploader?.email}
+                  <span className="manuscript-meta-uploader" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Author: {publication.uploader?.name ? `${publication.uploader.name} (${publication.uploader.email})` : publication.uploader.email}
                   </span>
                 )}
               </div>
@@ -717,21 +797,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
 
             {/* Authors */}
             <h3>Contributing Authors</h3>
-            <div className="authors-chip-grid">
-              {publication.authors && publication.authors.length > 0 ? (
-                publication.authors.map((author, idx) => (
-                  <div className="author-chip" key={author.id || idx}>
-                    <div className="author-chip-avatar">{author.name.charAt(0).toUpperCase()}</div>
-                    <div className="author-chip-info">
-                      <span className="author-chip-name">{author.name}</span>
-                      {author.affiliation && <span className="author-chip-affil">{author.affiliation}</span>}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>No author data available.</p>
-              )}
-            </div>
+            <ContributingAuthorsList authors={publication.authors} />
             {/* Audit Timeline */}
             <h3>Audit Timeline</h3>
             <TimelineList events={timeline} />
@@ -831,9 +897,9 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                   <p className="admin-decision-desc">
                     Select one primary lecturer and exactly two secondary lecturers. The primary lecturer can decide the publication status.
                   </p>
-                  {lecturers.length < 3 && (
+                  {eligibleLecturers.length < 3 && (
                     <div className="preview-note" style={{ marginBottom: '12px', background: '#fff7ed', borderColor: '#fed7aa', color: '#9a3412' }}>
-                      Live assignment requires 3 active Lecturer accounts; only {lecturers.length} are available.
+                      Live assignment requires 3 active Lecturer accounts; only {eligibleLecturers.length} eligible lecturers are available{authorUserIds.size > 0 ? ' (author and co-authors excluded to prevent conflict of interest)' : ''}.
                     </div>
                   )}
                   <label className="student-field__label" htmlFor="primary-reviewer">Primary lecturer</label>
@@ -845,13 +911,13 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                     disabled={assignmentBusy}
                   >
                     <option value="">Select primary lecturer</option>
-                    {lecturers.map((lecturer) => (
+                    {eligibleLecturers.map((lecturer) => (
                       <option key={lecturer.id} value={lecturer.id}>{lecturer.name || lecturer.email}</option>
                     ))}
                   </select>
                   <p className="student-field__label" style={{ marginTop: '12px', marginBottom: '6px' }}>Secondary lecturers (choose 2)</p>
                   <div style={{ display: 'grid', gap: '6px' }}>
-                    {lecturers.filter((lecturer) => lecturer.id !== primaryReviewerId).map((lecturer) => (
+                    {eligibleLecturers.filter((lecturer) => lecturer.id !== primaryReviewerId).map((lecturer) => (
                       <label key={lecturer.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
                         <input
                           type="checkbox"
@@ -872,10 +938,13 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                   >
                     {assignmentBusy ? 'Assigning…' : 'Save review team'}
                   </button>
+                  {assignmentMessage && (
+                    <p className="preview-note" style={{ marginTop: '10px', marginBottom: 0 }} role="status">{assignmentMessage}</p>
+                  )}
                 </div>
               )}
 
-              {!publication.isPrivate && (
+              {!publication.isPrivate && (publication.status === 'REVIEWING' || publication.status === 'PUBLISHED') && (
                 <div className="admin-decision-card" style={{ marginBottom: '18px' }}>
                   <h4 className="admin-decision-title">Audience visibility</h4>
                   <p className="admin-decision-desc">
@@ -905,6 +974,9 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                   >
                     {visibilityBusy ? 'Saving…' : 'Save audience'}
                   </button>
+                  {visibilityMessage && (
+                    <p className="preview-note" style={{ marginTop: '10px', marginBottom: 0 }} role="status">{visibilityMessage}</p>
+                  )}
                 </div>
               )}
 
@@ -914,82 +986,74 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                 </div>
               )}
 
-              {/* Administrator Backup Decision Card */}
-              <div className="admin-decision-card">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <h4 className="admin-decision-title" style={{ margin: 0 }}>Admin Backup Decision</h4>
-                  <span className="manuscript-meta-pill" style={{ fontSize: '11px', padding: '2px 8px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
-                    Backup Authority (Quyền dự phòng)
-                  </span>
-                </div>
-                <p className="admin-decision-desc">
-                  Under SRS v0.8, the Primary Lecturer holds direct authority to decide publication status. Admin backup intervention is reserved for escalation, unresponsiveness, or administrative overrides (mandatory reason recorded in audit timeline).
-                </p>
-                {!publication.isPrivate && publication.status === 'REVIEWING' && (
-                  <div className="admin-decision-buttons">
-                    <button
-                      type="button"
-                      className="admin-btn-decision admin-btn-decision--publish"
-                      disabled={busy}
-                      onClick={() => changeStatus('PUBLISHED')}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>Publish Paper</span>
-                    </button>
-                    <div className="admin-decision-sub-row">
+              {/* Administrator Backup Decision Card - Only displayed when actionable (REVIEWING or REJECTED) */}
+              {!publication.isPrivate && (publication.status === 'REVIEWING' || publication.status === 'REJECTED') && (
+                <div className="admin-decision-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <h4 className="admin-decision-title" style={{ margin: 0 }}>Admin Backup Decision</h4>
+                    <span className="manuscript-meta-pill" style={{ fontSize: '11px', padding: '2px 8px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                      Backup Authority (Quyền dự phòng)
+                    </span>
+                  </div>
+                  <p className="admin-decision-desc">
+                    Primary Lecturer holds direct decision authority. Use this backup override only for escalation or unresponsive review team.
+                  </p>
+                  {publication.status === 'REVIEWING' && (
+                    <div className="admin-decision-buttons">
                       <button
                         type="button"
-                        className="admin-btn-decision admin-btn-decision--revision"
+                        className="admin-btn-decision admin-btn-decision--publish"
+                        disabled={busy}
+                        onClick={() => changeStatus('PUBLISHED')}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Publish Paper</span>
+                      </button>
+                      <div className="admin-decision-sub-row">
+                        <button
+                          type="button"
+                          className="admin-btn-decision admin-btn-decision--revision"
+                          disabled={busy}
+                          onClick={() => changeStatus('DRAFTING')}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                          <span>Request Revision</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn-decision admin-btn-decision--reject"
+                          disabled={busy}
+                          onClick={() => changeStatus('REJECTED')}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                          <span>Reject Paper</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {publication.status === 'REJECTED' && (
+                    <div className="admin-decision-buttons">
+                      <button
+                        type="button"
+                        className="admin-btn-decision admin-btn-decision--reopen"
                         disabled={busy}
                         onClick={() => changeStatus('DRAFTING')}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                        <span>Request Revision</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-btn-decision admin-btn-decision--reject"
-                        disabled={busy}
-                        onClick={() => changeStatus('REJECTED')}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        <span>Reject Paper</span>
+                        Reopen for Revision
                       </button>
                     </div>
-                  </div>
-                )}
-                {!publication.isPrivate && publication.status === 'REJECTED' && (
-                  <div className="admin-decision-buttons">
-                    <button
-                      type="button"
-                      className="admin-btn-decision admin-btn-decision--reopen"
-                      disabled={busy}
-                      onClick={() => changeStatus('DRAFTING')}
-                    >
-                      Reopen for Revision
-                    </button>
-                  </div>
-                )}
-                {publication.status === 'DRAFTING' && (
-                  <p style={{ margin: 0, fontSize: '13px', color: '#d97706', fontWeight: 600 }}>
-                    Manuscript is currently returned to the student for revision (DRAFTING).
-                  </p>
-                )}
-                {publication.status === 'PUBLISHED' && (
-                  <p style={{ margin: 0, fontSize: '13px', color: '#059669', fontWeight: 600 }}>
-                    This manuscript is published and publicly accessible.
-                  </p>
-                )}
-                {message && <p className="preview-note" style={{ marginTop: '14px', marginBottom: 0 }} role="status">{message}</p>}
-              </div>
+                  )}
+                  {decisionMessage && <p className="preview-note" style={{ marginTop: '14px', marginBottom: 0 }} role="status">{decisionMessage}</p>}
+                </div>
+              )}
             </Panel>
           </div>
         </div>
