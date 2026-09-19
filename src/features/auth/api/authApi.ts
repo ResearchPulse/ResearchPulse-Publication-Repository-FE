@@ -50,6 +50,14 @@ export const authApi = {
     return data;
   },
 
+  async logout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/login';
+    }
+  },
+
   loginUrl: '/login',
   registerUrl: '/register',
   logoutUrl: '/api/auth/logout',
