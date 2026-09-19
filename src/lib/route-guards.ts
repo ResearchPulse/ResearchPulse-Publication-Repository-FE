@@ -6,7 +6,7 @@ export async function requireAreaAccess(area: 'admin' | 'lecturer' | 'student'):
   const user = await getCurrentUser();
   
   if (!user) {
-    redirect(`/api/auth/login?next=/${area}`);
+    redirect(`/login?next=/${area}`);
   }
 
   if (!canAccessArea(user.role, area)) {

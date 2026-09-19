@@ -6,7 +6,7 @@ export const ROUTES = {
   FORBIDDEN: '/forbidden',
   REGISTER: '/register',
   AUTH: {
-    LOGIN: '/api/auth/login',
+    LOGIN: '/login',
     LOGOUT: '/api/auth/logout',
     ME: '/api/auth/me',
     CALLBACK: '/auth/callback',

@@ -154,7 +154,7 @@ export function PaperPortalShowcase() {
                 <small>ACADEMIC REPOSITORY RECORD • VERIFIED</small>
                 <h3>Manuscript Review &amp; Versioning Tracker</h3>
               </div>
-              <a href="/api/auth/login?next=/student/my-preprints" className="paper-portal-view-all">
+              <a href="/login?next=/student/my-preprints" className="paper-portal-view-all">
                 Open Workspace <span>→</span>
               </a>
             </div>
