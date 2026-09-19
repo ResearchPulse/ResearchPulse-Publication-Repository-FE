@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HyperdataLogo } from './hyperdata-logo';
 import { PublicPortalShowcase } from './public-portal-showcase';
@@ -25,6 +25,89 @@ const VIETNAMESE_MAP: Record<string, string> = {
 
 function removeTones(str: string): string {
   return str.split('').map((c) => VIETNAMESE_MAP[c.toLowerCase()] ?? c).join('');
+}
+
+type PublicPublication = {
+  id: string;
+  title?: string | null;
+  abstract?: string | null;
+  discipline?: string | null;
+  keywords?: string[];
+  currentVersion?: { versionLabel: string; fileName: string } | null;
+  authors?: Array<{ name: string; affiliation?: string | null }>;
+  downloadUrl?: string;
+};
+
+function PublishedCatalogue() {
+  const [items, setItems] = useState<PublicPublication[]>([]);
+  const [selected, setSelected] = useState<PublicPublication | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/publications/public', { cache: 'no-store' })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body?.error?.message || 'Unable to load published papers.');
+        return body;
+      })
+      .then((body) => setItems(body.data?.items || []))
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Unable to load published papers.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function openPublication(id: string) {
+    try {
+      const response = await fetch(`/api/publications/public/${encodeURIComponent(id)}`, { cache: 'no-store' });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error?.message || 'Unable to load the paper.');
+      setSelected(body.data);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : 'Unable to load the paper.');
+    }
+  }
+
+  return (
+    <section id="published" className="pl-section pl-reveal" style={{ marginTop: 64 }}>
+      <div className="pl-section-head">
+        <span className="pl-badge-pill">Published repository</span>
+        <h2 className="pl-section-title">Published preprints</h2>
+        <p className="pl-section-desc">Only papers explicitly published by the review workflow with Guest visibility appear here.</p>
+      </div>
+      {loading && <p style={{ color: '#64748b' }}>Loading published preprints…</p>}
+      {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
+      {!loading && !error && items.length === 0 && <p style={{ color: '#64748b' }}>No public preprints are available yet.</p>}
+      {items.length > 0 && (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {items.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              onClick={() => void openPublication(item.id)}
+              style={{ textAlign: 'left', border: '1px solid #dbe7f0', background: '#fff', borderRadius: 12, padding: 16, cursor: 'pointer' }}
+            >
+              <strong style={{ display: 'block', color: '#0f172a' }}>{item.title || item.currentVersion?.fileName || 'Untitled preprint'}</strong>
+              <span style={{ display: 'block', marginTop: 5, color: '#64748b', fontSize: 13 }}>{item.discipline || 'Research discipline not provided'} · {item.currentVersion?.versionLabel || 'v1'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {selected && (
+        <div role="dialog" aria-modal="true" style={{ marginTop: 18, border: '1px solid #bfdbfe', background: '#eff6ff', borderRadius: 12, padding: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>
+            <div>
+              <h3 style={{ margin: 0, color: '#0f172a' }}>{selected.title || 'Published preprint'}</h3>
+              <p style={{ color: '#475569', margin: '8px 0' }}>{selected.abstract || 'No abstract provided.'}</p>
+              <p style={{ color: '#475569', margin: '8px 0', fontSize: 13 }}><strong>Authors:</strong> {selected.authors?.map((author) => author.name).join(', ') || 'Not provided'}</p>
+              <p style={{ color: '#475569', margin: '8px 0', fontSize: 13 }}><strong>Keywords:</strong> {selected.keywords?.join(', ') || 'Not provided'}</p>
+            </div>
+            <button type="button" onClick={() => setSelected(null)} aria-label="Close published preprint">Close</button>
+          </div>
+          {selected.downloadUrl && <a href={selected.downloadUrl} target="_blank" rel="noreferrer" className="pl-btn pl-btn--primary" style={{ display: 'inline-flex', marginTop: 8, textDecoration: 'none' }}>Open PDF</a>}
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default function PublicPreprintLanding() {
@@ -233,7 +316,7 @@ export default function PublicPreprintLanding() {
                         <line x1="12" y1="8" x2="12.01" y2="8" />
                       </svg>
                       <div>
-                        Mật khẩu tạm thời đã gửi về <strong>{successData.email}</strong>. Vui lòng chờ <strong>Admin phê duyệt</strong> để đăng nhập.
+                        Admin sẽ liên hệ để xác nhận thông tin, sau đó cấp mật khẩu tạm thời về <strong>{successData.email}</strong>. Bạn phải đổi mật khẩu ngay lần đăng nhập đầu tiên.
                       </div>
                     </div>
 
@@ -405,6 +488,8 @@ export default function PublicPreprintLanding() {
           <div id="portal" className="pl-hero__showcase-wrap pl-reveal" style={{ '--delay': '120ms', marginTop: 64 } as React.CSSProperties}>
             <PublicPortalShowcase />
           </div>
+
+          <PublishedCatalogue />
 
           {/* 3 Bento Feature Cards */}
           <div id="features" className="pl-bento-grid">

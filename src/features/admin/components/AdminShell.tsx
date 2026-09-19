@@ -52,7 +52,7 @@ export function AdminSidebar({
     <aside className={`student-sidebar ${isOpen ? 'student-sidebar--open' : ''}`}>
       {/* Brand Header */}
       <div className="student-sidebar__brand">
-        <Link href={ROUTES.ADMIN.DASHBOARD} className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
+        <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
           <div className="student-sidebar__logo-lockup">
             <Image
               src="/hyperdata-lab-logo.png"
@@ -84,32 +84,16 @@ export function AdminSidebar({
         <div className="student-sidebar__group">
           <span className="student-sidebar__group-title">WORKSPACE</span>
           <Link
-            href={ROUTES.ADMIN.DASHBOARD}
-            className={`student-sidebar__link ${active === 'dashboard' ? 'student-sidebar__link--active' : ''}`}
-            onClick={onClose}
-          >
-            <span className="student-sidebar__icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="7" height="9" x="3" y="3" rx="1" />
-                <rect width="7" height="5" x="14" y="3" rx="1" />
-                <rect width="7" height="9" x="14" y="12" rx="1" />
-                <rect width="7" height="5" x="3" y="16" rx="1" />
-              </svg>
-            </span>
-            <span className="student-sidebar__text">Dashboard</span>
-          </Link>
-
-          <Link
             href={ROUTES.ADMIN.SUBMISSIONS}
-            className={`student-sidebar__link ${active === 'submissions' ? 'student-sidebar__link--active' : ''}`}
+            className={`student-sidebar__link ${active === 'submissions' || active === 'dashboard' ? 'student-sidebar__link--active' : ''}`}
             onClick={onClose}
           >
             <span className="student-sidebar__icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                 <polyline points="14 2 14 8 20 8" />
-                <line x1="16" x2="8" y1="13" y2="13" />
-                <line x1="16" x2="8" y1="17" y2="17" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
                 <line x1="10" x2="8" y1="9" y2="9" />
               </svg>
             </span>

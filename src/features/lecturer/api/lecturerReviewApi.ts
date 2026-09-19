@@ -3,10 +3,12 @@ export type LecturerRecommendation = 'PUBLISH' | 'NEEDS_REVISION' | 'REJECT';
 export type LecturerReview = {
   id: string;
   reviewerId: string;
+  reviewer?: { id: string; name?: string | null; email: string };
   versionId?: string;
   round: number;
   comment?: string | null;
   recommendation?: LecturerRecommendation | null;
+  assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'LEGACY';
   submittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -121,5 +123,11 @@ export const lecturerReviewApi = {
     request<LecturerReview>(`/${encodeURIComponent(id)}/reviews`, {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+
+  changeStatus: (id: string, status: 'PUBLISHED' | 'DRAFTING' | 'REJECTED', reason?: string) =>
+    request<Pick<LecturerPublication, 'id' | 'title' | 'status' | 'updatedAt'>>(`/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, reason }),
     }),
 };

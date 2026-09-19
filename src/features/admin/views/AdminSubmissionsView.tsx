@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { StatusBadge } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
-import { adminApi, type AdminPublication, type AdminPublicationStatus } from '../api';
+import { adminApi, type AdminPublication, type AdminPublicationStatus, type AdminOverview } from '../api';
 import type { PreprintStatus } from '@/shared/types';
 import { ROUTES } from '@/app/router';
 
@@ -18,11 +18,22 @@ function badgeStatus(status: AdminPublicationStatus): PreprintStatus {
       return 'PUBLISHED';
     case 'REJECTED':
       return 'REJECTED';
-    case 'PROCESSING':
     case 'DRAFTING':
+      return 'NEEDS_REVISION';
+    case 'PROCESSING':
     default:
       return 'DRAFT';
   }
+}
+
+function formatVersionLabel(versionLabel?: string | null, versionNumber?: number | null) {
+  if (versionLabel) {
+    return versionLabel.startsWith('v') ? versionLabel : `v${versionLabel}`;
+  }
+  if (typeof versionNumber === 'number') {
+    return `v${versionNumber}`;
+  }
+  return 'v1.0';
 }
 
 function displayTitle(item: AdminPublication) {
@@ -34,20 +45,42 @@ export function AdminSubmissionsView() {
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Awaited<ReturnType<typeof adminApi.listSubmissions>> | null>(null);
+  const [metrics, setMetrics] = useState<AdminOverview['metrics'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch overview metrics for top cards & status pills count
+  useEffect(() => {
+    let active = true;
+    adminApi
+      .overview()
+      .then((res) => {
+        if (active && res?.metrics) {
+          setMetrics(res.metrics);
+        }
+      })
+      .catch(() => {
+        // Soft-fail: metrics are complementary, table still loads
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Fetch submissions list whenever page, query, or status filter changes
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
 
-    adminApi.listSubmissions({
-      page,
-      limit: 20,
-      search: query.trim() || undefined,
-      status: status === 'ALL' ? undefined : status,
-    })
+    adminApi
+      .listSubmissions({
+        page,
+        limit: 20,
+        search: query.trim() || undefined,
+        status: status === 'ALL' ? undefined : status,
+      })
       .then((next) => {
         if (active) setResult(next);
       })
@@ -63,14 +96,24 @@ export function AdminSubmissionsView() {
     };
   }, [page, query, status]);
 
+  const displayMetrics = metrics || {
+    submitted: 0,
+    underReview: 0,
+    needsRevision: 0,
+    published: 0,
+    rejected: 0,
+    processing: 0,
+    total: result?.pagination?.total || 0,
+  };
+
   const pagination = result?.pagination;
 
   return (
-    <AdminShell active="submissions" title="Submissions">
+    <AdminShell active="submissions" title="Submissions" pendingCount={displayMetrics.underReview}>
       <AdminPageHeader
-        eyebrow="Editorial queue"
-        title="Submissions"
-        description="Review the work entering Hyperlabdata, one version at a time."
+        eyebrow="Editorial Workspace"
+        title="Submissions Management"
+        description="Track incoming manuscripts, monitor peer evaluations, and oversee publication workflows across all stages."
       />
 
       {error && (
@@ -79,7 +122,104 @@ export function AdminSubmissionsView() {
         </div>
       )}
 
-      {/* Toolbar: Filter Tab Pills & Search Box */}
+      {/* 1. Metrics Grid (Matching Student & Lecturer Dashboard) */}
+      <div className="student-metrics-grid" style={{ marginBottom: '28px' }}>
+        <div
+          className={`student-metric-card ${status === 'ALL' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setStatus('ALL');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#e0f2fe', color: '#0071bc' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value">{displayMetrics.total}</span>
+            <span className="student-metric-label">Total Manuscripts</span>
+          </div>
+        </div>
+
+        <div
+          className={`student-metric-card ${status === 'REVIEWING' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setStatus('REVIEWING');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value">{displayMetrics.underReview}</span>
+            <span className="student-metric-label">In Peer Review</span>
+          </div>
+        </div>
+
+        <div
+          className={`student-metric-card ${displayMetrics.needsRevision > 0 ? 'student-metric-card--alert' : ''} ${status === 'DRAFTING' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setStatus('DRAFTING');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value" style={{ color: displayMetrics.needsRevision > 0 ? '#d97706' : undefined }}>
+              {displayMetrics.needsRevision}
+            </span>
+            <span className="student-metric-label">Needs Revision</span>
+          </div>
+        </div>
+
+        <div
+          className={`student-metric-card ${status === 'PUBLISHED' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setStatus('PUBLISHED');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value" style={{ color: '#16a34a' }}>{displayMetrics.published}</span>
+            <span className="student-metric-label">Published</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Filter Toolbar: Filter Tab Pills & Search Box */}
       <div className="student-filter-toolbar" style={{ marginBottom: '20px' }}>
         <div className="student-tabs-pills">
           <button
@@ -90,7 +230,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            All
+            All <span className="student-tab-pill__count">{displayMetrics.total}</span>
           </button>
           <button
             type="button"
@@ -100,7 +240,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            In Review
+            In Review <span className="student-tab-pill__count">{displayMetrics.underReview}</span>
           </button>
           <button
             type="button"
@@ -110,7 +250,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Needs Revision
+            Needs Revision <span className="student-tab-pill__count">{displayMetrics.needsRevision}</span>
           </button>
           <button
             type="button"
@@ -120,7 +260,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Published
+            Published <span className="student-tab-pill__count">{displayMetrics.published}</span>
           </button>
           <button
             type="button"
@@ -130,7 +270,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Rejected
+            Rejected <span className="student-tab-pill__count">{displayMetrics.rejected}</span>
           </button>
         </div>
 
@@ -167,7 +307,7 @@ export function AdminSubmissionsView() {
         </div>
       </div>
 
-      {/* Submissions Academic Table Card */}
+      {/* 3. Submissions Academic Table Card */}
       <div className="dashboard-table-card dashboard-table-wrapper">
         {loading ? (
           <div className="student-loading-box">
@@ -232,7 +372,7 @@ export function AdminSubmissionsView() {
                     {/* Version */}
                     <td>
                       <span className="dashboard-version-pill">
-                        {item.currentVersion?.versionLabel ? `v${item.currentVersion.versionLabel}` : 'v1.0'}
+                        {formatVersionLabel(item.currentVersion?.versionLabel, item.currentVersion?.version)}
                       </span>
                     </td>
 

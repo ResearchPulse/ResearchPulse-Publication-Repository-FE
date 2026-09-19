@@ -95,6 +95,8 @@ type BackendPublication = {
     submittedAt?: string | null;
   } | null;
   status: BackendPublicationStatus;
+  audiences?: Array<'GUEST' | 'STUDENT' | 'LECTURER'>;
+  isPrivate?: boolean;
   authors?: BackendAuthor[];
   uploader?: { id: string; email: string; name?: string | null };
   downloadUrl?: string;
@@ -234,6 +236,8 @@ function normalizePublication(
     abstract: publication.abstract || undefined,
     discipline: publication.discipline || '',
     keywords: publication.keywords || [],
+    audiences: publication.audiences || [],
+    is_private: publication.isPrivate || false,
     status,
     current_version: currentVersion,
     revision_required: revisionRequired,
@@ -343,6 +347,7 @@ export const studentPreprintApi = {
       publicationDate?: string;
       discipline?: string;
       keywords: string[];
+      isPrivate?: boolean;
       authors: Array<{
         name: string;
         email?: string;

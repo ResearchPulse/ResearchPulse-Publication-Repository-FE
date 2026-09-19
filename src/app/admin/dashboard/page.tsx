@@ -1,5 +1,5 @@
-import { AdminDashboardView } from '@/features/admin';
+import { redirect } from 'next/navigation';
 
 export default function DashboardPage() {
-  return <AdminDashboardView />;
+  redirect('/admin/submissions');
 }

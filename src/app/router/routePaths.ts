@@ -13,7 +13,7 @@ export const ROUTES = {
   },
   ADMIN: {
     ROOT: '/admin',
-    DASHBOARD: '/admin/dashboard',
+    DASHBOARD: '/admin/submissions',
     SUBMISSIONS: '/admin/submissions',
     SUBMISSION_DETAIL: (id: string | number) => `/admin/submissions/${id}`,
     REVIEWS: '/admin/reviews',
@@ -23,6 +23,8 @@ export const ROUTES = {
     ROOT: '/lecturer',
     REVIEWS: '/lecturer/reviews',
     REVIEW_DETAIL: (id: string | number) => `/lecturer/reviews/${id}`,
+    SUBMISSIONS: '/lecturer/submissions',
+    NEW_SUBMISSION: '/lecturer/submissions/new',
     PROFILE: '/lecturer/profile',
   },
   STUDENT: {

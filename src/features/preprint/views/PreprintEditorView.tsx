@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudentShell } from '../components';
+import { LecturerShell } from '@/features/lecturer/components';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintAnalysis } from '../types';
 
@@ -12,18 +13,36 @@ interface PreprintEditorViewProps {
   id?: string;
 }
 
+function PreprintWorkspaceShell({
+  isLecturer,
+  title,
+  kicker,
+  children,
+}: {
+  isLecturer: boolean;
+  title: string;
+  kicker: string;
+  children: React.ReactNode;
+}) {
+  return isLecturer
+    ? <LecturerShell active="submissions" title={title}>{children}</LecturerShell>
+    : <StudentShell title={title} kicker={kicker}>{children}</StudentShell>;
+}
+
 export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const router = useRouter();
   const { user } = useAuth();
   const isEditing = Boolean(id);
+  const isLecturer = user?.role === 'LECTURER';
+  const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
   const devMockSubmitEnabled = process.env.NEXT_PUBLIC_DEV_MOCK_SUBMIT === 'true';
 
   // Form states
   const [title, setTitle] = useState('');
   const [discipline, setDiscipline] = useState('');
   const [abstractText, setAbstractText] = useState('');
-  const [doi, setDoi] = useState('');
   const [keywordsInput, setKeywordsInput] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
   const [changeSummary, setChangeSummary] = useState('');
 
   // Authors are extracted from the uploaded PDF. New contributors can be added
@@ -62,8 +81,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         setTitle(item.titleNeedsInput ? '' : item.title || '');
         if (item.discipline) setDiscipline(item.discipline);
         setAbstractText(item.abstract || '');
-        setDoi(item.doi || '');
         if (item.keywords?.length) setKeywordsInput(item.keywords.join(', '));
+        setIsPrivate(Boolean((item as StudentPreprint & { is_private?: boolean }).is_private));
         if (item.file_name) {
           setFileName(item.file_name);
           setFileSize(item.file_size || null);
@@ -113,7 +132,6 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       setAnalysis(result);
       setTitle(result.title || '');
       setAbstractText(result.abstract || '');
-      setDoi(result.doi || '');
       setKeywordsInput('');
       setDiscipline(isEditing ? discipline : '');
       setAuthors(result.authors);
@@ -225,9 +243,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       const metadata = {
         title: title.trim() || undefined,
         abstract: abstractText.trim() || undefined,
-        doi: doi.trim() || undefined,
         discipline: discipline.trim() || undefined,
         keywords,
+        isPrivate: isLecturer ? isPrivate : undefined,
         authors: uniqueAuthors.map((author, index) => ({
           name: author.name.trim(),
           email: author.email?.trim() || undefined,
@@ -241,7 +259,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       if (!isEditing) {
         const uploadedPublication = await studentPreprintApi.upload(file!, submitNow && !useMockSubmit ? 'SUBMIT' : 'DRAFT', metadata);
         if (useMockSubmit) await studentPreprintApi.mockSubmit(uploadedPublication.id);
-        router.push(`/student/my-preprints/${uploadedPublication.id}`);
+      router.push(`${workspacePath}/${uploadedPublication.id}`);
         router.refresh();
         return;
       }
@@ -260,7 +278,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         else await studentPreprintApi.submit(publicationId);
       }
 
-      router.push(`/student/my-preprints/${publicationId}`);
+      router.push(`${workspacePath}/${publicationId}`);
       router.refresh();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
@@ -286,7 +304,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     .toUpperCase() || 'ST';
 
   return (
-    <StudentShell
+    <PreprintWorkspaceShell
+      isLecturer={isLecturer}
       title={isRevisionMode ? `Revise Manuscript: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}` : isEditing ? 'Edit Manuscript Draft' : 'Start a New Preprint'}
       kicker={isRevisionMode ? 'Revision Submission' : 'Manuscript Registration'}
     >
@@ -633,7 +652,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <line x1="12" y1="8" x2="12.01" y2="8" />
                   </svg>
                   <span>
-                    <strong>Waiting for PDF analysis:</strong> Select a manuscript to extract title, abstract, DOI, date, and author candidates. Discipline and keywords are entered by you.
+                    <strong>Waiting for PDF analysis:</strong> Select a manuscript to extract title, abstract, date, and author candidates. Discipline and keywords are entered by you.
                   </span>
                 </div>
               )}
@@ -656,25 +675,22 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <label htmlFor="field-discipline" className="student-field__label">
                   Research Discipline / Field <span className="student-required">*</span>
                 </label>
-                <select
+                <input
                   id="field-discipline"
-                  className="student-select"
+                  type="text"
+                  className="student-input"
+                  placeholder="e.g. Computer Science, Biomedical Engineering"
                   value={discipline}
                   onChange={(e) => setDiscipline(e.target.value)}
-                >
-                  <option value="">Select a research discipline</option>
-                  <option value="Computer Science & Artificial Intelligence">Computer Science & Artificial Intelligence</option>
-                  <option value="Information Technology & Software Engineering">Information Technology & Software Engineering</option>
-                  <option value="Data Science & Machine Learning">Data Science & Machine Learning</option>
-                  <option value="Electrical & Electronics Engineering">Electrical & Electronics Engineering</option>
-                  <option value="Mathematics & Applied Statistics">Mathematics & Applied Statistics</option>
-                  <option value="Physics & Materials Science">Physics & Materials Science</option>
-                  <option value="Biological & Medical Sciences">Biological & Medical Sciences</option>
-                  <option value="Environmental & Earth Sciences">Environmental & Earth Sciences</option>
-                  <option value="Social Sciences & Economics">Social Sciences & Economics</option>
-                  <option value="Interdisciplinary Scientific Research">Interdisciplinary Scientific Research</option>
-                </select>
+                />
               </div>
+
+              {isLecturer && (
+                <label className="student-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} />
+                  <span className="student-field__label" style={{ margin: 0 }}>Keep this Lecturer manuscript Private while drafting</span>
+                </label>
+              )}
 
               <div className="student-field">
                 <label htmlFor="field-keywords" className="student-field__label">
@@ -710,7 +726,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
             {/* Sticky/Bottom Action Bar */}
             <div className="student-form-actions-bar">
-              <Link href="/student/my-preprints" className="student-btn student-btn--secondary">
+              <Link href={workspacePath} className="student-btn student-btn--secondary">
                 Cancel
               </Link>
 
@@ -753,7 +769,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
           </form>
         </div>
       )}
-    </StudentShell>
+    </PreprintWorkspaceShell>
   );
 }
 
