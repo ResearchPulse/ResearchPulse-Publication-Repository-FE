@@ -7,6 +7,7 @@ import { PageHeader } from '@hyperdata/design-system';
 
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { authApi } from '@/features/auth/api/authApi';
 
 export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'profile';
 
@@ -30,7 +31,7 @@ export function AdminSidebar({
 }) {
   const { user } = useAuth();
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Administrator';
-  const displayRole = user?.email || 'admin@hyperdata.org';
+  const displayRole = user?.role === 'ADMIN' ? 'System Administrator' : user?.email || 'Administrator';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -141,7 +142,7 @@ export function AdminSidebar({
           </Link>
 
           <Link
-            href={ROUTES.LECTURER.PROFILE}
+            href={ROUTES.ADMIN.PROFILE}
             className={`student-sidebar__link ${active === 'profile' ? 'student-sidebar__link--active' : ''}`}
             onClick={onClose}
           >
@@ -171,8 +172,9 @@ export function AdminSidebar({
               {displayRole}
             </span>
           </div>
-          <Link
-            href="/api/auth/logout"
+          <button
+            type="button"
+            onClick={() => authApi.logout()}
             className="student-sidebar__logout-btn"
             title="Sign Out"
             aria-label="Sign Out"
@@ -182,7 +184,7 @@ export function AdminSidebar({
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-          </Link>
+          </button>
         </div>
       </div>
     </aside>

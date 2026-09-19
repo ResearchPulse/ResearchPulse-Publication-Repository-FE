@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button, ErrorState, Field, LoadingState, Notice, PageHeader, Panel, StatusBadge, TextArea } from '@hyperdata/design-system';
@@ -8,6 +9,19 @@ import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { LecturerShell } from '../components';
 import { lecturerReviewApi, type LecturerRecommendation, type LecturerReviewDetail } from '../api';
+
+const NativePdfViewer = dynamic(
+  () => import('../../preprint/components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="lecturer-pdf-empty" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        <div className="student-spinner" />
+        <p>Loading manuscript document reader…</p>
+      </div>
+    ),
+  }
+);
 
 function formatFileSize(bytes?: number | null) {
   if (!bytes || bytes <= 0) return 'Size unavailable';
@@ -161,6 +175,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
         title={title}
         description={`${uploader} · ${currentVersion?.versionLabel || 'Current version'} · ${detail.publication.status}`}
       />
+
       {isPrimary ? (
         <Notice tone="info" title="Primary Academic Authority (Giảng viên chính)">
           You are the assigned Primary Lecturer for this round. You have full academic authority to evaluate peer reviews and finalize the publication decision (Publish, Return to Drafting, or Reject).
@@ -170,11 +185,27 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
           You are assigned as a Secondary Reviewer for this round. Please provide your independent academic evaluation and recommendation. Your findings assist the Primary Lecturer in finalizing the lifecycle decision.
         </Notice>
       )}
+
       <div className="lecturer-detail-grid">
         <Panel className="lecturer-pdf-panel">
-          <div className="lecturer-panel-heading"><div><span className="lecturer-panel-eyebrow">Manuscript PDF</span><h2>{currentVersion?.fileName || 'Current PDF'}</h2></div>{downloadUrl ? <a className="ui-button ui-button--secondary" href={downloadUrl} target="_blank" rel="noreferrer">Open PDF</a> : null}</div>
-          {downloadUrl ? <iframe className="lecturer-pdf-viewer" src={downloadUrl} title={`PDF preview for ${title}`} /> : <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>}
-          <div className="lecturer-file-meta"><span>{formatFileSize(currentVersion?.fileSize ?? detail.publication.fileSize)}</span><span>{currentVersion?.sha256 ? `SHA-256 ${currentVersion.sha256.slice(0, 12)}…` : 'Hash unavailable'}</span></div>
+          <div className="lecturer-panel-heading">
+            <div>
+              <span className="lecturer-panel-eyebrow">Manuscript PDF</span>
+              <h2>{currentVersion?.fileName || 'Current PDF'}</h2>
+            </div>
+          </div>
+          {downloadUrl ? (
+            <NativePdfViewer
+              url={downloadUrl}
+              fileName={currentVersion?.fileName || 'Current PDF'}
+            />
+          ) : (
+            <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>
+          )}
+          <div className="lecturer-file-meta">
+            <span>{formatFileSize(currentVersion?.fileSize ?? detail.publication.fileSize)}</span>
+            <span>{currentVersion?.sha256 ? `SHA-256 ${currentVersion.sha256.slice(0, 12)}…` : 'Hash unavailable'}</span>
+          </div>
         </Panel>
         <div className="lecturer-detail-side">
           <Panel className="lecturer-metadata-panel">
@@ -278,6 +309,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
             <form className="lecturer-review-form" onSubmit={handleSubmit}>
               {error ? <div className="lecturer-form-error" role="alert">{error}</div> : null}
               {success ? <Notice tone="success">{success}</Notice> : null}
+
               <Field
                 label={isPrimary ? 'Evaluation & requirements' : 'Comments'}
                 hint={
@@ -366,6 +398,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                   </div>
                 )
               )}
+
             </form>
           </Panel>
         </div>

@@ -5,8 +5,8 @@ import { LecturerShell } from '../components/LecturerShell';
 
 export function LecturerProfileView() {
   const { user } = useAuth();
-  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Dr. Alan Turing';
-  const displayEmail = user?.email || 'alan.turing@hyperdata.org';
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'User Profile';
+  const displayEmail = user?.email || 'reviewer@hyperdata.org';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -19,7 +19,7 @@ export function LecturerProfileView() {
     if (email) {
       return email.slice(0, 2).toUpperCase();
     }
-    return 'AT';
+    return 'U';
   };
 
   const initials = getInitials(user?.name, user?.email);
@@ -91,11 +91,11 @@ export function LecturerProfileView() {
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     <path d="m9 12 2 2 4-4"/>
                   </svg>
-                  Verified Faculty Reviewer
+                  {user?.role === 'LECTURER' ? 'Verified Faculty Reviewer' : user?.role === 'ADMIN' ? 'System Administrator' : 'Student Scholar'}
                 </span>
               </div>
               <p style={{ margin: '6px 0 0', fontSize: '13.5px', color: '#64748b' }}>
-                Associate Professor · Department of Computer Science & Engineering
+                {user?.role === 'LECTURER' ? 'Faculty Reviewer · Department of Computer Science & Engineering' : user?.role === 'ADMIN' ? 'System Administrator · Hyperdata Lab' : 'Student Scholar · Science & Technology Faculty'}
               </p>
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#0071bc', fontWeight: 500 }}>
                 {displayEmail}
@@ -208,26 +208,39 @@ export function LecturerProfileView() {
 
               <div>
                 <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Institutional Affiliation
+                  Email Address
                 </span>
-                <span style={{ color: '#1e293b' }}>Department of Computer Science, Hyperdata Lab</span>
+                <span style={{ color: '#1e293b' }}>{displayEmail}</span>
               </div>
 
               <div>
                 <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  ORCID Identifier
+                  Account Role
                 </span>
-                <span style={{ color: '#0071bc', fontWeight: 600 }}>0000-0002-1825-0097</span>
+                <span style={{ color: '#0071bc', fontWeight: 600 }}>
+                  {user?.role === 'LECTURER' ? 'Faculty Reviewer (LECTURER)' : user?.role === 'ADMIN' ? 'System Administrator (ADMIN)' : 'Student Author (STUDENT)'}
+                </span>
               </div>
 
-              <div>
-                <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Faculty Reviewer ID
-                </span>
-                <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', color: '#334155' }}>
-                  REV-2026-0842
-                </code>
-              </div>
+              {user?.studentId ? (
+                <div>
+                  <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Student Identifier (MSSV)
+                  </span>
+                  <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', color: '#334155' }}>
+                    {user.studentId}
+                  </code>
+                </div>
+              ) : (
+                <div>
+                  <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    User ID
+                  </span>
+                  <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', color: '#334155' }}>
+                    {user?.id ? user.id.slice(0, 16) + '…' : 'N/A'}
+                  </code>
+                </div>
+              )}
             </div>
           </div>
 

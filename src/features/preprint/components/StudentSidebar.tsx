@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { authApi } from '@/features/auth/api/authApi';
 
 interface StudentSidebarProps {
   revisionCount?: number;
@@ -22,8 +23,8 @@ export function StudentSidebar({
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Authenticated Student';
-  const displayOrg = user?.email || 'Student Workspace';
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Student';
+  const displayOrg = user?.studentId ? `Student ID: ${user.studentId}` : (user?.role === 'STUDENT' ? 'Student Workspace' : user?.email || 'Workspace');
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -200,8 +201,9 @@ export function StudentSidebar({
               </span>
 
             </div>
-            <Link
-              href="/api/auth/logout"
+            <button
+              type="button"
+              onClick={() => authApi.logout()}
               className="student-sidebar__logout-btn"
               title="Sign Out"
               aria-label="Sign Out"
@@ -211,7 +213,7 @@ export function StudentSidebar({
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
-            </Link>
+            </button>
           </div>
         </div>
       </aside>

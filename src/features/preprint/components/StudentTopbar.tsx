@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface StudentTopbarProps {
   onToggleSidebar?: () => void;
@@ -15,6 +15,33 @@ export function StudentTopbar({
   revisionCount = 0,
 }: StudentTopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setShowNotifications(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showNotifications]);
 
   return (
     <header className="student-topbar">
@@ -45,7 +72,7 @@ export function StudentTopbar({
           <input type="text" placeholder="Search manuscripts, DOIs, reviews..." className="student-topbar__search-input" aria-label="Search manuscripts" />
         </div>
 
-        <div className="student-topbar__notif-wrapper">
+        <div className="student-topbar__notif-wrapper" ref={notifRef}>
           <button
             type="button"
             className="student-topbar__notif-btn"
@@ -75,7 +102,9 @@ export function StudentTopbar({
                     </div>
                   </Link>
                 ) : (
-                  <p className="student-topbar__notif-item-desc">No new academic alerts.</p>
+                  <div className="student-topbar__notif-empty">
+                    <p>No new academic alerts.</p>
+                  </div>
                 )}
               </div>
               <div className="student-topbar__notif-footer">

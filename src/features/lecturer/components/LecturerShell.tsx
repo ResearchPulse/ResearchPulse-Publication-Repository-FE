@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState, type ReactNode } from 'react';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { authApi } from '@/features/auth/api/authApi';
 
 export type LecturerNavKey = 'reviews' | 'submissions' | 'profile';
 
@@ -18,8 +19,8 @@ export interface LecturerShellProps {
 export function LecturerShell({ active, title, pendingCount, children }: LecturerShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
-  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Dr. Alan Turing';
-  const displayRole = user?.email || 'alan.turing@hyperdata.org';
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Lecturer';
+  const displayRole = user?.role === 'LECTURER' ? 'Faculty Reviewer' : user?.role === 'ADMIN' ? 'Administrator' : user?.email || 'Reviewer';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -32,7 +33,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
     if (email) {
       return email.slice(0, 2).toUpperCase();
     }
-    return 'AT';
+    return 'L';
   };
 
   const initials = getInitials(user?.name, user?.email);
@@ -154,8 +155,9 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                 {displayRole}
               </span>
             </div>
-            <Link
-              href="/api/auth/logout"
+            <button
+              type="button"
+              onClick={() => authApi.logout()}
               className="student-sidebar__logout-btn"
               title="Sign Out"
               aria-label="Sign Out"
@@ -165,7 +167,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
