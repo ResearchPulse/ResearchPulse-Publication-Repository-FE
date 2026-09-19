@@ -302,12 +302,14 @@ export function StudentVersionArchiveView() {
                               </div>
                               <span
                                 className={`user-badge ${
-                                  ver.status === 'APPROVED'
+                                  ver.status === 'APPROVED' || ver.status === 'PUBLISHED'
                                     ? 'user-badge--approved'
                                     : ver.status === 'NEEDS_REVISION'
                                     ? 'user-badge--revision'
                                     : ver.status === 'UNDER_REVIEW'
                                     ? 'user-badge--review'
+                                    : ver.status === 'REJECTED' || ver.status === 'WITHDRAWN'
+                                    ? 'user-badge--withdrawn'
                                     : 'user-badge--draft'
                                 }`}
                               >

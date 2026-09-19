@@ -19,6 +19,7 @@ export function AdminUsersView() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [pendingUsers, setPendingUsers] = useState<AdminUser[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -46,6 +47,29 @@ export function AdminUsersView() {
       mounted = false;
     };
   }, [active, page, role, search]);
+
+  useEffect(() => {
+    adminApi.listPendingUsers({ limit: 50 })
+      .then((next) => setPendingUsers(next.users))
+      .catch(() => setPendingUsers([]));
+  }, []);
+
+  const decidePendingUser = async (user: AdminUser, decision: 'approve' | 'reject') => {
+    if (!window.confirm(`${decision === 'approve' ? 'Approve' : 'Reject'} ${user.email}?`)) return;
+    setBusyId(user.id);
+    try {
+      const updated = decision === 'approve'
+        ? await adminApi.approveUser(user.id)
+        : await adminApi.rejectUser(user.id);
+      setPendingUsers((current) => current.filter((item) => item.id !== user.id));
+      setResult((current) => current ? { ...current, users: current.users.map((item) => item.id === updated.id ? updated : item) } : current);
+      setMessage(decision === 'approve' ? 'User approved; temporary-password workflow provisioned.' : 'User registration rejected.');
+    } catch (reason: unknown) {
+      setMessage(reason instanceof Error ? reason.message : 'Unable to process pending registration.');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const updateRole = async (user: AdminUser) => {
     const nextRole = roleDrafts[user.id] || user.role;
@@ -92,6 +116,25 @@ export function AdminUsersView() {
       <div className="preview-note" role={error ? 'alert' : 'status'}>
         {loading ? 'Loading users...' : error || message || 'Live user data.'}
       </div>
+      {pendingUsers.length > 0 && (
+        <Panel className="table-shell">
+          <h2 style={{ marginTop: 0 }}>Pending registrations</h2>
+          <p>Verify/contact these applicants before issuing the temporary password workflow.</p>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead><tr><th>Applicant</th><th>Student ID</th><th>Major</th><th /></tr></thead>
+              <tbody>{pendingUsers.map((user) => (
+                <tr key={user.id}>
+                  <td className="title-cell"><strong>{user.name || 'Unnamed user'}</strong><span>{user.email}</span></td>
+                  <td>{user.studentId || '—'}</td>
+                  <td>{user.major || '—'}</td>
+                  <td><div className="review-actions"><Button disabled={busyId === user.id} onClick={() => decidePendingUser(user, 'approve')}>Approve</Button><Button variant="secondary" disabled={busyId === user.id} onClick={() => decidePendingUser(user, 'reject')}>Reject</Button></div></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
       <Panel className="table-shell">
         <div className="table-toolbar">
           <TextInput

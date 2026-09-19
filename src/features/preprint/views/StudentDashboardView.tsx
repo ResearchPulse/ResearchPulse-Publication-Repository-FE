@@ -212,11 +212,17 @@ export function StudentDashboardView() {
                       {item.status === 'UNDER_REVIEW' && (
                         <span className="user-badge user-badge--review">UNDER REVIEW</span>
                       )}
-                      {(item.status === 'APPROVED' || item.status === 'PUBLISHED') && (
+                      {item.status === 'PUBLISHED' && (
+                        <span className="user-badge user-badge--approved">PUBLISHED</span>
+                      )}
+                      {item.status === 'APPROVED' && (
                         <span className="user-badge user-badge--approved">APPROVED</span>
                       )}
                       {item.status === 'DRAFT' && (
                         <span className="user-badge user-badge--draft">DRAFT</span>
+                      )}
+                      {(item.status === 'REJECTED' || item.status === 'WITHDRAWN') && (
+                        <span className="user-badge user-badge--withdrawn">REJECTED</span>
                       )}
                     </td>
                     <td className="dashboard-table__date">

@@ -5,6 +5,7 @@ export type {
   AdminOverview,
   AdminPagination,
   AdminPublication,
+  AdminPublicationAudience,
   AdminPublicationStatus,
   AdminReview,
   AdminTimelineEvent,

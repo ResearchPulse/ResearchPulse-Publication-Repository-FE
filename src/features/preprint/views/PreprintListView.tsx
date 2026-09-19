@@ -43,7 +43,13 @@ export function PreprintListView() {
   const filteredItems = useMemo(() => {
     return items
       .filter((item) => {
-        if (selectedTab !== 'ALL' && item.status !== selectedTab) return false;
+        if (selectedTab !== 'ALL') {
+          if (selectedTab === 'APPROVED') {
+            if (item.status !== 'APPROVED' && item.status !== 'PUBLISHED') return false;
+          } else if (item.status !== selectedTab) {
+            return false;
+          }
+        }
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchTitle = item.title.toLowerCase().includes(q);
@@ -63,8 +69,9 @@ export function PreprintListView() {
 
   const renderStatusBadge = (status: PreprintStatus) => {
     switch (status) {
-      case 'APPROVED':
       case 'PUBLISHED':
+        return <span className="user-badge user-badge--approved">PUBLISHED</span>;
+      case 'APPROVED':
         return <span className="user-badge user-badge--approved">APPROVED</span>;
       case 'NEEDS_REVISION':
         return <span className="user-badge user-badge--revision">NEEDS REVISION</span>;
@@ -73,7 +80,8 @@ export function PreprintListView() {
       case 'DRAFT':
         return <span className="user-badge user-badge--draft">DRAFT</span>;
       case 'WITHDRAWN':
-        return <span className="user-badge user-badge--withdrawn">WITHDRAWN</span>;
+      case 'REJECTED':
+        return <span className="user-badge user-badge--withdrawn">REJECTED</span>;
       default:
         return <span className="user-badge">{status}</span>;
     }

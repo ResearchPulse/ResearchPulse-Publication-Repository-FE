@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminShell, AdminPageHeader } from '../components';
 import {
@@ -11,6 +11,8 @@ import {
   type AdminReview,
   type AdminTimelineEvent,
   type AdminVersion,
+  type AdminUser,
+  type AdminPublicationAudience,
 } from '../api';
 import type { PreprintStatus } from '@/shared/types';
 import { ROUTES } from '@/app/router';
@@ -27,11 +29,22 @@ function badgeStatus(status: AdminPublicationStatus): PreprintStatus {
       return 'PUBLISHED';
     case 'REJECTED':
       return 'REJECTED';
-    case 'PROCESSING':
     case 'DRAFTING':
+      return 'NEEDS_REVISION';
+    case 'PROCESSING':
     default:
       return 'DRAFT';
   }
+}
+
+function formatVersionLabel(versionLabel?: string | null, versionNumber?: number | null) {
+  if (versionLabel) {
+    return versionLabel.startsWith('v') ? versionLabel : `v${versionLabel}`;
+  }
+  if (typeof versionNumber === 'number') {
+    return `v${versionNumber}`;
+  }
+  return 'v1.0';
 }
 
 function formatDate(value?: string | null) {
@@ -61,66 +74,131 @@ function fileNameFromObjectKey(objectKey?: string) {
   return objectKey.split('/').pop() || objectKey;
 }
 
-function ReviewList({ reviews }: { reviews: AdminReview[] }) {
+interface ReviewListProps {
+  reviews: AdminReview[];
+  round?: number;
+  isPastRound?: boolean;
+}
+
+function ReviewCommentItem({ comment }: { comment: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = comment.length > 120 || comment.includes('\n');
+
+  return (
+    <div className="simple-reviewer-item__comment-wrapper">
+      <div className={`simple-reviewer-item__comment ${isLong && !expanded ? 'simple-reviewer-item__comment--clamped' : ''}`}>
+        &ldquo;{comment}&rdquo;
+      </div>
+      {isLong && (
+        <button
+          type="button"
+          className="simple-reviewer-item__toggle-btn"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? 'Show less ▴' : 'Show more ▾'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ReviewList({ reviews, round, isPastRound }: ReviewListProps) {
   if (!reviews.length) {
     return (
-      <div className="preview-note" style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#64748b' }}>
+      <div className="preview-note" style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#64748b', marginBottom: '20px' }}>
         No faculty mentor reviews have been submitted yet.
       </div>
     );
   }
 
+  const totalReviews = reviews.length;
+  const submittedReviews = reviews.filter((r) => Boolean(r.submittedAt || r.recommendation)).length;
+
+  // Ensure Primary Lecturer appears at the top
+  const sortedReviews = [...reviews].sort((a, b) => {
+    if (a.assignmentRole === 'PRIMARY') return -1;
+    if (b.assignmentRole === 'PRIMARY') return 1;
+    return 0;
+  });
+
   return (
-    <div className="reviewer-card-list">
-      {reviews.map((review) => {
+    <div className="simple-reviewer-list">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #e2e8f0' }}>
+        <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {isPastRound ? `Committee · Round ${round || 1}` : 'Reviewers'}
+        </span>
+        <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+          {submittedReviews} of {totalReviews} submitted
+        </span>
+      </div>
+
+      {sortedReviews.map((review) => {
+        const isPrimary = review.assignmentRole === 'PRIMARY';
         const isNeedsRevision = review.recommendation === 'NEEDS_REVISION';
         const isPublish = review.recommendation === 'PUBLISH';
+        const isReject = review.recommendation === 'REJECT';
         const initials = review.reviewer?.name
           ?.split(' ')
           .map((n) => n[0])
           .filter(Boolean)
           .slice(-2)
           .join('')
-          .toUpperCase() || 'LR';
+          .toUpperCase() || (isPrimary ? 'PL' : 'SR');
 
         return (
-          <div
-            className={`reviewer-card ${isNeedsRevision ? 'reviewer-card--revision' : isPublish ? 'reviewer-card--publish' : ''}`}
-            key={review.id}
-          >
-            <div className="reviewer-card-top">
-              <div className="reviewer-profile">
-                <div className="reviewer-avatar-circle">{initials}</div>
-                <div>
-                  <h4 className="reviewer-name">{review.reviewer?.name || review.reviewer?.email || review.reviewerId}</h4>
-                  <p className="reviewer-role">
-                    Faculty Reviewer · {formatDate(review.submittedAt || review.updatedAt)}
+          <div className="simple-reviewer-item" key={review.id}>
+            <div className="simple-reviewer-item__main">
+              <div className="simple-reviewer-item__left">
+                <div className="simple-reviewer-item__avatar">
+                  {initials}
+                </div>
+                <div className="simple-reviewer-item__info">
+                  <div className="simple-reviewer-item__name-line">
+                    <span className="simple-reviewer-item__name">
+                      {review.reviewer?.name || review.reviewer?.email || review.reviewerId}
+                    </span>
+                    <span
+                      className={`simple-reviewer-item__role-tag ${
+                        isPrimary
+                          ? 'simple-reviewer-item__role-tag--primary'
+                          : 'simple-reviewer-item__role-tag--secondary'
+                      }`}
+                    >
+                      {isPrimary ? 'Primary' : 'Secondary'}
+                    </span>
+                  </div>
+                  <p className="simple-reviewer-item__sub">
+                    {isPrimary ? 'Decision Lead' : 'Independent Reviewer'} · {formatDate(review.submittedAt || review.updatedAt)}
                   </p>
                 </div>
               </div>
-              <div>
-                {review.recommendation === 'NEEDS_REVISION' && (
-                  <span className="user-badge user-badge--revision">NEEDS REVISION</span>
+
+              <div className="simple-reviewer-item__badge">
+                {isNeedsRevision && (
+                  <span className="user-badge user-badge--revision" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
+                    Needs Revision
+                  </span>
                 )}
-                {review.recommendation === 'PUBLISH' && (
-                  <span className="user-badge user-badge--approved">RECOMMEND PUBLISH</span>
+                {isPublish && (
+                  <span className="user-badge user-badge--approved" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
+                    Recommend Publish
+                  </span>
                 )}
-                {review.recommendation === 'REJECT' && (
-                  <span className="user-badge user-badge--withdrawn">RECOMMEND REJECT</span>
+                {isReject && (
+                  <span className="user-badge user-badge--withdrawn" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
+                    Recommend Reject
+                  </span>
                 )}
                 {!review.recommendation && (
-                  <span className="user-badge user-badge--review">EVALUATION IN PROGRESS</span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                    Pending
+                  </span>
                 )}
               </div>
             </div>
-            {review.comment ? (
-              <div className={`reviewer-comment-bubble ${isNeedsRevision ? 'reviewer-comment-bubble--alert' : ''}`}>
-                &ldquo;{review.comment}&rdquo;
-              </div>
-            ) : (
-              <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>
-                No written feedback comment attached.
-              </p>
+
+            {review.comment && (
+              <ReviewCommentItem comment={review.comment} />
             )}
           </div>
         );
@@ -177,24 +255,199 @@ function VersionList({ versions }: { versions: AdminVersion[] }) {
   );
 }
 
+interface TimelineRoundGroup {
+  roundKey: string;
+  roundLabel: string;
+  versionLabel: string;
+  isLatest: boolean;
+  events: AdminTimelineEvent[];
+}
+
+function groupTimelineEvents(events: AdminTimelineEvent[]): TimelineRoundGroup[] {
+  if (!events.length) return [];
+
+  let currentRoundNum = 1;
+  const annotated: { event: AdminTimelineEvent; round: number }[] = [];
+
+  for (const ev of events) {
+    if (ev.version) {
+      const match = ev.version.match(/v?(\d+)/i);
+      if (match) {
+        const parsed = parseInt(match[1], 10);
+        if (parsed > currentRoundNum) {
+          currentRoundNum = parsed;
+        }
+      }
+    }
+    annotated.push({ event: ev, round: currentRoundNum });
+  }
+
+  const roundMap = new Map<number, AdminTimelineEvent[]>();
+  for (const { event, round } of annotated) {
+    if (!roundMap.has(round)) {
+      roundMap.set(round, []);
+    }
+    roundMap.get(round)!.push(event);
+  }
+
+  const sortedRounds = Array.from(roundMap.keys()).sort((a, b) => b - a);
+  const maxRound = sortedRounds.length > 0 ? Math.max(...sortedRounds) : 1;
+
+  return sortedRounds.map((round) => ({
+    roundKey: `round-${round}`,
+    roundLabel: `Round ${round}`,
+    versionLabel: `v${round}`,
+    isLatest: round === maxRound,
+    events: roundMap.get(round) || [],
+  }));
+}
+
 function TimelineList({ events }: { events: AdminTimelineEvent[] }) {
   if (!events.length) {
     return <p style={{ color: '#64748b', fontSize: '13.5px' }}>No audit timeline events logged.</p>;
   }
 
-  return (
-    <div className="audit-timeline-container">
-      {events.map((event) => (
-        <div className="audit-timeline-entry" key={event.id}>
-          <div className="audit-timeline-node" />
-          <div className="audit-timeline-header">
-            <span className="audit-timeline-title">{event.title}</span>
-            <span className="audit-timeline-actor">{event.actor}</span>
+  const groups = useMemo(() => groupTimelineEvents(events), [events]);
+  const [openRounds, setOpenRounds] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    if (groups.length > 0) {
+      initial[groups[0].roundKey] = true;
+    }
+    return initial;
+  });
+
+  const toggleRound = (roundKey: string) => {
+    setOpenRounds((prev) => ({ ...prev, [roundKey]: !prev[roundKey] }));
+  };
+
+  const allOpen = groups.length > 0 && groups.every((g) => openRounds[g.roundKey]);
+  const toggleAll = () => {
+    const nextState = !allOpen;
+    const next: Record<string, boolean> = {};
+    for (const g of groups) {
+      next[g.roundKey] = nextState;
+    }
+    setOpenRounds(next);
+  };
+
+  if (groups.length <= 1) {
+    return (
+      <div className="audit-timeline-container">
+        {events.map((event) => (
+          <div className="audit-timeline-entry" key={event.id}>
+            <div className="audit-timeline-node" />
+            <div className="audit-timeline-header">
+              <span className="audit-timeline-title">{event.title}</span>
+              <span className="audit-timeline-actor">{event.actor}</span>
+            </div>
+            <p className="audit-timeline-desc">{event.description}</p>
+            <span className="audit-timeline-time">{formatDate(event.timestamp)}</span>
           </div>
-          <p className="audit-timeline-desc">{event.description}</p>
-          <span className="audit-timeline-time">{formatDate(event.timestamp)}</span>
-        </div>
-      ))}
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="audit-timeline-accordion-wrapper">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+        <button
+          type="button"
+          onClick={toggleAll}
+          style={{
+            fontSize: '12px',
+            color: '#0071bc',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 600,
+            padding: '2px 4px',
+          }}
+        >
+          {allOpen ? 'Collapse all rounds' : 'Expand all rounds'}
+        </button>
+      </div>
+      <div className="audit-timeline-accordion-list">
+        {groups.map((group) => {
+          const isOpen = Boolean(openRounds[group.roundKey]);
+          return (
+            <div
+              key={group.roundKey}
+              className={`audit-timeline-round-card ${group.isLatest ? 'audit-timeline-round-card--latest' : ''}`}
+            >
+              <button
+                type="button"
+                className="audit-timeline-round-header"
+                onClick={() => toggleRound(group.roundKey)}
+                aria-expanded={isOpen}
+              >
+                <div className="audit-timeline-round-header__left">
+                  <span
+                    className={`audit-timeline-round-badge ${
+                      group.isLatest ? 'audit-timeline-round-badge--current' : ''
+                    }`}
+                  >
+                    {group.roundLabel} ({group.versionLabel})
+                  </span>
+                  {group.isLatest && (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#059669',
+                        background: '#d1fae5',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      Current
+                    </span>
+                  )}
+                  <span className="audit-timeline-round-count">
+                    {group.events.length} event{group.events.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                    {isOpen ? 'Hide details' : 'Show details'}
+                  </span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`audit-timeline-round-chevron ${isOpen ? 'audit-timeline-round-chevron--open' : ''}`}
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+              </button>
+              {isOpen && (
+                <div className="audit-timeline-round-body">
+                  <div className="audit-timeline-container" style={{ margin: '6px 0 0' }}>
+                    {group.events.map((event) => (
+                      <div className="audit-timeline-entry" key={event.id}>
+                        <div className="audit-timeline-node" />
+                        <div className="audit-timeline-header">
+                          <span className="audit-timeline-title">{event.title}</span>
+                          <span className="audit-timeline-actor">{event.actor}</span>
+                        </div>
+                        <p className="audit-timeline-desc">{event.description}</p>
+                        <span className="audit-timeline-time">{formatDate(event.timestamp)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -202,6 +455,9 @@ function TimelineList({ events }: { events: AdminTimelineEvent[] }) {
 export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps) {
   const [publication, setPublication] = useState<AdminPublication | null>(null);
   const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [pastReviews, setPastReviews] = useState<AdminReview[]>([]);
+  const [showPastReviews, setShowPastReviews] = useState(false);
+  const [loadingPastReviews, setLoadingPastReviews] = useState(false);
   const [versions, setVersions] = useState<AdminVersion[]>([]);
   const [timeline, setTimeline] = useState<AdminTimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,6 +465,12 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [lecturers, setLecturers] = useState<AdminUser[]>([]);
+  const [primaryReviewerId, setPrimaryReviewerId] = useState('');
+  const [secondaryReviewerIds, setSecondaryReviewerIds] = useState<string[]>([]);
+  const [audiences, setAudiences] = useState<AdminPublicationAudience[]>([]);
+  const [assignmentBusy, setAssignmentBusy] = useState(false);
+  const [visibilityBusy, setVisibilityBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -218,7 +480,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
 
     Promise.allSettled([
       adminApi.getSubmission(id),
-      adminApi.getReviews(id),
+      adminApi.getReviews(id, 'current'),
       adminApi.getVersions(id),
       adminApi.getTimeline(id),
     ]).then(([publicationResult, reviewsResult, versionsResult, timelineResult]) => {
@@ -233,6 +495,12 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       const optionalFailures: string[] = [];
       if (reviewsResult.status === 'fulfilled') {
         setReviews(reviewsResult.value);
+        const primary = reviewsResult.value.find((review) => review.assignmentRole === 'PRIMARY');
+        const secondary = reviewsResult.value
+          .filter((review) => review.assignmentRole === 'SECONDARY')
+          .map((review) => review.reviewerId);
+        setPrimaryReviewerId(primary?.reviewerId || '');
+        setSecondaryReviewerIds(secondary);
       } else {
         optionalFailures.push('reviews');
       }
@@ -244,6 +512,9 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       if (optionalFailures.length) {
         setHistoryError(`Some panels are unavailable: ${optionalFailures.join(', ')}.`);
       }
+      if (publicationResult.status === 'fulfilled') {
+        setAudiences(publicationResult.value.audiences || []);
+      }
     }).finally(() => {
       if (active) setLoading(false);
     });
@@ -253,14 +524,22 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
     };
   }, [id]);
 
+  useEffect(() => {
+    adminApi.listLecturers()
+      .then((result) => setLecturers(result.users))
+      .catch(() => setLecturers([]));
+  }, []);
+
   const changeStatus = async (status: 'PUBLISHED' | 'REJECTED' | 'DRAFTING') => {
     const actionLabel = status === 'PUBLISHED' ? 'publish' : status === 'DRAFTING' ? 'request revision for' : 'reject';
     if (!publication || !window.confirm(`Confirm action to ${actionLabel} this manuscript?`)) return;
+    const reason = window.prompt('Admin backup reason (required for audit timeline):', 'Editorial decision recorded by Admin backup.')?.trim();
+    if (!reason) return;
 
     setBusy(true);
     setMessage(null);
     try {
-      const updated = await adminApi.changeStatus(id, status);
+      const updated = await adminApi.changeStatus(id, status, reason);
       setPublication((current) => current ? { ...current, ...updated, status } : current);
       setMessage(`Manuscript successfully moved to ${status}.`);
     } catch (reason: unknown) {
@@ -270,12 +549,85 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
     }
   };
 
+  const assignReviewers = async () => {
+    if (!primaryReviewerId || secondaryReviewerIds.length !== 2) {
+      setMessage('Select exactly one primary lecturer and two secondary lecturers.');
+      return;
+    }
+    setAssignmentBusy(true);
+    setMessage(null);
+    try {
+      const assigned = await adminApi.assignReviewers(id, primaryReviewerId, secondaryReviewerIds);
+      setReviews(assigned);
+      setPastReviews([]);
+      setMessage('Primary and secondary lecturers assigned for this review round.');
+    } catch (reason: unknown) {
+      setMessage(reason instanceof Error ? reason.message : 'Unable to assign lecturers.');
+    } finally {
+      setAssignmentBusy(false);
+    }
+  };
+
+  const togglePastReviews = async () => {
+    if (showPastReviews) {
+      setShowPastReviews(false);
+      return;
+    }
+    setShowPastReviews(true);
+    if (pastReviews.length === 0) {
+      setLoadingPastReviews(true);
+      try {
+        const all = await adminApi.getReviews(id, 'all');
+        setPastReviews(all);
+      } catch {
+        // Silent catch for history loading
+      } finally {
+        setLoadingPastReviews(false);
+      }
+    }
+  };
+
+  const currentRound = reviews[0]?.round || publication?.currentVersion?.version || 1;
+
+  const pastRounds = useMemo(() => {
+    if (!pastReviews.length) return [];
+    const roundsMap = new Map<number, AdminReview[]>();
+    for (const r of pastReviews) {
+      if (r.round < currentRound) {
+        const list = roundsMap.get(r.round) || [];
+        list.push(r);
+        roundsMap.set(r.round, list);
+      }
+    }
+    return Array.from(roundsMap.entries()).sort(([a], [b]) => b - a);
+  }, [pastReviews, currentRound]);
+
+  const saveVisibility = async () => {
+    setVisibilityBusy(true);
+    setMessage(null);
+    try {
+      const updated = await adminApi.updateVisibility(id, audiences);
+      setPublication((current) => current ? { ...current, ...updated } : current);
+      setMessage('Audience visibility saved.');
+    } catch (reason: unknown) {
+      setMessage(reason instanceof Error ? reason.message : 'Unable to save audience visibility.');
+    } finally {
+      setVisibilityBusy(false);
+    }
+  };
+
+  const toggleSecondaryReviewer = (reviewerId: string) => {
+    setSecondaryReviewerIds((current) => current.includes(reviewerId)
+      ? current.filter((idValue) => idValue !== reviewerId)
+      : current.length < 2 ? [...current, reviewerId] : current);
+  };
+
   return (
     <AdminShell active="submissions" title="Submission detail">
       <AdminPageHeader
         eyebrow="Editorial record"
         title={publication?.title || 'Submission detail'}
-        description="Read the manuscript record, inspect peer review evidence, and execute editorial decisions."
+        description="Read the manuscript record, monitor peer review progress, and exercise administrative backup controls when required."
       />
       <div className="admin-detail-top-nav">
         <Link className="admin-back-btn" href={ROUTES.ADMIN.SUBMISSIONS}>
@@ -298,7 +650,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
             <div className="manuscript-meta-strip">
               <div className="manuscript-meta-strip__left">
                 <span className="manuscript-meta-pill">
-                  {publication.currentVersion?.versionLabel ? `v${publication.currentVersion.versionLabel}` : 'v1.0'}
+                  {formatVersionLabel(publication.currentVersion?.versionLabel, publication.currentVersion?.version)}
                 </span>
                 <span className="manuscript-meta-tag">Student Research</span>
                 <span className="manuscript-meta-date">
@@ -388,24 +740,192 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
           {/* Right Panel: Review Progress & Admin Decision */}
           <div className="detail-grid__sidebar">
             <Panel className="detail-panel">
-              <h2>Peer Review Progress</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <h2 style={{ margin: 0 }}>Peer Review Progress</h2>
+                <span className="manuscript-meta-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                  Round {currentRound} · {formatVersionLabel(publication.currentVersion?.versionLabel, publication.currentVersion?.version || currentRound)}
+                </span>
+              </div>
               <p className="abstract">
-                Faculty mentor evaluations provide independent evidence to inform editorial decisions.
+                One primary lecturer decides the workflow; two secondary lecturers provide independent review evidence.
               </p>
-              <ReviewList reviews={reviews} />
+              <ReviewList reviews={reviews} round={currentRound} />
 
-              <h3>Lecturer Review Progress</h3>
-              <p className="abstract">
-                All active lecturers can review manuscripts in the REVIEWING queue. Recommendations are advisory; the administrator makes the final decision.
-              </p>
+              {(publication.currentVersion?.version || 1) > 1 && (
+                <div style={{ marginTop: '16px', marginBottom: '18px' }}>
+                  <button
+                    type="button"
+                    onClick={togglePastReviews}
+                    className="student-btn student-btn--secondary student-btn--sm"
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      fontSize: '12.5px',
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      style={{
+                        transform: showPastReviews ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                    <span>
+                      {showPastReviews ? 'Hide earlier review rounds' : `View earlier review rounds (${(publication.currentVersion?.version || 1) - 1} prior)`}
+                    </span>
+                  </button>
 
-              {/* Administrator Decision Card */}
+                  {showPastReviews && (
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {loadingPastReviews && (
+                        <div className="preview-note" style={{ fontSize: '12px', padding: '8px 12px' }}>
+                          Loading previous review history…
+                        </div>
+                      )}
+                      {!loadingPastReviews && pastRounds.length === 0 && (
+                        <div className="preview-note" style={{ fontSize: '12px', padding: '8px 12px', background: '#f8fafc', color: '#64748b' }}>
+                          No previous review rounds found.
+                        </div>
+                      )}
+                      {!loadingPastReviews && pastRounds.map(([roundNum, roundReviews]) => (
+                        <div
+                          key={roundNum}
+                          style={{
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            backgroundColor: '#f8fafc',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontWeight: 600, fontSize: '12.5px', color: '#334155' }}>
+                              Round {roundNum} (v{roundNum}.0)
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              {roundReviews.length} assignment{roundReviews.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <ReviewList reviews={roundReviews} round={roundNum} isPastRound />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {publication.status === 'REVIEWING' && !publication.isPrivate && reviews.length === 0 && (
+                <div className="admin-decision-card" style={{ marginBottom: '18px' }}>
+                  <h4 className="admin-decision-title">Assign review team</h4>
+                  <p className="admin-decision-desc">
+                    Select one primary lecturer and exactly two secondary lecturers. The primary lecturer can decide the publication status.
+                  </p>
+                  {lecturers.length < 3 && (
+                    <div className="preview-note" style={{ marginBottom: '12px', background: '#fff7ed', borderColor: '#fed7aa', color: '#9a3412' }}>
+                      Live assignment requires 3 active Lecturer accounts; only {lecturers.length} are available.
+                    </div>
+                  )}
+                  <label className="student-field__label" htmlFor="primary-reviewer">Primary lecturer</label>
+                  <select
+                    id="primary-reviewer"
+                    className="student-select"
+                    value={primaryReviewerId}
+                    onChange={(event) => setPrimaryReviewerId(event.target.value)}
+                    disabled={assignmentBusy}
+                  >
+                    <option value="">Select primary lecturer</option>
+                    {lecturers.map((lecturer) => (
+                      <option key={lecturer.id} value={lecturer.id}>{lecturer.name || lecturer.email}</option>
+                    ))}
+                  </select>
+                  <p className="student-field__label" style={{ marginTop: '12px', marginBottom: '6px' }}>Secondary lecturers (choose 2)</p>
+                  <div style={{ display: 'grid', gap: '6px' }}>
+                    {lecturers.filter((lecturer) => lecturer.id !== primaryReviewerId).map((lecturer) => (
+                      <label key={lecturer.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                        <input
+                          type="checkbox"
+                          checked={secondaryReviewerIds.includes(lecturer.id)}
+                          onChange={() => toggleSecondaryReviewer(lecturer.id)}
+                          disabled={assignmentBusy}
+                        />
+                        <span>{lecturer.name || lecturer.email}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="student-btn student-btn--secondary student-btn--sm"
+                    style={{ marginTop: '12px' }}
+                    disabled={assignmentBusy || secondaryReviewerIds.length !== 2 || !primaryReviewerId}
+                    onClick={assignReviewers}
+                  >
+                    {assignmentBusy ? 'Assigning…' : 'Save review team'}
+                  </button>
+                </div>
+              )}
+
+              {!publication.isPrivate && (
+                <div className="admin-decision-card" style={{ marginBottom: '18px' }}>
+                  <h4 className="admin-decision-title">Audience visibility</h4>
+                  <p className="admin-decision-desc">
+                    Admin selects multiple audiences. An empty selection means all authenticated Students and Lecturers; GUEST also exposes the published PDF on the landing page.
+                  </p>
+                  <div style={{ display: 'grid', gap: '7px' }}>
+                    {(['GUEST', 'STUDENT', 'LECTURER'] as const).map((audience) => (
+                      <label key={audience} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                        <input
+                          type="checkbox"
+                          checked={audiences.includes(audience)}
+                          onChange={() => setAudiences((current) => current.includes(audience)
+                            ? current.filter((item) => item !== audience)
+                            : [...current, audience])}
+                          disabled={visibilityBusy}
+                        />
+                        <span>{audience}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="student-btn student-btn--secondary student-btn--sm"
+                    style={{ marginTop: '12px' }}
+                    disabled={visibilityBusy}
+                    onClick={saveVisibility}
+                  >
+                    {visibilityBusy ? 'Saving…' : 'Save audience'}
+                  </button>
+                </div>
+              )}
+
+              {publication.isPrivate && (
+                <div className="preview-note" style={{ marginBottom: '18px', background: '#fff7ed', borderColor: '#fed7aa', color: '#9a3412' }}>
+                  Private Lecturer paper: Admin has read-only access and cannot assign reviewers, change visibility, change status, publish, or delete.
+                </div>
+              )}
+
+              {/* Administrator Backup Decision Card */}
               <div className="admin-decision-card">
-                <h4 className="admin-decision-title">Administrator Decision</h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <h4 className="admin-decision-title" style={{ margin: 0 }}>Admin Backup Decision</h4>
+                  <span className="manuscript-meta-pill" style={{ fontSize: '11px', padding: '2px 8px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                    Backup Authority (Quyền dự phòng)
+                  </span>
+                </div>
                 <p className="admin-decision-desc">
-                  As the administrator, you evaluate the peer review recommendations and determine the next lifecycle stage.
+                  Under SRS v0.8, the Primary Lecturer holds direct authority to decide publication status. Admin backup intervention is reserved for escalation, unresponsiveness, or administrative overrides (mandatory reason recorded in audit timeline).
                 </p>
-                {publication.status === 'REVIEWING' && (
+                {!publication.isPrivate && publication.status === 'REVIEWING' && (
                   <div className="admin-decision-buttons">
                     <button
                       type="button"
@@ -446,7 +966,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                     </div>
                   </div>
                 )}
-                {publication.status === 'REJECTED' && (
+                {!publication.isPrivate && publication.status === 'REJECTED' && (
                   <div className="admin-decision-buttons">
                     <button
                       type="button"

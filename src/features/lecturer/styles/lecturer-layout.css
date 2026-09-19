@@ -92,8 +92,8 @@
 .lecturer-filter-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .lecturer-filter { min-height: 38px; padding: 0 12px; border: 1px solid var(--hd-line); border-radius: var(--hd-radius-sm); background: #fff; color: var(--hd-muted); cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; }
 .lecturer-filter:hover, .lecturer-filter--active { border-color: var(--hd-blue); background: var(--hd-blue-soft); color: var(--hd-blue-dark); }
-.lecturer-table-wrap { overflow-x: auto; }
-.lecturer-table { width: 100%; border-collapse: collapse; text-align: left; }
+.lecturer-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.lecturer-table { width: 100%; min-width: 680px; border-collapse: collapse; text-align: left; }
 .lecturer-table th { padding: 13px 24px; color: var(--hd-muted); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
 .lecturer-table td { padding: 17px 24px; border-top: 1px solid var(--hd-line); font-size: 14px; vertical-align: middle; }
 .lecturer-table tbody tr { transition: background-color 160ms var(--hd-ease); }

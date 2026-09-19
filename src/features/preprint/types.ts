@@ -58,6 +58,8 @@ export type StudentPreprint = {
   discipline: string;
   keywords: string[];
   status: PreprintStatus;
+  audiences?: Array<'GUEST' | 'STUDENT' | 'LECTURER'>;
+  is_private?: boolean;
   current_version: number;
   revision_required?: boolean;
   authors: Author[];

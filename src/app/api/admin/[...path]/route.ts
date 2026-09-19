@@ -23,13 +23,16 @@ function isAllowedAdminPath(path: string[], method: string) {
 
   if (root === 'users') {
     if (path.length === 1) return method === 'GET';
+    if (path.length === 2 && id === 'pending-users') return method === 'GET';
+    if (path.length === 3 && resource === 'approve') return method === 'POST';
+    if (path.length === 3 && resource === 'reject') return method === 'POST';
     return method === 'PATCH' && path.length === 3 && (resource === 'role' || resource === 'status');
   }
 
   if (root === 'publications') {
     if (path.length === 1) return method === 'GET';
     if (path.length === 2) return method === 'GET';
-    if (path.length === 3 && resource === 'status') return method === 'PATCH';
+    if (path.length === 3 && (resource === 'status' || resource === 'visibility')) return method === 'PATCH';
     if (path.length === 3 && (resource === 'reviews' || resource === 'versions' || resource === 'timeline')) {
       return method === 'GET';
     }

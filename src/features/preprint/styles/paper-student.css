@@ -835,10 +835,12 @@
   color: #0071bc;
 }
 
-.student-toolbar-actions {
+.student-toolbar-actions,
+.student-search-sort-group {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .student-search-box {
@@ -968,12 +970,14 @@
   border-radius: 50%;
 }
 
-.student-status-badge--approved {
+.student-status-badge--approved,
+.student-status-badge--published {
   background-color: #f0fdf4;
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
-.student-status-badge--approved .student-status-dot {
+.student-status-badge--approved .student-status-dot,
+.student-status-badge--published .student-status-dot {
   background-color: #16a34a;
 }
 
@@ -2877,6 +2881,10 @@
 @media (max-width: 1024px) {
   .student-metrics-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .student-dashboard-body {
+    padding: 24px 20px;
   }
   .student-panel-grid {
     grid-template-columns: 1fr;
@@ -2890,25 +2898,57 @@
   .student-nav {
     display: none;
   }
+  .student-dashboard-body {
+    padding: 18px 16px;
+    gap: 20px;
+  }
   .student-metrics-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
   .student-filter-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
   .student-tabs-pills {
     overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding: 4px 6px;
   }
-  .student-toolbar-actions {
+  .student-tabs-pills::-webkit-scrollbar {
+    display: none;
+  }
+  .student-tab-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .student-toolbar-actions,
+  .student-search-sort-group {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
+    gap: 10px;
+  }
+  .student-search-box {
+    width: 100%;
   }
   .student-search-input {
-    width: 100%;
+    width: 100% !important;
   }
   .student-search-input:focus {
+    width: 100% !important;
+  }
+  .student-sort-box {
     width: 100%;
+    justify-content: space-between;
+  }
+  .student-sort-select {
+    flex: 1;
   }
   .student-form-row {
     flex-direction: column;
@@ -2929,6 +2969,30 @@
   }
   .student-version-badge-col {
     flex-direction: row;
+  }
+}
+
+@media (max-width: 640px) {
+  .student-dashboard-body {
+    padding: 16px 12px;
+  }
+  .student-metric-card {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .student-metric-icon {
+    width: 38px;
+    height: 38px;
+  }
+  .student-metric-value {
+    font-size: 20px;
+  }
+  .dashboard-table-card {
+    border-radius: 8px;
+  }
+  .dashboard-table th,
+  .dashboard-table td {
+    padding: 12px 14px;
   }
 }
 
@@ -2996,37 +3060,47 @@
 }
 
 .student-content .user-badge {
-  min-height: 28px;
-  padding: var(--preprint-space-1) var(--preprint-space-2);
-  border: 1px solid transparent;
-  border-radius: 6px;
-  font-size: 11px;
-  letter-spacing: 0.05em;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  min-height: 28px !important;
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  line-height: 1 !important;
+  border: none !important;
 }
 
-.student-content .user-badge--approved {
-  background: var(--preprint-green-soft);
-  color: var(--preprint-green);
+.student-content .user-badge--approved,
+.student-content .user-badge--published {
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
 }
 
 .student-content .user-badge--revision {
-  background: var(--preprint-amber-badge);
-  color: var(--preprint-amber);
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
 }
 
 .student-content .user-badge--review {
-  background: var(--preprint-blue-soft);
-  color: var(--preprint-blue-dark);
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
 }
 
 .student-content .user-badge--draft {
-  background: var(--preprint-surface-muted);
-  color: var(--preprint-muted);
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
 }
 
-.student-content .user-badge--withdrawn {
-  background: var(--preprint-red-soft);
-  color: var(--preprint-red);
+.student-content .user-badge--withdrawn,
+.student-content .user-badge--rejected {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
 }
 
 .student-content .user-card__version {
@@ -3735,8 +3809,8 @@
    Dashboard Body & Grid
    -------------------------------------------------------------------------- */
 .student-dashboard-body {
-  padding: 28px;
-  max-width: 1360px;
+  padding: 32px 36px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -4128,10 +4202,12 @@
 /* Table */
 .dashboard-table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dashboard-table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;

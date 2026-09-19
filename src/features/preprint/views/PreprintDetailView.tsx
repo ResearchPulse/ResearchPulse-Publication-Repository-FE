@@ -62,8 +62,14 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
   const renderStatusBadge = (status: PreprintStatus) => {
     switch (status) {
-      case 'APPROVED':
       case 'PUBLISHED':
+        return (
+          <span className="student-status-badge student-status-badge--published">
+            <span className="student-status-dot" />
+            Published
+          </span>
+        );
+      case 'APPROVED':
         return (
           <span className="student-status-badge student-status-badge--approved">
             <span className="student-status-dot" />
