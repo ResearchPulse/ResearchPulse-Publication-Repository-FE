@@ -8,12 +8,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   refresh: async () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -30,12 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const logout = async () => {
+    setUser(null);
+    await authApi.logout();
+  };
+
   useEffect(() => {
     void refresh();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refresh }}>
+    <AuthContext.Provider value={{ user, loading, refresh, logout }}>
       {children}
     </AuthContext.Provider>
   );

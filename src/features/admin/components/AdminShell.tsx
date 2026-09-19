@@ -7,6 +7,7 @@ import { PageHeader } from '@hyperdata/design-system';
 
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { authApi } from '@/features/auth/api/authApi';
 
 export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'profile';
 
@@ -187,8 +188,9 @@ export function AdminSidebar({
               {displayRole}
             </span>
           </div>
-          <Link
-            href="/api/auth/logout"
+          <button
+            type="button"
+            onClick={() => authApi.logout()}
             className="student-sidebar__logout-btn"
             title="Sign Out"
             aria-label="Sign Out"
@@ -198,7 +200,7 @@ export function AdminSidebar({
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-          </Link>
+          </button>
         </div>
       </div>
     </aside>
