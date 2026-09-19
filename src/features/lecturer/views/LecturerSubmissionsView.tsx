@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { StudentShell } from '../components';
-import { TableSkeleton } from '@/components/skeleton';
-import { usePreprintList } from '../hooks';
+import { LecturerShell } from '../components';
+import { usePreprintList } from '@/features/preprint/hooks';
 import type { PreprintStatus } from '@/shared/types';
-import type { StudentPreprint } from '../types';
+import type { StudentPreprint } from '@/features/preprint/types';
+import { ROUTES } from '@/app/router';
+import { TableSkeleton } from '@/components/skeleton';
 
 function formatUpdatedDate(value: string) {
   const date = new Date(value);
@@ -19,9 +20,9 @@ function formatUpdatedDate(value: string) {
   }).format(date);
 }
 
-export function PreprintListView() {
+export function LecturerSubmissionsView() {
   const { items, loading, error, apiPending } = usePreprintList();
-  const [selectedTab, setSelectedTab] = useState<'ALL' | PreprintStatus>('ALL');
+  const [selectedTab, setSelectedTab] = useState<'ALL' | 'PRIVATE' | PreprintStatus>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'UPDATED' | 'TITLE' | 'STATUS'>('UPDATED');
 
@@ -32,7 +33,8 @@ export function PreprintListView() {
     const needsRevision = items.filter((i) => i.status === 'NEEDS_REVISION').length;
     const approved = items.filter((i) => i.status === 'APPROVED' || i.status === 'PUBLISHED').length;
     const drafts = items.filter((i) => i.status === 'DRAFT').length;
-    return { total, underReview, needsRevision, approved, drafts };
+    const privateCount = items.filter((i) => i.is_private === true).length;
+    return { total, underReview, needsRevision, approved, drafts, privateCount };
   }, [items]);
 
   // Needs revision item for priority callout
@@ -44,7 +46,9 @@ export function PreprintListView() {
   const filteredItems = useMemo(() => {
     return items
       .filter((item) => {
-        if (selectedTab !== 'ALL') {
+        if (selectedTab === 'PRIVATE') {
+          if (!item.is_private) return false;
+        } else if (selectedTab !== 'ALL') {
           if (selectedTab === 'APPROVED') {
             if (item.status !== 'APPROVED' && item.status !== 'PUBLISHED') return false;
           } else if (item.status !== selectedTab) {
@@ -62,9 +66,15 @@ export function PreprintListView() {
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === 'TITLE') return a.title.localeCompare(b.title);
-        if (sortBy === 'STATUS') return a.status.localeCompare(b.status);
-        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        if (sortBy === 'TITLE') {
+          return a.title.localeCompare(b.title);
+        }
+        if (sortBy === 'STATUS') {
+          return a.status.localeCompare(b.status);
+        }
+        const timeA = new Date(a.updated_at || 0).getTime();
+        const timeB = new Date(b.updated_at || 0).getTime();
+        return timeB - timeA;
       });
   }, [items, selectedTab, searchQuery, sortBy]);
 
@@ -89,11 +99,11 @@ export function PreprintListView() {
   };
 
   return (
-    <StudentShell title="My Manuscripts" showStandardHeader={false}>
+    <LecturerShell active="submissions" title="My Manuscripts">
       {/* Notice Banner */}
       {apiPending && (
         <div className="user-notice" style={{ marginTop: '0', marginBottom: '20px' }}>
-          Preprint API is unavailable, so preview data is shown. Your work is not affected.
+          Repository service is temporarily unreachable, preview data shown.
         </div>
       )}
 
@@ -113,15 +123,15 @@ export function PreprintListView() {
               <span className="dashboard-alert-banner__badge">Version {revisionItem.current_version}</span>
             </div>
             <p className="dashboard-alert-banner__desc">
-              Faculty reviewer <strong>{revisionItem.reviews?.[0]?.reviewer_name || 'Advisory Reviewer'}</strong> requested updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.
+              Review team requested revision updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.
             </p>
           </div>
           <div className="dashboard-alert-banner__action">
             <Link
-              href={`/student/my-preprints/${revisionItem.id}`}
+              href={`${ROUTES.LECTURER.NEW_SUBMISSION}?id=${revisionItem.id}`}
               className="dashboard-alert-banner__btn"
             >
-              Review Comments &amp; Revise →
+              Review &amp; Revise →
             </Link>
           </div>
         </div>
@@ -129,7 +139,13 @@ export function PreprintListView() {
 
       {/* Metrics Summary Strip */}
       <div className="student-metrics-grid">
-        <div className="student-metric-card">
+        <div
+          className={`student-metric-card ${selectedTab === 'ALL' ? 'student-metric-card--active' : ''}`}
+          onClick={() => setSelectedTab('ALL')}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
           <div className="student-metric-icon student-metric-icon--blue">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -144,7 +160,13 @@ export function PreprintListView() {
           </div>
         </div>
 
-        <div className="student-metric-card">
+        <div
+          className={`student-metric-card ${selectedTab === 'UNDER_REVIEW' ? 'student-metric-card--active' : ''}`}
+          onClick={() => setSelectedTab('UNDER_REVIEW')}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
           <div className="student-metric-icon student-metric-icon--orange">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -153,11 +175,17 @@ export function PreprintListView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.underReview}</span>
-            <span className="student-metric-label">In Faculty Review</span>
+            <span className="student-metric-label">In Peer Review</span>
           </div>
         </div>
 
-        <div className="student-metric-card student-metric-card--alert">
+        <div
+          className={`student-metric-card ${metrics.needsRevision > 0 ? 'student-metric-card--alert' : ''} ${selectedTab === 'NEEDS_REVISION' ? 'student-metric-card--active' : ''}`}
+          onClick={() => setSelectedTab('NEEDS_REVISION')}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
           <div className="student-metric-icon student-metric-icon--amber">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -166,12 +194,20 @@ export function PreprintListView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.needsRevision}</span>
-            <span className="student-metric-label">Action Required</span>
+            <span className="student-metric-value" style={{ color: metrics.needsRevision > 0 ? '#d97706' : undefined }}>
+              {metrics.needsRevision}
+            </span>
+            <span className="student-metric-label">Needs Revision</span>
           </div>
         </div>
 
-        <div className="student-metric-card">
+        <div
+          className={`student-metric-card ${selectedTab === 'APPROVED' ? 'student-metric-card--active' : ''}`}
+          onClick={() => setSelectedTab('APPROVED')}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
           <div className="student-metric-icon student-metric-icon--green">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -179,8 +215,8 @@ export function PreprintListView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.approved}</span>
-            <span className="student-metric-label">Approved &amp; Verified</span>
+            <span className="student-metric-value" style={{ color: '#16a34a' }}>{metrics.approved}</span>
+            <span className="student-metric-label">Published</span>
           </div>
         </div>
       </div>
@@ -215,8 +251,17 @@ export function PreprintListView() {
             className={`student-tab-pill ${selectedTab === 'APPROVED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('APPROVED')}
           >
-            Approved <span className="student-tab-pill__count">{metrics.approved}</span>
+            Published <span className="student-tab-pill__count">{metrics.approved}</span>
           </button>
+          {metrics.privateCount > 0 && (
+            <button
+              type="button"
+              className={`student-tab-pill ${selectedTab === 'PRIVATE' ? 'student-tab-pill--active' : ''}`}
+              onClick={() => setSelectedTab('PRIVATE')}
+            >
+              Private <span className="student-tab-pill__count">{metrics.privateCount}</span>
+            </button>
+          )}
           {metrics.drafts > 0 && (
             <button
               type="button"
@@ -267,10 +312,10 @@ export function PreprintListView() {
       {/* Loading & Error States */}
       {loading && (
         <div className="dashboard-table-card dashboard-table-wrapper">
-          <table className="dashboard-table dashboard-table--repository" aria-label="Manuscripts repository list">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Faculty manuscripts repository list">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>Manuscript</th>
+                <th style={{ width: '52%' }}>Manuscript</th>
                 <th>Discipline</th>
                 <th>Version</th>
                 <th>Status</th>
@@ -286,7 +331,7 @@ export function PreprintListView() {
 
       {error && !loading && (
         <div className="student-error-banner">
-          <strong>Error loading preprints:</strong> {error.message}
+          <strong>Error loading manuscripts:</strong> {error.message}
         </div>
       )}
 
@@ -302,21 +347,24 @@ export function PreprintListView() {
             </svg>
           </div>
           <h3>No manuscripts found</h3>
-          <p>
+          <p style={{ maxWidth: '480px', margin: '0 auto 16px', color: '#64748b' }}>
             {searchQuery || selectedTab !== 'ALL'
               ? 'No manuscripts match your current filters. Try changing your search query or status tab.'
-              : 'You have not submitted any preprints yet. Start your first research submission to obtain a cryptographic timestamp and faculty mentorship.'}
+              : 'You have not submitted any manuscripts yet. Start a new submission or store private preprints in your faculty archive.'}
           </p>
+          <Link href={ROUTES.LECTURER.NEW_SUBMISSION} className="student-btn student-btn--primary">
+            + New Submission
+          </Link>
         </div>
       )}
 
       {/* Manuscripts Table View */}
       {!loading && !error && filteredItems.length > 0 && (
         <div className="dashboard-table-card dashboard-table-wrapper">
-          <table className="dashboard-table dashboard-table--repository" aria-label="Manuscripts repository list">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Faculty manuscripts repository list">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>Manuscript</th>
+                <th style={{ width: '52%' }}>Manuscript</th>
                 <th>Discipline</th>
                 <th>Version</th>
                 <th>Status</th>
@@ -328,7 +376,10 @@ export function PreprintListView() {
                 <tr key={item.id}>
                   <td className="dashboard-table__title-cell">
                     <div className="dashboard-table__title-group">
-                      <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
+                      <Link
+                        href={item.status === 'DRAFT' ? `${ROUTES.LECTURER.NEW_SUBMISSION}?id=${item.id}` : ROUTES.LECTURER.SUBMISSION_DETAIL(item.id)}
+                        className="dashboard-table__title-link"
+                      >
                         {item.title}
                       </Link>
                       {item.is_private && (
@@ -354,8 +405,8 @@ export function PreprintListView() {
           </table>
         </div>
       )}
-    </StudentShell>
+    </LecturerShell>
   );
 }
 
-export default PreprintListView;
+export default LecturerSubmissionsView;

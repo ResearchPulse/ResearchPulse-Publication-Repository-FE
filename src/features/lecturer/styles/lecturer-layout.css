@@ -104,7 +104,7 @@
 
 .lecturer-detail-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr); gap: 22px; align-items: start; }
 .lecturer-detail-side { display: grid; gap: 22px; }
-.lecturer-pdf-panel, .lecturer-metadata-panel, .lecturer-review-panel, .lecturer-history-panel { padding: 24px; }
+.lecturer-pdf-panel, .lecturer-metadata-panel, .lecturer-secondary-panel, .lecturer-review-panel, .lecturer-history-panel { padding: 24px; }
 .lecturer-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .lecturer-panel-heading h2 { color: var(--hd-ink); line-height: 1.35; }
 .lecturer-pdf-viewer { display: block; width: 100%; min-height: 650px; border: 1px solid var(--hd-line); border-radius: var(--hd-radius-sm); background: #f2f6f9; }
@@ -136,6 +136,45 @@
 .lecturer-skip-link:focus { transform: translateY(0); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
+/* Segmented Pill Switch (Option B) */
+/* Segmented Decision Pill Group (System Style) */
+.segmented-pill-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.segmented-pill-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--hd-line);
+  border-radius: var(--hd-radius-sm);
+  background: #ffffff;
+  color: var(--hd-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s var(--hd-ease);
+  user-select: none;
+}
+
+.segmented-pill-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  color: var(--hd-ink);
+  background: #f8fafc;
+}
+
+.segmented-pill-btn--active {
+  border-color: var(--hd-blue) !important;
+  background: var(--hd-blue-soft) !important;
+  color: var(--hd-blue-dark) !important;
+  font-weight: 800;
+}
+
 @media (max-width: 1024px) {
   .lecturer-content { padding: 32px 24px; }
   .lecturer-detail-grid { grid-template-columns: 1fr; }
@@ -151,7 +190,7 @@
     padding: 20px 16px;
   }
   .lecturer-stat-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
   .lecturer-queue-toolbar {

@@ -32,7 +32,13 @@ export type LecturerPublication = {
     fileName: string;
     submittedAt?: string | null;
   } | null;
-  uploader?: { id: string; email: string; name?: string | null };
+  uploader?: {
+    id: string;
+    email: string;
+    name?: string | null;
+    role?: 'LECTURER' | 'STUDENT' | 'ADMIN';
+    studentId?: string | null;
+  };
   authors?: Array<{ id?: string; name: string; email?: string | null; affiliation?: string | null }>;
   downloadUrl?: string;
   myReview?: LecturerReview;
@@ -94,16 +100,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 function withReviewStatus(publication: LecturerPublication, review?: LecturerReview): LecturerReviewItem {
+  const isAwaiting = publication.status === 'REVIEWING' && (!review || !review.submittedAt);
   return {
     ...publication,
-    reviewStatus: review?.submittedAt ? 'COMPLETED' : 'AWAITING_REVIEW',
+    reviewStatus: isAwaiting ? 'AWAITING_REVIEW' : 'COMPLETED',
     myReview: review,
   };
 }
 
 export const lecturerReviewApi = {
   async list(): Promise<{ items: LecturerReviewItem[]; total: number }> {
-    const publications = await request<LecturerPublication[]>('/?status=REVIEWING&limit=50');
+    const publications = await request<LecturerPublication[]>('/?assignedToMe=true&limit=50');
     const items = publications.map((publication) => withReviewStatus(publication, publication.myReview));
     return { items, total: items.length };
   },

@@ -17,9 +17,12 @@ export interface LecturerShellProps {
 
 export function LecturerShell({ active, title, pendingCount, children }: LecturerShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useAuth();
-  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Dr. Alan Turing';
-  const displayRole = user?.email || 'alan.turing@hyperdata.org';
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const displayName = authLoading
+    ? 'Loading profile…'
+    : user?.name?.trim() || user?.email?.split('@')[0] || 'Lecturer account';
+  const displayRole = authLoading ? 'Loading account…' : user?.email || 'Lecturer account';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -32,10 +35,10 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
     if (email) {
       return email.slice(0, 2).toUpperCase();
     }
-    return 'AT';
+    return 'LR';
   };
 
-  const initials = getInitials(user?.name, user?.email);
+  const initials = authLoading ? '…' : getInitials(user?.name, user?.email);
 
   return (
     <div className="lecturer-frame">
@@ -92,12 +95,17 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
-                  <line x1="12" y1="12" x2="12" y2="18" />
-                  <line x1="9" y1="15" x2="15" y2="15" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">My submissions</span>
+              <span className="student-sidebar__text">My Manuscripts</span>
             </Link>
+          </div>
+
+          {/* Group: Peer Review */}
+          <div className="student-sidebar__group">
+            <span className="student-sidebar__group-title">PEER REVIEW</span>
             <Link
               href={ROUTES.LECTURER.REVIEWS}
               className={`student-sidebar__link ${active === 'reviews' ? 'student-sidebar__link--active' : ''}`}
@@ -189,10 +197,72 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
             </button>
 
             <div className="student-topbar__breadcrumbs">
-              <span className="student-topbar__crumb-root">Reviewer Workspace</span>
+              <span className="student-topbar__crumb-root">
+                {active === 'submissions' ? 'Faculty Workspace' : 'Reviewer Workspace'}
+              </span>
               <span className="student-topbar__crumb-sep">/</span>
               <span className="student-topbar__crumb-current">{title}</span>
             </div>
+          </div>
+
+          <div className="student-topbar__right">
+            <div className="student-topbar__search">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" placeholder="Search manuscripts, DOIs, reviews..." className="student-topbar__search-input" aria-label="Search manuscripts" />
+            </div>
+
+            <div className="student-topbar__notif-wrapper">
+              <button
+                type="button"
+                className="student-topbar__notif-btn"
+                onClick={() => setShowNotifications(!showNotifications)}
+                aria-label={`Notifications (${pendingCount || 0} active review alerts)`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {pendingCount !== undefined && pendingCount > 0 && <span className="student-topbar__notif-dot" />}
+              </button>
+
+              {showNotifications && (
+                <div className="student-topbar__notif-popover">
+                  <div className="student-topbar__notif-header">
+                    <strong>Academic Review Alerts</strong>
+                    {pendingCount !== undefined && pendingCount > 0 && (
+                      <span className="student-topbar__notif-count">{pendingCount}</span>
+                    )}
+                  </div>
+                  <div className="student-topbar__notif-list">
+                    {pendingCount !== undefined && pendingCount > 0 ? (
+                      <Link href={ROUTES.LECTURER.REVIEWS} className="student-topbar__notif-item" onClick={() => setShowNotifications(false)}>
+                        <div className="student-topbar__notif-item-icon student-topbar__notif-item-icon--amber">!</div>
+                        <div className="student-topbar__notif-item-text">
+                          <p className="student-topbar__notif-item-title">{pendingCount} manuscript(s) awaiting review</p>
+                          <p className="student-topbar__notif-item-desc">Open the Review Queue to submit your evaluation and decisions.</p>
+                        </div>
+                      </Link>
+                    ) : (
+                      <p className="student-topbar__notif-item-desc">No pending review tasks in your queue.</p>
+                    )}
+                  </div>
+                  <div className="student-topbar__notif-footer">
+                    <Link href={ROUTES.LECTURER.REVIEWS} onClick={() => setShowNotifications(false)}>View review queue →</Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link href={ROUTES.LECTURER.NEW_SUBMISSION} className="student-topbar__cta">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span>New Submission</span>
+            </Link>
           </div>
         </header>
         <div className="lecturer-content">{children}</div>

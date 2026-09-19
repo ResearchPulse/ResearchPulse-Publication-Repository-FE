@@ -33,10 +33,23 @@ export type AdminPublication = {
   fileSize?: number | null;
   downloadUrl?: string | null;
   status: AdminPublicationStatus;
+  reviewRound?: number;
   audiences: AdminPublicationAudience[];
   isPrivate: boolean;
-  uploader?: { id: string; name?: string | null; email: string };
-  authors?: Array<{ id?: string; name: string; email?: string | null; affiliation?: string | null; orderIndex?: number }>;
+  uploader?: {
+    id: string;
+    name?: string | null;
+    email: string;
+    role?: 'ADMIN' | 'LECTURER' | 'STUDENT' | string;
+    studentId?: string | null;
+  };
+  authors?: Array<{
+    id?: string;
+    name: string;
+    email?: string | null;
+    affiliation?: string | null;
+    orderIndex?: number;
+  }>;
   currentVersion?: {
     id: string;
     version: number;
@@ -66,7 +79,13 @@ export type AdminReview = {
     title?: string | null;
     status: AdminPublicationStatus;
     currentVersionLabel?: string;
-    uploader?: { id: string; name?: string | null; email: string };
+    uploader?: {
+      id: string;
+      name?: string | null;
+      email: string;
+      role?: 'ADMIN' | 'LECTURER' | 'STUDENT' | string;
+      studentId?: string | null;
+    };
   };
 };
 
@@ -110,6 +129,8 @@ export type AdminOverview = {
     published: number;
     rejected: number;
     processing: number;
+    facultySubmissions?: number;
+    studentSubmissions?: number;
     total: number;
   };
   byStatus: Record<string, number>;
@@ -124,7 +145,13 @@ export type AdminOverview = {
     status: string;
     createdAt: string;
     updatedAt: string;
-    uploader?: { id: string; name?: string | null; email: string };
+    uploader?: {
+      id: string;
+      name?: string | null;
+      email: string;
+      role?: 'ADMIN' | 'LECTURER' | 'STUDENT' | string;
+      studentId?: string | null;
+    };
   }>;
 };
 
@@ -167,7 +194,7 @@ function queryString(params: Record<string, string | number | boolean | undefine
 
 export const preprintApi = {
   overview: () => request<AdminOverview>('/api/v1/admin/overview'),
-  listSubmissions: (params: { page?: number; limit?: number; status?: AdminPublicationStatus; search?: string } = {}) =>
+  listSubmissions: (params: { page?: number; limit?: number; status?: AdminPublicationStatus; search?: string; uploaderRole?: 'LECTURER' | 'STUDENT' } = {}) =>
     requestResponse<AdminPublication[]>(`/api/v1/publications${queryString(params)}`).then((body) => ({
       items: body.data || [],
       pagination: body.pagination || { page: params.page || 1, limit: params.limit || 20, total: 0, totalPages: 1 },

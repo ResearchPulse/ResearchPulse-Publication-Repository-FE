@@ -10,9 +10,20 @@
   outline: none;
   background: var(--color-surface);
   color: var(--color-text);
-  font: inherit;
-  font-size: var(--ds-size-md);
+  font-family: var(--ds-font-ui);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
   transition: border-color var(--ds-duration-state) var(--ds-ease-out), box-shadow var(--ds-duration-state) var(--ds-ease-out);
 }
-.ui-textarea { min-height: 132px; resize: vertical; }
+.ui-textarea { min-height: 132px; resize: vertical; line-height: 1.6; }
+.ui-input::placeholder,
+.ui-textarea::placeholder {
+  font-family: var(--ds-font-ui);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  opacity: 0.85;
+}
 .ui-input:focus, .ui-textarea:focus, .ui-select:focus { border-color: var(--ui-control-focus-border); box-shadow: 0 0 0 4px rgb(0 113 188 / .12); }
+

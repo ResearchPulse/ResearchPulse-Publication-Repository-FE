@@ -46,7 +46,8 @@
   --ds-shadow-md: 0 10px 30px rgb(23 43 77 / 0.08);
 
   /* Typography and motion */
-  --ds-font-ui: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ds-font-ui: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ds-font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --ds-size-xs: 12px;
   --ds-size-sm: 13px;
   --ds-size-md: 16px;

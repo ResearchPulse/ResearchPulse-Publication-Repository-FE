@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StudentShell } from '../components';
+import { TimelineSkeleton } from '@/components/skeleton';
 import { usePreprintList } from '../hooks';
 import { studentPreprintApi } from '../api';
 import type { PreprintVersionInfo } from '../types';
@@ -166,10 +167,7 @@ export function StudentVersionArchiveView() {
       {/* 2. Version Lineages Content Stream */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {(listLoading || versionsLoading) && (
-          <div className="student-loading-box">
-            <div className="student-spinner" />
-            <p>Loading cryptographic version archives and provenance…</p>
-          </div>
+          <TimelineSkeleton count={3} />
         )}
 
         {versionsError && (
@@ -269,9 +267,9 @@ export function StudentVersionArchiveView() {
                 </div>
               </div>
 
-              {/* Version Lineage Timeline */}
+              {/* Version Lineage Timeline (Git-Style Lineage) */}
               {isExpanded && (
-                <div className="archive-timeline-container">
+                <div className="archive-git-timeline">
                   {manuscript.versions && manuscript.versions.length > 0 ? (
                     manuscript.versions.map((ver, idx) => {
                       const isLatest = idx === 0;
@@ -279,102 +277,98 @@ export function StudentVersionArchiveView() {
                       return (
                         <div
                           key={ver.version}
-                          className={`archive-version-item ${isLatest ? 'archive-version-item--latest' : ''}`}
+                          className={`archive-git-entry ${isLatest ? 'archive-git-entry--latest' : ''}`}
                         >
-                          {/* Version Badge Node */}
-                          <div className={`archive-version-badge ${isLatest ? 'archive-version-badge--latest' : ''}`}>
-                            <span>v{ver.version}</span>
-                            {isLatest && <span className="archive-version-badge__sub">Latest</span>}
+                          {/* Git Node */}
+                          <div className="archive-git-node">
+                            v{ver.version}
                           </div>
 
-                          {/* Version Info & Provenance */}
-                          <div className="archive-version-content">
-                            <div className="archive-version-header">
-                              <div>
-                                <strong className="archive-version-title">
+                          {/* Git Body */}
+                          <div className="archive-git-body">
+                            {/* Row 1: Release label, summary, date, status */}
+                            <div className="archive-git-header">
+                              <div className="archive-git-summary-line">
+                                <span className="archive-git-version-tag">
                                   Version {ver.version_label || `v${ver.version}`} Release
-                                </strong>
+                                </span>
+                                <span className="archive-git-summary-text" title={ver.change_summary}>
+                                  · {ver.change_summary || 'Initial camera-ready version submitted for archive.'}
+                                </span>
+                              </div>
+
+                              <div className="archive-git-meta-group">
                                 {ver.created_at && (
-                                  <span className="archive-version-date">
-                                    &bull; Archived on {new Date(ver.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  <span className="archive-git-date">
+                                    {new Date(ver.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                   </span>
                                 )}
+                                <span
+                                  className={`user-badge ${
+                                    ver.status === 'APPROVED' || ver.status === 'PUBLISHED'
+                                      ? 'user-badge--approved'
+                                      : ver.status === 'NEEDS_REVISION'
+                                      ? 'user-badge--revision'
+                                      : ver.status === 'UNDER_REVIEW'
+                                      ? 'user-badge--review'
+                                      : ver.status === 'REJECTED' || ver.status === 'WITHDRAWN'
+                                      ? 'user-badge--withdrawn'
+                                      : 'user-badge--draft'
+                                  }`}
+                                >
+                                  {ver.status}
+                                </span>
                               </div>
-                              <span
-                                className={`user-badge ${
-                                  ver.status === 'APPROVED' || ver.status === 'PUBLISHED'
-                                    ? 'user-badge--approved'
-                                    : ver.status === 'NEEDS_REVISION'
-                                    ? 'user-badge--revision'
-                                    : ver.status === 'UNDER_REVIEW'
-                                    ? 'user-badge--review'
-                                    : ver.status === 'REJECTED' || ver.status === 'WITHDRAWN'
-                                    ? 'user-badge--withdrawn'
-                                    : 'user-badge--draft'
-                                }`}
-                              >
-                                {ver.status}
-                              </span>
                             </div>
 
-                            <p className="archive-change-summary">
-                              <strong>Change Summary:</strong> {ver.change_summary || 'Initial camera-ready version submitted for archive.'}
-                            </p>
+                            {/* Row 2: File pill, SHA checksum copy, Download PDF */}
+                            <div className="archive-git-files-bar">
+                              <span className="archive-file-tag">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                </svg>
+                                {ver.file_name} ({ver.file_size || 'Size unavailable'})
+                              </span>
 
-                            {/* Cryptographic Provenance Bar */}
-                            <div className="archive-provenance-bar">
-                              <div className="archive-provenance-info">
-                                <span className="archive-file-tag">
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <polyline points="14 2 14 8 20 8" />
+                              {ver.sha256 && (
+                                <button
+                                  type="button"
+                                  className={`archive-sha-pill ${copiedHash === ver.sha256 ? 'archive-sha-pill--copied' : ''}`}
+                                  onClick={() => handleCopyHash(ver.sha256!)}
+                                  title={`Click to copy SHA-256: ${ver.sha256}`}
+                                >
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    {copiedHash === ver.sha256 ? (
+                                      <polyline points="20 6 9 17 4 12" />
+                                    ) : (
+                                      <>
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                      </>
+                                    )}
                                   </svg>
-                                  {ver.file_name} ({ver.file_size || 'Size unavailable'})
-                                </span>
-                                {ver.sha256 && (
-                                  <span className="archive-sha-tag" title={ver.sha256}>
-                                    SHA-256: {ver.sha256.substring(0, 10)}…{ver.sha256.substring(ver.sha256.length - 6)}
+                                  <span>
+                                    {copiedHash === ver.sha256 ? 'Copied SHA!' : `SHA: ${ver.sha256.substring(0, 7)}…${ver.sha256.substring(ver.sha256.length - 4)}`}
                                   </span>
-                                )}
-                              </div>
+                                </button>
+                              )}
 
-                              <div className="archive-actions-group">
-                                {ver.sha256 && (
-                                  <button
-                                    type="button"
-                                    className={`archive-cite-btn ${copiedHash === ver.sha256 ? 'archive-cite-btn--copied' : ''}`}
-                                    onClick={() => handleCopyHash(ver.sha256!)}
-                                  >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      {copiedHash === ver.sha256 ? (
-                                        <polyline points="20 6 9 17 4 12" />
-                                      ) : (
-                                        <>
-                                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                        </>
-                                      )}
-                                    </svg>
-                                    <span>{copiedHash === ver.sha256 ? 'Hash Copied!' : 'Copy Checksum'}</span>
-                                  </button>
-                                )}
-                                {ver.download_url && (
-                                  <a
-                                    href={ver.download_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="student-btn student-btn--secondary"
-                                    style={{ fontSize: '12px', padding: '5px 10px', gap: '5px' }}
-                                  >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                      <polyline points="7 10 12 15 17 10" />
-                                      <line x1="12" y1="15" x2="12" y2="3" />
-                                    </svg>
-                                    <span>Download PDF</span>
-                                  </a>
-                                )}
-                              </div>
+                              {ver.download_url && (
+                                <a
+                                  href={ver.download_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="archive-download-btn"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                  </svg>
+                                  <span>Download PDF</span>
+                                </a>
+                              )}
                             </div>
                           </div>
                         </div>

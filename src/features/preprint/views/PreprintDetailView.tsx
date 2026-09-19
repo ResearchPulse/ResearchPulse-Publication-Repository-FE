@@ -2,9 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { StudentShell } from '../components';
+import { LecturerShell } from '@/features/lecturer/components';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreprintDetail } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
+import { DetailSkeleton } from '@/components/skeleton';
 
 interface PreprintDetailViewProps {
   id: string;
@@ -12,7 +16,34 @@ interface PreprintDetailViewProps {
 
 type TabType = 'OVERVIEW' | 'REVIEWS' | 'TIMELINE';
 
+function PreprintDetailShell({
+  isLecturer,
+  title,
+  children,
+}: {
+  isLecturer: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return isLecturer ? (
+    <LecturerShell active="submissions" title={title}>
+      {children}
+    </LecturerShell>
+  ) : (
+    <StudentShell title="Manuscript Details" showStandardHeader={false}>
+      {children}
+    </StudentShell>
+  );
+}
+
 export function PreprintDetailView({ id }: PreprintDetailViewProps) {
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const isLecturer = user?.role === 'LECTURER' || (pathname?.startsWith('/lecturer/') ?? false);
+  const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
+  const editPath = isLecturer ? `${workspacePath}/new?id=${id}` : `${workspacePath}/${id}/edit`;
+  const versionsPath = `${workspacePath}/${id}/versions`;
+
   const { item, loading, error } = usePreprintDetail(id);
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
   const [copiedDoi, setCopiedDoi] = useState(false);
@@ -99,17 +130,13 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
     }
   };
 
+  const shellTitle = item?.title
+    ? (item.title.length > 35 ? item.title.substring(0, 35) + '…' : item.title)
+    : 'Manuscript Details';
+
   return (
-    <StudentShell
-      title="Manuscript Details"
-      showStandardHeader={false}
-    >
-      {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading manuscript archive…</p>
-        </div>
-      )}
+    <PreprintDetailShell isLecturer={isLecturer} title={shellTitle}>
+      {loading && <DetailSkeleton />}
 
       {error && (
         <div className="student-error-banner">
@@ -203,7 +230,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                   </button>
                 )}
 
-                <Link href={`/student/my-preprints/${item.id}/versions`} className="student-btn student-btn--ghost">
+                <Link href={versionsPath} className="student-btn student-btn--ghost">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 14 14" />
@@ -212,13 +239,13 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 </Link>
 
                 {item.status === 'NEEDS_REVISION' && (
-                  <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
+                  <Link href={editPath} className="student-btn student-btn--warning">
                     <span>Revise Manuscript →</span>
                   </Link>
                 )}
 
                 {item.status === 'DRAFT' && (
-                  <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--primary">
+                  <Link href={editPath} className="student-btn student-btn--primary">
                     <span>Continue Draft →</span>
                   </Link>
                 )}
@@ -241,7 +268,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 &ldquo;{item.reviews[0].comments}&rdquo;
               </p>
               <div className="student-revision-banner__action">
-                <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning student-btn--sm">
+                <Link href={editPath} className="student-btn student-btn--warning student-btn--sm">
                   <span>Open Revision Editor →</span>
                 </Link>
                 <button type="button" onClick={() => setActiveTab('REVIEWS')} className="student-btn student-btn--ghost student-btn--sm">
@@ -403,7 +430,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
                       {rev.decision === 'NEEDS_REVISION' && (
                         <div className="student-review-footer-action">
-                          <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
+                          <Link href={editPath} className="student-btn student-btn--warning">
                             <span>Open Revision Form (Upload Revised Draft) →</span>
                           </Link>
                         </div>
@@ -472,7 +499,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
           )}
         </div>
       )}
-    </StudentShell>
+    </PreprintDetailShell>
   );
 }
 

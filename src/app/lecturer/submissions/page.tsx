@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
-import { ROUTES } from '@/app/router';
+import { LecturerSubmissionsView } from '@/features/lecturer/views';
 
 export default function LecturerSubmissionsPage() {
-  redirect(ROUTES.LECTURER.NEW_SUBMISSION);
+  return <LecturerSubmissionsView />;
 }
