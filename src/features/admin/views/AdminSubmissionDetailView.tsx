@@ -103,6 +103,72 @@ function ReviewCommentItem({ comment }: { comment: string }) {
   );
 }
 
+function ContributingAuthorsList({ authors }: { authors?: AdminPublication['authors'] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!authors || authors.length === 0) {
+    return <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>No author data available.</p>;
+  }
+
+  const visibleAuthors = expanded ? authors : authors.slice(0, 3);
+  const remainingCount = authors.length - 3;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div className="authors-chip-grid">
+        {visibleAuthors.map((author, idx) => (
+          <div className="author-chip" key={author.id || idx}>
+            <div className="author-chip-avatar">{author.name.charAt(0).toUpperCase()}</div>
+            <div className="author-chip-info">
+              <span className="author-chip-name">{author.name}</span>
+              {author.affiliation && <span className="author-chip-affil">{author.affiliation}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {authors.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            alignSelf: 'flex-start',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'none',
+            border: 'none',
+            padding: '2px 0',
+            cursor: 'pointer',
+            color: '#64748b',
+            fontSize: '12px',
+            fontWeight: 500,
+          }}
+        >
+          <span>{expanded ? 'Hide details' : 'Show details'}</span>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+            }}
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ReviewList({ reviews, round, isPastRound }: ReviewListProps) {
   if (!reviews.length) {
     return (
@@ -731,21 +797,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
 
             {/* Authors */}
             <h3>Contributing Authors</h3>
-            <div className="authors-chip-grid">
-              {publication.authors && publication.authors.length > 0 ? (
-                publication.authors.map((author, idx) => (
-                  <div className="author-chip" key={author.id || idx}>
-                    <div className="author-chip-avatar">{author.name.charAt(0).toUpperCase()}</div>
-                    <div className="author-chip-info">
-                      <span className="author-chip-name">{author.name}</span>
-                      {author.affiliation && <span className="author-chip-affil">{author.affiliation}</span>}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>No author data available.</p>
-              )}
-            </div>
+            <ContributingAuthorsList authors={publication.authors} />
             {/* Audit Timeline */}
             <h3>Audit Timeline</h3>
             <TimelineList events={timeline} />

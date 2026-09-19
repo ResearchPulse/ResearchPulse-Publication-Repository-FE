@@ -77,6 +77,7 @@
 .lecturer-content { width: 100%; max-width: 1440px; margin: 0 auto; padding: 42px; }
 .lecturer-content .ui-page-header { margin-bottom: 24px; }
 .lecturer-content .ui-page-header h1 { max-width: 780px; }
+.lecturer-content .ui-notice { margin-bottom: 24px; }
 .lecturer-back-link { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 22px; color: var(--hd-blue); font-size: 14px; font-weight: 700; text-decoration: none; }
 .lecturer-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
 .lecturer-stat-card { padding: 20px; border: 1px solid var(--hd-line); border-radius: var(--hd-radius); background: #fff; box-shadow: 0 8px 24px rgba(23, 43, 77, .045); }
@@ -102,14 +103,14 @@
 .lecturer-table td:first-child span { margin-top: 5px; color: var(--hd-muted); font-size: 12px; }
 .lecturer-table .ui-button { min-height: 36px; padding-inline: 12px; }
 
-.lecturer-detail-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr); gap: 22px; align-items: start; }
+.lecturer-detail-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr); gap: 22px; align-items: start; margin-bottom: 48px; }
 .lecturer-detail-side { display: grid; gap: 22px; }
 .lecturer-pdf-panel, .lecturer-metadata-panel, .lecturer-secondary-panel, .lecturer-review-panel, .lecturer-history-panel { padding: 24px; }
 .lecturer-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .lecturer-panel-heading h2 { color: var(--hd-ink); line-height: 1.35; }
 .lecturer-pdf-viewer { display: block; width: 100%; min-height: 650px; border: 1px solid var(--hd-line); border-radius: var(--hd-radius-sm); background: #f2f6f9; }
 .lecturer-pdf-empty { display: grid; min-height: 650px; place-items: center; padding: 32px; border: 1px dashed #a7cfe7; border-radius: var(--hd-radius-sm); background: var(--hd-blue-soft); color: var(--hd-blue-dark); text-align: center; }
-.lecturer-file-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 12px; color: var(--hd-muted); font-size: 12px; }
+.lecturer-file-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--hd-line); color: var(--hd-muted); font-size: 12px; }
 .lecturer-metadata-list { display: grid; gap: 0; margin: 0; }
 .lecturer-metadata-list div { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 13px 0; border-top: 1px solid var(--hd-line); }
 .lecturer-metadata-list div:first-child { border-top: 0; padding-top: 0; }
@@ -117,6 +118,55 @@
 .lecturer-metadata-list dd { margin: 0; color: var(--hd-ink); font-size: 13px; line-height: 1.5; }
 .lecturer-review-form { display: grid; gap: 18px; }
 .lecturer-review-form .ui-field__label { font-weight: 800; }
+.lecturer-textarea-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.lecturer-review-form .ui-textarea {
+  min-height: 160px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #dce4e9;
+  background: #ffffff;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(18, 35, 49, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lecturer-review-form .ui-textarea:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 2px 6px rgba(18, 35, 49, 0.06);
+}
+
+.lecturer-review-form .ui-textarea:focus {
+  border-color: #0071bc;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 113, 188, 0.12), 0 4px 12px rgba(0, 113, 188, 0.08);
+}
+
+.lecturer-review-form .ui-textarea::placeholder {
+  color: #94a3b8;
+  font-size: 13.5px;
+}
+
+.lecturer-textarea-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #8b9aa4;
+}
+
+.lecturer-textarea-tip {
+  color: #b45309;
+  font-weight: 600;
+  font-size: 11.5px;
+}
 .lecturer-form-error { padding: 11px 13px; border: 1px solid #e2aaaa; border-radius: var(--hd-radius-sm); background: #fff3f3; color: #9f2c2c; font-size: 13px; }
 .lecturer-recommendation { display: grid; gap: 9px; padding: 0; border: 0; }
 .lecturer-recommendation legend { margin-bottom: 2px; color: var(--hd-ink); font-size: 13px; font-weight: 800; }

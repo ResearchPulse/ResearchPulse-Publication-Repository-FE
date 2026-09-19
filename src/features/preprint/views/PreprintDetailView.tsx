@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
 import { LecturerShell } from '@/features/lecturer/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -10,11 +11,12 @@ import { usePreprintDetail } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import { DetailSkeleton } from '@/components/skeleton';
 
+
 interface PreprintDetailViewProps {
   id: string;
 }
 
-type TabType = 'OVERVIEW' | 'REVIEWS' | 'TIMELINE';
+type TabType = 'OVERVIEW' | 'PDF_VIEW' | 'REVIEWS' | 'TIMELINE';
 
 function PreprintDetailShell({
   isLecturer,
@@ -47,6 +49,8 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
   const { item, loading, error } = usePreprintDetail(id);
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
   const [copiedDoi, setCopiedDoi] = useState(false);
+  const [pdfExpanded, setPdfExpanded] = useState(false);
+  const [showAllAuthors, setShowAllAuthors] = useState(false);
 
   const handleCopyDoi = () => {
     if (!item?.doi) return;
@@ -162,8 +166,9 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             {item.authors && item.authors.length > 0 && (
               <div className="student-paper-hero__byline">
                 <div className="student-paper-hero__authors-wrap">
-                  {item.authors.map((author, index) => {
+                  {(showAllAuthors ? item.authors : item.authors.slice(0, 3)).map((author, index) => {
                     const affIdx = authorAffiliationIndices[index] || 1;
+                    const isLastVisible = index === (showAllAuthors ? item.authors.length : Math.min(3, item.authors.length)) - 1;
                     return (
                       <span key={index} className="student-paper-hero__author">
                         <span className="student-paper-hero__author-name">{author.name}</span>
@@ -174,10 +179,50 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                             ✉
                           </span>
                         )}
-                        {index < item.authors.length - 1 && <span className="student-paper-hero__sep">,</span>}
+                        {!isLastVisible && <span className="student-paper-hero__sep">,</span>}
                       </span>
                     );
                   })}
+
+                  {item.authors.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllAuthors(!showAllAuthors)}
+                      style={{
+                        marginLeft: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'none',
+                        border: 'none',
+                        padding: '2px 0',
+                        cursor: 'pointer',
+                        color: '#64748b',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      <span>{showAllAuthors ? 'Hide details' : 'Show details'}</span>
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          transform: showAllAuthors ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                        }}
+                        aria-hidden="true"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
                 {/* Deduplicated Affiliation Footnotes */}
@@ -289,6 +334,22 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             </button>
             <button
               type="button"
+              className={`student-detail-tab ${activeTab === 'PDF_VIEW' ? 'student-detail-tab--active' : ''}`}
+              onClick={() => setActiveTab('PDF_VIEW')}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                <span>Manuscript PDF</span>
+              </span>
+            </button>
+            <button
+              type="button"
               className={`student-detail-tab ${activeTab === 'REVIEWS' ? 'student-detail-tab--active' : ''}`}
               onClick={() => setActiveTab('REVIEWS')}
             >
@@ -374,7 +435,52 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             </div>
           )}
 
-          {/* Tab 2: Faculty Mentorship & Reviews */}
+          {/* Tab 2: Manuscript PDF Direct Reader */}
+          {activeTab === 'PDF_VIEW' && (
+            <div className="student-tab-panel" style={{ marginTop: '20px' }}>
+              {item.download_url ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                    <a
+                      href={item.download_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="student-btn student-btn--secondary student-btn--sm"
+                      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                      <span>Open in New Tab</span>
+                    </a>
+                  </div>
+                  <iframe
+                    className="lecturer-pdf-viewer"
+                    src={item.download_url}
+                    title={`PDF preview for ${item.title || 'manuscript'}`}
+                    style={{ width: '100%', minHeight: '800px', border: '1px solid #e2e8f0', borderRadius: '12px' }}
+                  />
+                </div>
+              ) : (
+                <div className="student-empty-card" style={{ padding: '60px 20px' }}>
+                  <div className="student-empty-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#647381" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="12" y1="18" x2="12" y2="12" />
+                      <line x1="9" y1="15" x2="15" y2="15" />
+                    </svg>
+                  </div>
+                  <h3>PDF Preview Not Available</h3>
+                  <p>The manuscript PDF file is currently being processed or archived in cloud storage.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Faculty Mentorship & Reviews */}
           {activeTab === 'REVIEWS' && (
             <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               {item.reviews && item.reviews.length > 0 ? (

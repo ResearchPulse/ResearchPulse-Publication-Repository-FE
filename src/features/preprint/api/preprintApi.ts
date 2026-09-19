@@ -359,9 +359,9 @@ export const studentPreprintApi = {
     },
   ): Promise<StudentPreprint> => {
     const formData = new FormData();
-    formData.append('file', file);
     formData.append('intent', intent);
     formData.append('metadata', JSON.stringify(metadata));
+    formData.append('file', file);
     const publication = await request<BackendPublication>('/upload-direct', {
       method: 'POST',
       body: formData,
@@ -371,8 +371,8 @@ export const studentPreprintApi = {
 
   uploadRevision: async (id: string, file: File, changeSummary?: string): Promise<StudentPreprint> => {
     const formData = new FormData();
-    formData.append('file', file);
     if (changeSummary?.trim()) formData.append('changeSummary', changeSummary.trim());
+    formData.append('file', file);
     const publication = await request<BackendPublication>('/' + encodeURIComponent(id) + '/revisions/upload-direct', {
       method: 'POST',
       body: formData,

@@ -81,9 +81,9 @@ const faqs = [
   },
 ] as const;
 
-const signInUrl = '/api/auth/login?next=/student';
-const submitUrl = '/api/auth/login?next=/student/upload';
-const reviewerUrl = '/api/auth/login?next=/lecturer/reviews';
+const signInUrl = '/login?next=/student';
+const submitUrl = '/login?next=/student/my-preprints/new';
+const reviewerUrl = '/login?next=/lecturer/reviews';
 
 export function PaperLandingView() {
   return (

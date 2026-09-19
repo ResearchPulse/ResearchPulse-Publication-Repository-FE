@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button, ErrorState, Field, Notice, PageHeader, Panel, StatusBadge, TextArea } from '@hyperdata/design-system';
@@ -10,9 +11,76 @@ import { LecturerShell } from '../components';
 import { DetailSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerRecommendation, type LecturerReviewDetail } from '../api';
 
+
 function formatFileSize(bytes?: number | null) {
   if (!bytes || bytes <= 0) return 'Size unavailable';
   return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function ReviewAuthorsList({
+  authors,
+  fallback,
+}: {
+  authors?: { name: string }[];
+  fallback: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!authors || authors.length === 0) {
+    return <span>{fallback}</span>;
+  }
+
+  if (authors.length <= 3) {
+    return <span>{authors.map((a) => a.name).join(', ')}</span>;
+  }
+
+  const visible = expanded ? authors : authors.slice(0, 3);
+  const remaining = authors.length - 3;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <span>
+        {visible.map((a) => a.name).join(', ')}
+        {!expanded && ` …`}
+      </span>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: '2px 0',
+          color: '#64748b',
+          fontSize: '11.5px',
+          fontWeight: 500,
+          cursor: 'pointer',
+          alignSelf: 'flex-start',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+      >
+        <span>{expanded ? 'Hide details' : 'Show details'}</span>
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+          }}
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 function formatDate(value?: string | null) {
@@ -201,9 +269,30 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
       />
       <div className="lecturer-detail-grid">
         <Panel className="lecturer-pdf-panel">
-          <div className="lecturer-panel-heading"><div><span className="lecturer-panel-eyebrow">Manuscript PDF</span><h2>{currentVersion?.fileName || 'Current PDF'}</h2></div>{downloadUrl ? <a className="ui-button ui-button--secondary" href={downloadUrl} target="_blank" rel="noreferrer">Open PDF</a> : null}</div>
-          {downloadUrl ? <iframe className="lecturer-pdf-viewer" src={downloadUrl} title={`PDF preview for ${title}`} /> : <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>}
-          <div className="lecturer-file-meta"><span>{formatFileSize(currentVersion?.fileSize ?? detail.publication.fileSize)}</span><span>{currentVersion?.sha256 ? `SHA-256 ${currentVersion.sha256.slice(0, 12)}…` : 'Hash unavailable'}</span></div>
+          <div className="lecturer-panel-heading">
+            <div>
+              <span className="lecturer-panel-eyebrow">Manuscript PDF</span>
+              <h2>{currentVersion?.fileName || 'Current PDF'}</h2>
+            </div>
+            {downloadUrl ? (
+              <a className="ui-button ui-button--secondary" href={downloadUrl} target="_blank" rel="noreferrer">
+                Open PDF
+              </a>
+            ) : null}
+          </div>
+          {downloadUrl ? (
+            <iframe
+              className="lecturer-pdf-viewer"
+              src={downloadUrl}
+              title={`PDF preview for ${title}`}
+            />
+          ) : (
+            <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>
+          )}
+          <div className="lecturer-file-meta">
+            <span>{formatFileSize(currentVersion?.fileSize ?? detail.publication.fileSize)}</span>
+            <span>{currentVersion?.sha256 ? `SHA-256 ${currentVersion.sha256.slice(0, 12)}…` : 'Hash unavailable'}</span>
+          </div>
         </Panel>
         <div className="lecturer-detail-side">
           <Panel className="lecturer-metadata-panel">
@@ -225,11 +314,10 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
               <div>
                 <dt>Authors</dt>
                 <dd>
-                  {detail.publication.authors && detail.publication.authors.length > 0
-                    ? detail.publication.authors.map((author) => author.name).join(', ')
-                    : isFaculty
-                    ? 'Anonymous Author (Double-Blind Review)'
-                    : uploader}
+                  <ReviewAuthorsList
+                    authors={detail.publication.authors}
+                    fallback={isFaculty ? 'Anonymous Author (Double-Blind Review)' : uploader}
+                  />
                 </dd>
               </div>
               <div><dt>Keywords</dt><dd>{detail.publication.keywords?.join(', ') || 'No keywords provided'}</dd></div>
@@ -393,7 +481,14 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                 </button>
               </div>
 
-              <Field label={isPrimary ? 'Evaluation & requirements' : 'Comments'}>
+              <Field
+                label={isPrimary ? 'Evaluation & requirements' : 'Comments'}
+                hint={
+                  isPrimary
+                    ? 'Explain the academic evaluation and requirements for the author. This is recorded as the decision rationale.'
+                    : 'Explain the main academic evidence behind your recommendation.'
+                }
+              >
                 <TextArea
                   value={comment}
                   onChange={(event) => setComment(event.target.value)}
@@ -424,6 +519,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                   </div>
                 )
               )}
+
             </form>
           </Panel>
         </div>
