@@ -3384,22 +3384,61 @@
 }
 
 .student-sidebar__logout-btn {
-  color: #94a3b8;
-  padding: 6px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  display: flex;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #64748b;
+  padding: 7px;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  outline: none;
+  font-family: inherit;
 }
 
 .student-sidebar__logout-btn:hover {
   color: #ef4444;
   background: #fee2e2;
+  border-color: #fecaca;
+  transform: translateX(1px);
+}
+
+.student-sidebar__logout-btn:active {
+  transform: scale(0.94);
+  background: #fecaca;
+}
+
+.student-sidebar__logout-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
 }
 
 .student-sidebar-backdrop {
   display: none;
 }
+
+.student-sidebar__close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.student-sidebar__close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
 
 /* --------------------------------------------------------------------------
    Main Frame & Topbar
