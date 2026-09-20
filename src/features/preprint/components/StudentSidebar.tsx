@@ -59,6 +59,9 @@ export function StudentSidebar({
     if (href === '/student/versions') {
       return pathname.startsWith('/student/versions');
     }
+    if (href === '/student/account') {
+      return pathname.startsWith('/student/account');
+    }
     if (href === '/student/my-preprints/new') {
       return pathname === '/student/my-preprints/new';
     }
@@ -79,7 +82,7 @@ export function StudentSidebar({
       <aside className={`student-sidebar ${isOpen ? 'student-sidebar--open' : ''}`}>
         {/* Brand Header */}
         <div className="student-sidebar__brand">
-          <Link href="/" className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
+          <Link href="/student/my-preprints" className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
             <div className="student-sidebar__logo-lockup">
               <Image
                 src="/hyperdata-lab-logo.png"
@@ -106,10 +109,10 @@ export function StudentSidebar({
         </div>
 
         {/* Navigation Section */}
-        <nav className="student-sidebar__nav" aria-label="Scholar Dashboard Navigation">
-          {/* Group: Core Workspace */}
+        <nav className="student-sidebar__nav" aria-label="Thanh điều hướng học thuật">
+          {/* Group: Manuscripts */}
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">WORKSPACE</span>
+            <span className="student-sidebar__group-title">BẢN THẢO</span>
 
             <Link
               href="/student/my-preprints"
@@ -124,32 +127,9 @@ export function StudentSidebar({
                   <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">My Manuscripts</span>
+              <span className="student-sidebar__text">Bản thảo của tôi</span>
               {totalCount > 0 && (
                 <span className="student-sidebar__badge">{totalCount}</span>
-              )}
-            </Link>
-          </div>
-
-          {/* Group: Mentorship & Quality */}
-          <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">ACADEMIC REVIEW</span>
-
-            <Link
-              href="/student/mentor-feedback"
-              className={`student-sidebar__link ${isRouteActive('/student/mentor-feedback') ? 'student-sidebar__link--active' : ''}`}
-              onClick={onClose}
-            >
-              <span className="student-sidebar__icon student-sidebar__icon--amber">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </span>
-              <span className="student-sidebar__text">Mentor Feedback</span>
-              {revisionCount > 0 && (
-                <span className="student-sidebar__badge student-sidebar__badge--alert">
-                  {revisionCount}
-                </span>
               )}
             </Link>
 
@@ -164,7 +144,49 @@ export function StudentSidebar({
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Version Archive</span>
+              <span className="student-sidebar__text">Lịch sử phiên bản</span>
+            </Link>
+          </div>
+
+          {/* Group: Review & Mentorship */}
+          <div className="student-sidebar__group">
+            <span className="student-sidebar__group-title">THẨM ĐỊNH</span>
+
+            <Link
+              href="/student/mentor-feedback"
+              className={`student-sidebar__link ${isRouteActive('/student/mentor-feedback') ? 'student-sidebar__link--active' : ''}`}
+              onClick={onClose}
+            >
+              <span className="student-sidebar__icon student-sidebar__icon--amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </span>
+              <span className="student-sidebar__text">Nhận xét</span>
+              {revisionCount > 0 && (
+                <span className="student-sidebar__badge student-sidebar__badge--alert">
+                  {revisionCount}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          {/* Group: Account */}
+          <div className="student-sidebar__group">
+            <span className="student-sidebar__group-title">CÁ NHÂN</span>
+
+            <Link
+              href="/student/account"
+              className={`student-sidebar__link ${isRouteActive('/student/account') ? 'student-sidebar__link--active' : ''}`}
+              onClick={onClose}
+            >
+              <span className="student-sidebar__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
+              <span className="student-sidebar__text">Tài khoản</span>
             </Link>
           </div>
         </nav>
@@ -174,7 +196,7 @@ export function StudentSidebar({
           <div className="student-sidebar__profile-card">
             <div className="student-sidebar__avatar">
               <span>{initials}</span>
-              <span className="student-sidebar__status-dot" aria-label="Online" />
+              <span className="student-sidebar__status-dot" aria-label="Trực tuyến" />
             </div>
             <div className="student-sidebar__profile-info">
 
@@ -192,8 +214,8 @@ export function StudentSidebar({
               type="button"
               onClick={() => authApi.logout()}
               className="student-sidebar__logout-btn"
-              title="Sign Out"
-              aria-label="Sign Out"
+              title="Đăng xuất"
+              aria-label="Đăng xuất"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

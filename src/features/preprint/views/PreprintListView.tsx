@@ -11,16 +11,14 @@ import type { StudentPreprint } from '../types';
 
 function formatUpdatedDate(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Recently updated';
+  if (Number.isNaN(date.getTime())) return 'Vừa cập nhật';
 
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
     year: 'numeric',
   }).format(date);
 }
-
-
 
 export function PreprintListView() {
   const { items, loading, error, apiPending } = usePreprintList();
@@ -76,29 +74,29 @@ export function PreprintListView() {
   const renderStatusBadge = (status: PreprintStatus) => {
     switch (status) {
       case 'PUBLISHED':
-        return <span className="user-badge user-badge--approved">PUBLISHED</span>;
+        return <span className="user-badge user-badge--approved">ĐÃ XUẤT BẢN</span>;
       case 'APPROVED':
-        return <span className="user-badge user-badge--approved">APPROVED</span>;
+        return <span className="user-badge user-badge--approved">ĐÃ DUYỆT</span>;
       case 'NEEDS_REVISION':
-        return <span className="user-badge user-badge--revision">NEEDS REVISION</span>;
+        return <span className="user-badge user-badge--revision">CẦN CHỈNH SỬA</span>;
       case 'UNDER_REVIEW':
-        return <span className="user-badge user-badge--review">UNDER REVIEW</span>;
+        return <span className="user-badge user-badge--review">ĐANG THẨM ĐỊNH</span>;
       case 'DRAFT':
-        return <span className="user-badge user-badge--draft">DRAFT</span>;
+        return <span className="user-badge user-badge--draft">BẢN NHÁP</span>;
       case 'WITHDRAWN':
       case 'REJECTED':
-        return <span className="user-badge user-badge--withdrawn">REJECTED</span>;
+        return <span className="user-badge user-badge--withdrawn">BỊ TỪ CHỐI</span>;
       default:
         return <span className="user-badge">{status}</span>;
     }
   };
 
   return (
-    <StudentShell title="My Manuscripts" showStandardHeader={false}>
+    <StudentShell title="Bản thảo của tôi" showStandardHeader={false}>
       {/* Notice Banner */}
       {apiPending && (
         <div className="user-notice" style={{ marginTop: '0', marginBottom: '20px' }}>
-          Preprint API is unavailable, so preview data is shown. Your work is not affected.
+          Máy chủ bản thảo tạm thời chưa phản hồi, hiển thị dữ liệu mẫu. Công việc của bạn không bị ảnh hưởng.
         </div>
       )}
 
@@ -114,11 +112,11 @@ export function PreprintListView() {
           </div>
           <div className="dashboard-alert-banner__content">
             <div className="dashboard-alert-banner__header">
-              <strong className="dashboard-alert-banner__title">Action Required: Revision Requested</strong>
-              <span className="dashboard-alert-banner__badge">Version {revisionItem.current_version}</span>
+              <strong className="dashboard-alert-banner__title">Cần xử lý: Yêu cầu chỉnh sửa</strong>
+              <span className="dashboard-alert-banner__badge">Phiên bản {revisionItem.current_version}</span>
             </div>
             <p className="dashboard-alert-banner__desc">
-              Faculty reviewer <strong>{revisionItem.reviews?.[0]?.reviewer_name || 'Advisory Reviewer'}</strong> requested updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.
+              Giảng viên hướng dẫn <strong>{revisionItem.reviews?.[0]?.reviewer_name || 'Hội đồng thẩm định'}</strong> đã yêu cầu cập nhật cho bản thảo <em>&ldquo;{revisionItem.title}&rdquo;</em>.
             </p>
           </div>
           <div className="dashboard-alert-banner__action">
@@ -126,7 +124,7 @@ export function PreprintListView() {
               href={`/student/my-preprints/${revisionItem.id}`}
               className="dashboard-alert-banner__btn"
             >
-              Review Comments &amp; Revise →
+              Xem nhận xét &amp; Sửa đổi →
             </Link>
           </div>
         </div>
@@ -137,28 +135,28 @@ export function PreprintListView() {
         <div className="student-metric-card">
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.total}</span>
-            <span className="student-metric-label">Total Manuscripts</span>
+            <span className="student-metric-label">Tổng số bản thảo</span>
           </div>
         </div>
 
         <div className="student-metric-card">
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.underReview}</span>
-            <span className="student-metric-label">In Faculty Review</span>
+            <span className="student-metric-label">Đang thẩm định</span>
           </div>
         </div>
 
         <div className="student-metric-card student-metric-card--alert">
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.needsRevision}</span>
-            <span className="student-metric-label">Action Required</span>
+            <span className="student-metric-label">Cần chỉnh sửa</span>
           </div>
         </div>
 
         <div className="student-metric-card">
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.approved}</span>
-            <span className="student-metric-label">Approved &amp; Verified</span>
+            <span className="student-metric-label">Đã duyệt</span>
           </div>
         </div>
       </div>
@@ -166,34 +164,34 @@ export function PreprintListView() {
       {/* Filter and Search Bar */}
       <div className="student-filter-toolbar">
         {/* Status Tabs */}
-        <div className="student-tabs-pills" role="tablist" aria-label="Filter manuscripts by status">
+        <div className="student-tabs-pills" role="tablist" aria-label="Lọc bản thảo theo trạng thái">
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('ALL')}
           >
-            All <span className="student-tab-pill__count">{metrics.total}</span>
+            Tất cả <span className="student-tab-pill__count">{metrics.total}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'UNDER_REVIEW' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('UNDER_REVIEW')}
           >
-            In Review <span className="student-tab-pill__count">{metrics.underReview}</span>
+            Đang thẩm định <span className="student-tab-pill__count">{metrics.underReview}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'NEEDS_REVISION' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setSelectedTab('NEEDS_REVISION')}
           >
-            Needs Revision <span className="student-tab-pill__count">{metrics.needsRevision}</span>
+            Cần chỉnh sửa <span className="student-tab-pill__count">{metrics.needsRevision}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'APPROVED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('APPROVED')}
           >
-            Approved <span className="student-tab-pill__count">{metrics.approved}</span>
+            Đã duyệt <span className="student-tab-pill__count">{metrics.approved}</span>
           </button>
           {metrics.drafts > 0 && (
             <button
@@ -201,7 +199,7 @@ export function PreprintListView() {
               className={`student-tab-pill ${selectedTab === 'DRAFT' ? 'student-tab-pill--active' : ''}`}
               onClick={() => setSelectedTab('DRAFT')}
             >
-              Drafts <span className="student-tab-pill__count">{metrics.drafts}</span>
+              Bản nháp <span className="student-tab-pill__count">{metrics.drafts}</span>
             </button>
           )}
         </div>
@@ -215,7 +213,7 @@ export function PreprintListView() {
             </svg>
             <input
               type="search"
-              placeholder="Search manuscripts..."
+              placeholder="Tìm kiếm bản thảo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -228,14 +226,14 @@ export function PreprintListView() {
           </div>
 
           <div className="student-sort-box">
-            <span className="student-sort-label">Sort:</span>
+            <span className="student-sort-label">Sắp xếp:</span>
             <SortDropdown
               value={safeSortBy}
               onChange={(val) => setSortBy(val as 'UPDATED' | 'TITLE' | 'STATUS')}
               options={[
-                { value: 'UPDATED', label: 'Recently Updated' },
-                { value: 'TITLE', label: 'Title (A-Z)' },
-                { value: 'STATUS', label: 'Status' },
+                { value: 'UPDATED', label: 'Mới cập nhật' },
+                { value: 'TITLE', label: 'Tiêu đề (A-Z)' },
+                { value: 'STATUS', label: 'Theo trạng thái' },
               ]}
               style={{ width: '160px' }}
             />
@@ -246,14 +244,14 @@ export function PreprintListView() {
       {/* Loading & Error States */}
       {loading && (
         <div className="dashboard-table-card dashboard-table-wrapper">
-          <table className="dashboard-table dashboard-table--repository" aria-label="Manuscripts repository list">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Danh sách kho bản thảo">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>Manuscript</th>
-                <th>Discipline</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Updated</th>
+                <th style={{ width: '48%' }}>Bản thảo</th>
+                <th>Lĩnh vực nghiên cứu</th>
+                <th>Phiên bản</th>
+                <th>Trạng thái</th>
+                <th>Cập nhật</th>
               </tr>
             </thead>
             <tbody>
@@ -265,7 +263,7 @@ export function PreprintListView() {
 
       {error && !loading && (
         <div className="student-error-banner">
-          <strong>Error loading preprints:</strong> {error.message}
+          <strong>Lỗi khi tải bản thảo:</strong> {error.message}
         </div>
       )}
 
@@ -280,11 +278,11 @@ export function PreprintListView() {
               <line x1="9" y1="15" x2="15" y2="15" />
             </svg>
           </div>
-          <h3>No manuscripts found</h3>
+          <h3>Không tìm thấy bản thảo nào</h3>
           <p>
             {searchQuery || selectedTab !== 'ALL'
-              ? 'No manuscripts match your current filters. Try changing your search query or status tab.'
-              : 'You have not submitted any preprints yet. Start your first research submission to obtain a cryptographic timestamp and faculty mentorship.'}
+              ? 'Không có bản thảo nào khớp với bộ lọc hiện tại. Hãy thử thay đổi từ khóa tìm kiếm hoặc tab trạng thái.'
+              : 'Bạn chưa nộp bản thảo nào. Hãy bắt đầu nộp bản thảo nghiên cứu đầu tiên để được cấp mã băm xác thực và nhận sự hướng dẫn từ giảng viên.'}
           </p>
         </div>
       )}
@@ -292,14 +290,14 @@ export function PreprintListView() {
       {/* Manuscripts Table View */}
       {!loading && !error && filteredItems.length > 0 && (
         <div className="dashboard-table-card dashboard-table-wrapper">
-          <table className="dashboard-table dashboard-table--repository" aria-label="Manuscripts repository list">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Danh sách kho bản thảo">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>Manuscript</th>
-                <th>Discipline</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Updated</th>
+                <th style={{ width: '48%' }}>Bản thảo</th>
+                <th>Lĩnh vực nghiên cứu</th>
+                <th>Phiên bản</th>
+                <th>Trạng thái</th>
+                <th>Cập nhật</th>
               </tr>
             </thead>
             <tbody>
@@ -311,12 +309,12 @@ export function PreprintListView() {
                         {item.title}
                       </Link>
                       {item.is_private && (
-                        <span className="dashboard-private-pill">Private</span>
+                        <span className="dashboard-private-pill">Bảo mật</span>
                       )}
                     </div>
                   </td>
                   <td>
-                    <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>
+                    <span className="dashboard-badge-tag">{item.discipline || 'Tổng quát'}</span>
                   </td>
                   <td>
                     <span className="dashboard-version-pill">v{item.current_version}</span>

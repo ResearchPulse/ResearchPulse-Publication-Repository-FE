@@ -76,7 +76,7 @@ function SearchableDisciplineSelect({ value, onChange }: SearchableDisciplineSel
         aria-expanded={isOpen}
       >
         <span className={value ? 'student-searchable-select__value' : 'student-searchable-select__placeholder'}>
-          {value || 'Select a research discipline'}
+          {value || 'Chọn chuyên ngành nghiên cứu'}
         </span>
         <svg
           className={`student-searchable-select__arrow ${isOpen ? 'student-searchable-select__arrow--open' : ''}`}
@@ -114,7 +114,7 @@ function SearchableDisciplineSelect({ value, onChange }: SearchableDisciplineSel
               ref={searchInputRef}
               type="text"
               className="student-searchable-select__search-input"
-              placeholder="Search discipline..."
+              placeholder="Tìm kiếm chuyên ngành..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -156,7 +156,7 @@ function SearchableDisciplineSelect({ value, onChange }: SearchableDisciplineSel
               })
             ) : (
               <li className="student-searchable-select__option--empty">
-                No research disciplines found
+                Không tìm thấy chuyên ngành phù hợp
               </li>
             )}
           </ul>
@@ -449,11 +449,11 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         }
       }
       if (!discipline.trim()) {
-        showError('Research Discipline / Field is required before submitting.');
+        showError('Vui lòng chọn Lĩnh vực nghiên cứu trước khi nộp.');
         return;
       }
       if (!title.trim()) {
-        showError('Manuscript title is required before submitting.');
+        showError('Vui lòng nhập Tiêu đề bản thảo trước khi nộp.');
         return;
       }
     }
@@ -507,7 +507,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       router.push(`${workspacePath}/${publicationId}`);
       router.refresh();
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
+      showError(error instanceof Error ? error.message : 'Đã xảy ra lỗi trong quá trình lưu bản thảo.');
     } finally {
       setIsSubmitting(false);
     }
@@ -516,10 +516,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
 
   const primaryAuthor = authors[0] || originalItem?.authors?.[0];
-  const primaryAuthorName = primaryAuthor?.name || user?.name || user?.email?.split('@')[0] || (isLecturer ? 'Logged-in Lecturer' : 'Logged-in Student');
+  const primaryAuthorName = primaryAuthor?.name || user?.name || user?.email?.split('@')[0] || (isLecturer ? 'Giảng viên' : 'Sinh viên');
   const primaryAuthorEmail = primaryAuthor?.email || user?.email || (isLecturer ? 'lecturer@university.edu.vn' : 'student@university.edu.vn');
   const primaryAuthorStudentId = primaryAuthor?.studentId || user?.studentId || '';
-  const primaryAuthorInst = primaryAuthor?.institution || 'University Research Faculty';
+  const primaryAuthorInst = primaryAuthor?.institution || 'Khoa Nghiên cứu Đại học';
   const primaryInitials = primaryAuthorName
     .split(' ')
     .map((p) => p[0])
@@ -535,7 +535,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         aria-live="polite"
         style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px', color: '#64748b' }}
       >
-        Loading workspace…
+        Đang tải không gian làm việc…
       </main>
     );
   }
@@ -546,7 +546,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         role="alert"
         style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px', color: '#b91c1c' }}
       >
-        This workspace requires an active Lecturer account.
+        Không gian này yêu cầu tài khoản Giảng viên.
       </main>
     );
   }
@@ -558,12 +558,12 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         isReadOnly
           ? `Bản thảo: ${originalItem?.status === 'UNDER_REVIEW' ? 'Đang xét duyệt' : originalItem?.status}`
           : isRevisionMode
-            ? `Revise Manuscript: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
+            ? `Nộp bản sửa đổi: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
             : isEditing
-              ? 'Edit Manuscript Draft'
-              : 'Start a New Preprint'
+              ? 'Chỉnh sửa bản nháp'
+              : 'Nộp bản thảo mới'
       }
-      kicker={isReadOnly ? 'Submitted Manuscript' : isRevisionMode ? 'Revision Submission' : 'Manuscript Registration'}
+      kicker={isReadOnly ? 'Bản thảo đã nộp' : isRevisionMode ? 'Nộp bản sửa đổi' : 'Đăng ký bản thảo'}
     >
       {loadingInitial ? (
         <FormSkeleton />
@@ -684,7 +684,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
                 <div>
-                  <h4>Feedback to Address from {latestReview.reviewer_name}</h4>
+                  <h4>Nhận xét cần chỉnh sửa từ {latestReview.reviewer_name}</h4>
                   <p className="student-subtext">{latestReview.reviewer_title}</p>
                 </div>
               </div>
@@ -693,7 +693,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </blockquote>
               {latestReview.recommendations && latestReview.recommendations.length > 0 && (
                 <div className="student-editor-revision-alert__recs">
-                  <strong>Action Items:</strong>
+                  <strong>Các điểm cần khắc phục:</strong>
                   <ul>
                     {latestReview.recommendations.map((rec, i) => (
                       <li key={i}>{rec}</li>
@@ -723,12 +723,12 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               if (!isReadOnly) handleSubmit(false);
             }}
           >
-            {/* Step 01: Upload Manuscript PDF (trên cùng) */}
+            {/* Step 01: Upload Manuscript PDF */}
             <div className="student-form-section">
               <div className="student-form-section__header">
                 <span className="student-step-number">01</span>
                 <div>
-                  <h3 className="student-form-section__title">Upload Manuscript PDF</h3>
+                  <h3 className="student-form-section__title">Tải lên bản thảo PDF</h3>
                 </div>
               </div>
 
@@ -759,8 +759,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                         <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                     </div>
-                    <strong className="student-dropzone__cta">Choose a PDF file or drag and drop here</strong>
-                    <span className="student-dropzone__specs">PDF up to 50MB. Includes figures, tables, and citations.</span>
+                    <strong className="student-dropzone__cta">Chọn tệp PDF hoặc kéo thả vào đây</strong>
+                    <span className="student-dropzone__specs">Tệp PDF dung lượng tối đa 50MB. Bao gồm hình vẽ, bảng biểu và tài liệu tham khảo.</span>
                   </label>
                 </div>
               ) : (
@@ -780,7 +780,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        {fileHash ? `SHA-256: ${fileHash.substring(0, 14)}…` : 'Checksum verified'}
+                        {fileHash ? `SHA-256: ${fileHash.substring(0, 14)}…` : 'Đã xác thực mã băm'}
                       </span>
                     </div>
                   </div>
@@ -795,7 +795,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       }}
                       className="student-file-remove-btn"
                     >
-                      Replace
+                      Thay tệp khác
                     </button>
                   )}
                 </div>
@@ -808,19 +808,19 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <div className="student-form-section__header">
                   <span className="student-step-number student-step-number--amber">★</span>
                   <div>
-                    <h3 className="student-form-section__title">Summary of Revisions (Author Response)</h3>
+                    <h3 className="student-form-section__title">Tóm tắt các điểm chỉnh sửa (Phản hồi tác giả)</h3>
                   </div>
                 </div>
 
                 <div className="student-field">
                   <label htmlFor="field-changes" className="student-field__label">
-                    Response to Reviewers &amp; Change Notes <span className="student-required">*</span>
+                    Phản hồi người phản biện &amp; Ghi chú thay đổi <span className="student-required">*</span>
                   </label>
                   <textarea
                     id="field-changes"
                     className="student-textarea"
                     rows={4}
-                    placeholder="e.g., Added ANOVA verification table in Section 3.2, clarified OS benchmarking in Appendix A, and re-computed confidence intervals."
+                    placeholder="Ví dụ: Đã bổ sung bảng kiểm định ANOVA ở Mục 3.2, làm rõ phương pháp so sánh tại Phụ lục A và tính toán lại khoảng tin cậy."
                     value={changeSummary}
                     onChange={(e) => setChangeSummary(e.target.value)}
                     required
@@ -834,7 +834,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               <div className="student-form-section__header">
                 <span className="student-step-number">02</span>
                 <div>
-                  <h3 className="student-form-section__title">Authorship & Attribution</h3>
+                  <h3 className="student-form-section__title">Tác giả &amp; Đóng góp</h3>
                 </div>
               </div>
 
@@ -844,8 +844,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <div className="student-author-info">
                   <div className="student-author-name-row">
                     <strong className="student-author-name">{primaryAuthorName}</strong>
-                    <span className="student-author-pill">Primary Author</span>
-                    <span className="student-author-pill">Corresponding</span>
+                    <span className="student-author-pill">Tác giả chính</span>
+                    <span className="student-author-pill">Tác giả liên hệ</span>
                   </div>
                   <span className="student-author-meta">
                     {[
@@ -856,8 +856,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   </span>
                   <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'VERIFIED'}`}>
                     {authors[0]?.verificationStatus === 'VERIFIED' || (!isEditing && !authors[0])
-                      ? 'Active User verified'
-                      : 'Needs User verification before Submit'}
+                      ? 'Tài khoản đã xác thực'
+                      : 'Cần xác thực tài khoản trước khi nộp'}
                   </span>
                 </div>
               </div>
@@ -869,7 +869,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <div className="student-author-info">
                     <div className="student-author-name-row">
                       <strong className="student-author-name">{ca.name}</strong>
-                      <span className="student-author-pill student-author-pill--co">Co-Author</span>
+                      <span className="student-author-pill student-author-pill--co">Đồng tác giả</span>
                     </div>
                     <span className="student-author-meta">
                       {[
@@ -879,7 +879,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       ].filter(Boolean).join(' • ')}
                     </span>
                     <span className={`student-author-verification student-author-verification--${ca.verificationStatus || 'MISSING_IDENTIFIER'}`}>
-                      {ca.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
+                      {ca.verificationStatus === 'VERIFIED' ? 'Tài khoản đã xác thực' : 'Cần xác thực tài khoản trước khi nộp'}
                     </span>
                   </div>
                   {!isReadOnly && (
@@ -887,7 +887,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       type="button"
                       onClick={() => removeCoAuthor(idx)}
                       className="student-author-remove"
-                      title="Remove author"
+                      title="Xóa tác giả"
                     >
                       ×
                     </button>
@@ -898,26 +898,26 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               {/* Add Co-author Box */}
               {!isReadOnly && (showAddAuthor ? (
                 <div className="student-add-author-box">
-                  <h4>Add Co-Author</h4>
+                  <h4>Thêm đồng tác giả</h4>
                   <div className="student-form-row">
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="Full Name"
+                      placeholder="Họ và tên tác giả"
                       value={newAuthorName}
                       onChange={(e) => setNewAuthorName(e.target.value)}
                     />
                     <input
                       type="email"
                       className="student-input"
-                      placeholder="University Email (lecturer/admin)"
+                      placeholder="Email trường đại học"
                       value={newAuthorEmail}
                       onChange={(e) => setNewAuthorEmail(e.target.value)}
                     />
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="MSSV (student)"
+                      placeholder="Mã số sinh viên (MSSV)"
                       value={newAuthorStudentId}
                       onChange={(e) => setNewAuthorStudentId(e.target.value)}
                     />
@@ -926,24 +926,24 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       value={newAuthorRole}
                       onChange={(e) => setNewAuthorRole(e.target.value as 'STUDENT' | 'LECTURER' | 'ADMIN')}
                     >
-                      <option value="STUDENT">Student author</option>
-                      <option value="LECTURER">Lecturer author</option>
-                      <option value="ADMIN">Admin author</option>
+                      <option value="STUDENT">Tác giả sinh viên</option>
+                      <option value="LECTURER">Tác giả giảng viên</option>
+                      <option value="ADMIN">Cán bộ / Quản trị</option>
                     </select>
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="Institution (e.g. HCMUT, HUST)"
+                      placeholder="Đơn vị / Trường (ví dụ: ĐHBK, ĐHQG)"
                       value={newAuthorInst}
                       onChange={(e) => setNewAuthorInst(e.target.value)}
                     />
                   </div>
                   <div className="student-add-author-actions">
                     <button type="button" onClick={addCoAuthor} className="student-btn student-btn--sm student-btn--primary">
-                      Add Co-Author
+                      Thêm đồng tác giả
                     </button>
                     <button type="button" onClick={() => setShowAddAuthor(false)} className="student-btn student-btn--sm student-btn--secondary">
-                      Cancel
+                      Hủy
                     </button>
                   </div>
                 </div>
@@ -957,17 +957,17 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>Add Contributing Co-Author</span>
+                  <span>Thêm đồng tác giả đóng góp</span>
                 </button>
               ))}
             </div>
 
-            {/* Step 03: Manuscript Metadata & Discipline (chờ GROBID extract ra) */}
+            {/* Step 03: Manuscript Metadata & Discipline */}
             <div className="student-form-section">
               <div className="student-form-section__header">
                 <span className="student-step-number">03</span>
                 <div>
-                  <h3 className="student-form-section__title">Manuscript Metadata & Discipline</h3>
+                  <h3 className="student-form-section__title">Dữ liệu bản thảo &amp; Lĩnh vực nghiên cứu</h3>
                 </div>
               </div>
 
@@ -975,7 +975,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               {isAnalyzing ? (
                 <div className="student-extraction-notice student-extraction-notice--waiting">
                   <span className="student-spinner" aria-hidden="true" />
-                  <span><strong>Analyzing PDF with GROBID…</strong> No file is stored yet. Save and submit will be available after the analysis finishes.</span>
+                  <span><strong>Đang phân tích PDF bằng GROBID…</strong> Tệp chưa được lưu lên máy chủ. Bạn có thể lưu hoặc nộp sau khi phân tích xong.</span>
                 </div>
               ) : analysis ? (
                 <div className="student-extraction-notice student-extraction-notice--success">
@@ -984,7 +984,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                   <span>
-                    <strong>GROBID extraction ready:</strong> PDF <em>{fileName}</em> is held in this browser only. Review and edit the extracted metadata below before saving or submitting.
+                    <strong>Đã trích xuất thông tin qua GROBID:</strong> Tệp <em>{fileName}</em> đang được giữ tại trình duyệt này. Vui lòng rà soát và chỉnh sửa dữ liệu bên dưới trước khi lưu hoặc nộp.
                   </span>
                 </div>
               ) : (
@@ -995,20 +995,20 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <line x1="12" y1="8" x2="12.01" y2="8" />
                   </svg>
                   <span>
-                    <strong>Waiting for PDF analysis:</strong> Select a manuscript to extract title, abstract, date, and author candidates. Discipline and keywords are entered by you.
+                    <strong>Chờ tải tệp bản thảo:</strong> Hãy chọn tệp PDF để tự động trích xuất tiêu đề, tóm tắt và danh sách tác giả. Lĩnh vực nghiên cứu và từ khóa do bạn tự nhập.
                   </span>
                 </div>
               )}
 
               <div className="student-field">
                 <label htmlFor="field-title" className="student-field__label">
-                  Manuscript Title <span className="student-required">*</span>
+                  Tiêu đề bản thảo <span className="student-required">*</span>
                 </label>
                 <input
                   id="field-title"
                   type="text"
                   className="student-input"
-                  placeholder="e.g., Mapping data literacy in undergraduate STEM research"
+                  placeholder="Ví dụ: Khảo sát năng lực xử lý dữ liệu trong nghiên cứu STEM bậc đại học"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={isReadOnly}
@@ -1017,14 +1017,14 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
               <div className="student-field">
                 <label htmlFor="field-discipline" className="student-field__label">
-                  Research Discipline / Field <span className="student-required">*</span>
+                  Lĩnh vực nghiên cứu <span className="student-required">*</span>
                 </label>
 
                 <input
                   id="field-discipline"
                   type="text"
                   className="student-input"
-                  placeholder="e.g. Computer Science, Biomedical Engineering"
+                  placeholder="Ví dụ: Khoa học máy tính, Kỹ thuật y sinh, Khoa học dữ liệu..."
                   value={discipline}
                   onChange={(e) => setDiscipline(e.target.value)}
                   disabled={isReadOnly}
@@ -1033,13 +1033,13 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
               <div className="student-field">
                 <label htmlFor="field-keywords" className="student-field__label">
-                  Keywords (comma separated)
+                  Từ khóa (phân cách bằng dấu phẩy)
                 </label>
                 <input
                   id="field-keywords"
                   type="text"
                   className="student-input"
-                  placeholder="e.g. Data Literacy, STEM Education, Statistical Integrity"
+                  placeholder="Ví dụ: Xử lý ngôn ngữ tự nhiên, Trí tuệ nhân tạo, Học sâu"
                   value={keywordsInput}
                   onChange={(e) => setKeywordsInput(e.target.value)}
                   disabled={isReadOnly}
@@ -1049,15 +1049,15 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               <div className="student-field">
                 <div className="student-field__label-row">
                   <label htmlFor="field-abstract" className="student-field__label">
-                    Abstract
+                    Tóm tắt nghiên cứu
                   </label>
-                  <span className="student-char-count">{abstractText.length} characters</span>
+                  <span className="student-char-count">{abstractText.length} ký tự</span>
                 </div>
                 <textarea
                   id="field-abstract"
                   className="student-textarea"
                   rows={6}
-                  placeholder="Summarize the core research question, empirical methodology, primary findings, and scientific significance..."
+                  placeholder="Tóm tắt câu hỏi nghiên cứu cốt lõi, phương pháp thực nghiệm, kết quả chính và ý nghĩa khoa học..."
                   value={abstractText}
                   onChange={(e) => setAbstractText(e.target.value)}
                   disabled={isReadOnly}
@@ -1087,13 +1087,13 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     </div>
                     <div className="lecturer-privacy-card__content">
                       <div className="lecturer-privacy-card__title-row">
-                        <span className="lecturer-privacy-card__title">Keep Manuscript in Private Faculty Archive</span>
+                        <span className="lecturer-privacy-card__title">Lưu trữ bản thảo trong kho lưu trữ riêng của giảng viên</span>
                         <span className={`lecturer-privacy-card__badge ${isPrivate ? 'lecturer-privacy-card__badge--private' : ''}`}>
-                          {isPrivate ? 'Private Draft' : 'Standard Review Flow'}
+                          {isPrivate ? 'Bản nháp riêng' : 'Quy trình thẩm định tiêu chuẩn'}
                         </span>
                       </div>
                       <p className="lecturer-privacy-card__desc">
-                        When enabled, this draft is strictly confidential to your lecturer workspace. It will not be sent to faculty review committees or visible to administrators until you decide to change visibility.
+                        Khi bật, bản thảo này hoàn toàn bảo mật trong không gian giảng viên của bạn. Bản thảo sẽ không được gửi tới hội đồng thẩm định hay hiển thị với người khác cho đến khi bạn thay đổi quyền hiển thị.
                       </p>
                     </div>
                   </div>
@@ -1121,7 +1121,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
             {/* Sticky/Bottom Action Bar */}
             <div className="student-form-actions-bar">
               <Link href={workspacePath} className="student-btn student-btn--secondary">
-                Cancel
+                Hủy
               </Link>
 
               <div className="student-form-actions-right">
@@ -1144,7 +1144,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       disabled={isSubmitting || isAnalyzing}
                       className="student-btn student-btn--secondary"
                     >
-                      {isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Saving…' : 'Save as Draft'}
+                      {isAnalyzing ? 'Đang phân tích…' : isSubmitting ? 'Đang lưu…' : 'Lưu bản nháp'}
                     </button>
 
                     <button
@@ -1153,7 +1153,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       disabled={isSubmitting || isAnalyzing}
                       className="student-btn student-btn--primary"
                     >
-                      <span>{isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Submitting…' : isRevisionMode ? 'Submit Revised Version' : 'Submit for Faculty Review'}</span>
+                      <span>{isAnalyzing ? 'Đang phân tích…' : isSubmitting ? 'Đang nộp…' : isRevisionMode ? 'Nộp bản sửa đổi' : 'Nộp bản thảo để xét duyệt'}</span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
@@ -1168,7 +1168,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                         className="student-btn student-btn--secondary"
                         title="Development-only: bypass author account verification"
                       >
-                        {isSubmitting ? 'Mock submitting…' : 'Mock submit (local)'}
+                        {isSubmitting ? 'Đang nộp giả lập…' : 'Nộp giả lập (dev)'}
                       </button>
                     )}
                   </>

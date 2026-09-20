@@ -13,7 +13,7 @@ export type Author = {
   isCorresponding?: boolean;
 };
 
-export type ReviewDecision = 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';
+export type ReviewDecision = 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';
 
 export type ReviewNote = {
   id: string;
@@ -23,6 +23,8 @@ export type ReviewNote = {
   comments: string;
   recommendations?: string[];
   created_at: string;
+  round?: number;
+  assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'LEGACY';
 };
 
 export type TimelineEvent = {
