@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useRef, useEffect } from 'react';
-import { useTranslation, LanguageSwitcher } from '@/i18n';
+import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { NotificationBell } from '@/shared/components/NotificationBell';
 
 interface StudentTopbarProps {
   onToggleSidebar?: () => void;
@@ -14,12 +14,9 @@ interface StudentTopbarProps {
 export function StudentTopbar({
   onToggleSidebar,
   title,
-  revisionCount = 0,
 }: StudentTopbarProps) {
   const { t } = useTranslation();
   const pathname = usePathname();
-  const [showNotifications, setShowNotifications] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
 
   const currentTitle = title || t('student.topbar.myPreprintsTitle');
 
@@ -34,32 +31,6 @@ export function StudentTopbar({
   };
 
   const breadcrumbGroup = getBreadcrumbGroup();
-
-  useEffect(() => {
-    if (!showNotifications) return;
-
-    function handleClickOutside(event: MouseEvent | TouchEvent) {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setShowNotifications(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showNotifications]);
 
   return (
     <header className="student-topbar">
@@ -90,51 +61,9 @@ export function StudentTopbar({
           <input type="text" placeholder={t('common.search')} className="student-topbar__search-input" aria-label={t('common.search')} />
         </div>
 
-        <div className="student-topbar__notif-wrapper" ref={notifRef}>
-          <button
-            type="button"
-            className="student-topbar__notif-btn"
-            onClick={() => setShowNotifications(!showNotifications)}
-            aria-label={`${t('common.notifications')} (${revisionCount})`}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            {revisionCount > 0 && <span className="student-topbar__notif-dot" />}
-          </button>
+        <NotificationBell />
 
-          {showNotifications && (
-            <div className="student-topbar__notif-popover">
-              <div className="student-topbar__notif-header">
-                <strong>{t('common.notifications')}</strong>
-                <span className="student-topbar__notif-count">{revisionCount}</span>
-              </div>
-              <div className="student-topbar__notif-list">
-                {revisionCount > 0 ? (
-                  <Link href="/student/mentor-feedback" className="student-topbar__notif-item" onClick={() => setShowNotifications(false)}>
-                    <div className="student-topbar__notif-item-icon student-topbar__notif-item-icon--amber">!</div>
-                    <div className="student-topbar__notif-item-text">
-                      <p className="student-topbar__notif-item-title">Có phản hồi mới từ người phản biện</p>
-                      <p className="student-topbar__notif-item-desc">Mở mục Phản hồi của GVHD để xem nhận xét mới nhất.</p>
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="student-topbar__notif-empty">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                    </svg>
-                    <p>{t('common.noNotifications')}</p>
-                  </div>
-                )}
-              </div>
-              <div className="student-topbar__notif-footer">
-                <Link href="/student/mentor-feedback" onClick={() => setShowNotifications(false)}>Xem phản hồi của GVHD →</Link>
-              </div>
-            </div>
-          )}
-        </div>
+        <LanguageSwitcher variant="toggle" />
 
         <Link href="/student/my-preprints/new" className="student-topbar__cta">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

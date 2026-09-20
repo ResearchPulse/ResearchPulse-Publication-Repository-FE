@@ -1941,14 +1941,15 @@
 }
 
 .admin-role-select:hover:not(:disabled) {
-  border-color: #94a3b8;
+  border-color: #cbd5e1;
   background-color: #ffffff;
 }
 
 .admin-role-select:focus {
-  border-color: #0071bc;
+  border-color: #cbd5e1;
   background-color: #ffffff;
-  box-shadow: 0 0 0 2px rgba(0, 113, 188, 0.12);
+  outline: none;
+  box-shadow: none;
 }
 
 .admin-role-select:disabled {
@@ -3260,13 +3261,13 @@
 }
 
 .users-create-role-dropdown .student-sort-dropdown__trigger:hover {
-  border-color: #0071bc;
-  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  background-color: #ffffff;
 }
 
 .users-create-role-dropdown .student-sort-dropdown__trigger--open {
-  border-color: #0071bc;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.15);
+  border-color: #cbd5e1;
+  box-shadow: none;
 }
 
 .users-create-role-dropdown .student-sort-dropdown__menu {
@@ -3303,17 +3304,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: all 0.15s ease;
 }
 
 .admin-primary-reviewer-dropdown .student-sort-dropdown__trigger:hover:not(:disabled) {
-  border-color: #0071bc;
-  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  background-color: #ffffff;
 }
 
 .admin-primary-reviewer-dropdown .student-sort-dropdown__trigger--open {
-  border-color: #0071bc;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.15);
+  border-color: #cbd5e1;
+  box-shadow: none;
 }
 
 .admin-primary-reviewer-dropdown .student-sort-dropdown__menu {

@@ -7,8 +7,10 @@ import { StudentDashboardLayout } from '../components';
 import { Skeleton, TableSkeleton } from '@/components/skeleton';
 import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
+import { useTranslation } from '@/i18n';
 
 export function StudentDashboardView() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const displayName = user?.name || user?.email || 'Scholar';
   const { items, loading, error } = usePreprintList();
@@ -35,7 +37,7 @@ export function StudentDashboardView() {
 
   return (
     <StudentDashboardLayout
-      title="Bảng điều khiển học thuật"
+      title={t('student.topbar.academicDashboard')}
       revisionCount={metrics.needsRevision}
       totalCount={metrics.total}
     >

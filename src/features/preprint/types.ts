@@ -64,6 +64,7 @@ export type StudentPreprint = {
   is_private?: boolean;
   current_version: number;
   revision_required?: boolean;
+  change_summary?: string;
   authors: Author[];
   supervisor?: string;
   file_name?: string;

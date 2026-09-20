@@ -325,5 +325,71 @@
     "badgeFaculty": "Faculty Only",
     "badgeCampus": "Campus-wide",
     "badgeAssigned": "Reviewing"
+  },
+  "student": {
+    "topbar": {
+      "myPreprintsTitle": "My Manuscripts",
+      "publishedTitle": "Published Papers Repository",
+      "academicDashboard": "Academic Dashboard",
+      "preprintsGroup": "Manuscripts",
+      "reviewGroup": "Reviews",
+      "personalGroup": "Personal",
+      "newPreprintButton": "Submit New Manuscript"
+    },
+    "sidebar": {
+      "myPreprints": "My Manuscripts",
+      "published": "Published Papers",
+      "versions": "Version History",
+      "mentorFeedback": "Mentor Feedback",
+      "account": "Personal Profile",
+      "signOut": "Sign Out"
+    },
+    "preprints": {
+      "totalCount": "Total Manuscripts",
+      "underReview": "Under Review",
+      "needsRevision": "Needs Revision",
+      "approved": "Approved",
+      "published": "Published",
+      "accepted": "Accepted",
+      "draft": "Draft",
+      "rejected": "Rejected",
+      "revisionNeeded": "Revision Needed",
+      "filterStatus": "Filter by status",
+      "serverDelay": "Loading manuscripts...",
+      "actionRequired": "Action Required: Revision Requested",
+      "versionBadge": "Version {version}",
+      "revisionDesc1": "Faculty Mentor",
+      "revisionDesc2": "submitted review feedback for manuscript",
+      "reviewBoard": "Review Board",
+      "viewFeedback": "Review Feedback & Revise →",
+      "tableManuscript": "Manuscript",
+      "tableDiscipline": "Discipline",
+      "tableVersion": "Version",
+      "tableStatus": "Status",
+      "tableUpdated": "Updated",
+      "emptyTitle": "No manuscripts found",
+      "emptyDesc": "Get started by submitting your first research preprint to the repository.",
+      "createNew": "Submit New Manuscript",
+      "detailsTitle": "Manuscript Details",
+      "versionsHistory": "Version History",
+      "manuscriptPrefix": "Manuscript",
+      "submitRevision": "Submit Revision",
+      "editDraft": "Edit Draft",
+      "submittedManuscript": "Submitted Manuscript",
+      "registerManuscript": "Manuscript Submission"
+    },
+    "account": {
+      "title": "Personal Profile",
+      "active": "Active",
+      "fullName": "Full Name",
+      "studentId": "Student ID",
+      "major": "Academic Major",
+      "email": "Email Address",
+      "tabProfile": "Personal Info",
+      "tabSecurity": "Security & Password",
+      "role": "Role",
+      "status": "Status",
+      "changePasswordTitle": "Change Account Password"
+    }
   }
 }

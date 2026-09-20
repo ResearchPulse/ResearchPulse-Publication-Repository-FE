@@ -14,7 +14,7 @@ interface StudentShellProps {
 }
 
 export function StudentShell({
-  title = 'Bản thảo của tôi',
+  title,
   kicker,
   actions,
   breadcrumbs,

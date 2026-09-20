@@ -9,6 +9,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintVersionInfo } from '../types';
 import { TimelineSkeleton } from '@/components/skeleton';
+import { useTranslation } from '@/i18n';
 
 interface PreprintVersionsViewProps {
   id: string;
@@ -19,11 +20,13 @@ function PreprintVersionsShell({
   title,
   actions,
   children,
+  kicker,
 }: {
   isLecturer: boolean;
   title: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
+  kicker?: string;
 }) {
   return isLecturer ? (
     <LecturerShell active="submissions" title={title}>
@@ -33,7 +36,7 @@ function PreprintVersionsShell({
   ) : (
     <StudentShell
       title={title}
-      kicker={isLecturer ? 'Lịch sử dòng đời bản thảo' : 'Dòng thời gian & Xuất xứ phiên bản'}
+      kicker={kicker}
       actions={actions}
     >
       {children}
@@ -42,6 +45,7 @@ function PreprintVersionsShell({
 }
 
 export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
+  const { t, locale } = useTranslation();
   const pathname = usePathname();
   const { user } = useAuth();
   const isLecturer = user?.role === 'LECTURER' || (pathname?.startsWith('/lecturer/') ?? false);
@@ -63,7 +67,7 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
         setVersions(res.versions || []);
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err : new Error('Không thể tải lịch sử phiên bản.'));
+        if (active) setError(err instanceof Error ? err : new Error(locale === 'vi' ? 'Không thể tải lịch sử phiên bản.' : 'Failed to load version history.'));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -72,14 +76,21 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, locale]);
 
-  const pageTitle = item ? `Lịch sử phiên bản: ${item.title}` : 'Lịch sử phiên bản';
+  const pageTitle = item
+    ? `${t('student.preprints.versionsHistory')}: ${item.title}`
+    : t('student.preprints.versionsHistory');
+
+  const kicker = isLecturer
+    ? (locale === 'vi' ? 'Lịch sử dòng đời bản thảo' : 'Manuscript Lifecycle History')
+    : (locale === 'vi' ? 'Dòng thời gian & Xuất xứ phiên bản' : 'Timeline & Version Provenance');
 
   return (
     <PreprintVersionsShell
       isLecturer={isLecturer}
       title={pageTitle}
+      kicker={kicker}
       actions={
         item && (
           <div className="student-detail-top-actions">

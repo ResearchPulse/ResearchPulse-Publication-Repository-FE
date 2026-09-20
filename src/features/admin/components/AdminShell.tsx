@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
 import { adminApi } from '../api';
 import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { NotificationBell } from '@/shared/components/NotificationBell';
 
 export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'registrations' | 'profile';
 
@@ -293,7 +294,22 @@ export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSide
       </div>
 
       <div className="student-topbar__right">
-        {/* Right action area */}
+        <div className="student-topbar__search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            placeholder={t('common.searchShell')}
+            className="student-topbar__search-input"
+            aria-label={t('common.searchManuscripts')}
+          />
+        </div>
+
+        <NotificationBell />
+
+        <LanguageSwitcher variant="toggle" />
       </div>
     </header>
   );
