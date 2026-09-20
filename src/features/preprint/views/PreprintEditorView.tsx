@@ -205,6 +205,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [keywordsInput, setKeywordsInput] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [changeSummary, setChangeSummary] = useState('');
+  const [changeSummaryError, setChangeSummaryError] = useState<string | null>(null);
 
   // Authors are extracted from the uploaded PDF. New contributors can be added
   // before submission and are sent through the metadata update endpoint.
@@ -258,6 +259,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
           setFileSize(item.file_size || null);
           setFileHash(item.sha256 || null);
         }
+        if (item.change_summary) setChangeSummary(item.change_summary);
         setAuthors(item.authors || []);
       })
       .catch((err) => {
@@ -519,20 +521,29 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     }
 
     setFormError(null);
+    setChangeSummaryError(null);
 
-    if (submitNow && !useMockSubmit) {
-      if (!isEditing && !file) {
-        showError('A PDF manuscript file is required before submitting for faculty review.');
+    if (submitNow) {
+      if (isRevisionMode && !changeSummary.trim()) {
+        const errorMsg = 'Vui lòng nhập tóm tắt các điểm chỉnh sửa (phản hồi người phản biện) trước khi nộp.';
+        setChangeSummaryError(errorMsg);
+        showError(errorMsg);
+        const el = document.getElementById('field-changes');
+        if (el) {
+          el.focus();
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         return;
       }
-      if ((originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required) && !changeSummary.trim()) {
-        showError('Please provide a Summary of Changes addressing the reviewer comments.');
+
+      if (!isEditing && !file) {
+        showError('Vui lòng đính kèm tệp bản thảo PDF trước khi gửi xét duyệt.');
         return;
       }
     }
 
     if (!isEditing && !file) {
-      showError('Attach a PDF manuscript before saving this draft.');
+      showError('Vui lòng đính kèm tệp bản thảo PDF trước khi lưu bản nháp.');
       return;
     }
 
@@ -609,10 +620,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         setFileHash(uploadedPublication.sha256 || fileHash);
       }
 
-      await studentPreprintApi.update(publicationId, metadata);
-      if (isLecturer) {
-        await studentPreprintApi.setPrivate(publicationId, isPrivate);
-      }
+      await studentPreprintApi.update(publicationId, {
+        ...metadata,
+        changeSummary: isRevisionMode ? changeSummary.trim() || undefined : undefined,
+      });
       if (submitNow) {
         if (useMockSubmit) await studentPreprintApi.mockSubmit(publicationId);
         else await studentPreprintApi.submit(publicationId);
@@ -928,19 +939,37 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   </div>
                 </div>
 
-                <div className="student-field">
+                <div className={`student-field ${changeSummaryError ? 'student-field--error' : ''}`}>
                   <label htmlFor="field-changes" className="student-field__label">
                     Phản hồi người phản biện &amp; Ghi chú thay đổi <span className="student-required">*</span>
                   </label>
                   <textarea
                     id="field-changes"
-                    className="student-textarea"
+                    className={`student-textarea ${changeSummaryError ? 'student-textarea--error' : ''}`}
                     rows={4}
                     placeholder="Ví dụ: Đã bổ sung bảng kiểm định ANOVA ở Mục 3.2, làm rõ phương pháp so sánh tại Phụ lục A và tính toán lại khoảng tin cậy."
                     value={changeSummary}
-                    onChange={(e) => setChangeSummary(e.target.value)}
+                    onChange={(e) => {
+                      setChangeSummary(e.target.value);
+                      if (changeSummaryError && e.target.value.trim()) {
+                        setChangeSummaryError(null);
+                      }
+                    }}
+                    aria-invalid={Boolean(changeSummaryError)}
+                    aria-describedby={changeSummaryError ? 'field-changes-error' : undefined}
+                    style={changeSummaryError ? { borderColor: '#ef4444', boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.15)' } : undefined}
                     required
                   />
+                  {changeSummaryError && (
+                    <div id="field-changes-error" className="student-field__error" style={{ color: '#dc2626', fontSize: '13px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{changeSummaryError}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

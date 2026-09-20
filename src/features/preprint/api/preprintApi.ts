@@ -257,6 +257,7 @@ function normalizePublication(
     status,
     current_version: currentVersion,
     revision_required: revisionRequired,
+    change_summary: (publication.currentVersion as any)?.changeSummary || versions.find((v) => v.isCurrent)?.changeSummary || undefined,
     authors: (publication.authors || []).map((author, index) => ({
       name: author.name,
       email: author.email || '',
@@ -415,6 +416,8 @@ export const studentPreprintApi = {
       discipline?: string;
       keywords?: string[];
       authors?: Array<{ name: string; email?: string; studentId?: string; role?: 'STUDENT' | 'LECTURER' | 'ADMIN'; affiliation?: string; orderIndex?: number }>;
+      changeSummary?: string;
+      isPrivate?: boolean;
     }
   ): Promise<StudentPreprint> => {
     const publication = await request<BackendPublication>('/' + encodeURIComponent(id), {
