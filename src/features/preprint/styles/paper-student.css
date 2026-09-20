@@ -532,12 +532,16 @@
 .user-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  justify-content: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 4px 12px;
   border-radius: 9999px;
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .user-badge--approved {
@@ -988,15 +992,31 @@
   white-space: nowrap;
 }
 
-.student-sort-dropdown__trigger:hover {
-  border-color: #dce4e9;
+.student-sort-dropdown__trigger--sm {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.student-sort-dropdown__trigger:hover:not(:disabled):not(.student-sort-dropdown__trigger--disabled) {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.student-sort-dropdown__trigger:disabled,
+.student-sort-dropdown__trigger--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
 }
 
 .student-sort-dropdown__trigger--open,
 .student-sort-dropdown__trigger:focus {
   outline: none;
   border-color: #0071bc;
-  box-shadow: none;
+  box-shadow: 0 0 0 2px rgba(0, 113, 188, 0.12);
 }
 
 .student-sort-dropdown__arrow {
@@ -1625,6 +1645,18 @@
   font-family: inherit;
   transition: border-color 0.15s ease;
   box-sizing: border-box;
+}
+
+.student-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2364748b' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  padding-right: 36px !important;
+  cursor: pointer;
 }
 
 .student-input:focus,

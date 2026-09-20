@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { studentPreprintApi, ApiUnavailableError } from '../api';
 import type { StudentPreprint } from '../types';
 
+const EMPTY_ITEMS: StudentPreprint[] = [];
+
 export function usePreprintList() {
   const { data, isLoading, error, refetch } = useQuery<StudentPreprint[], Error>({
     queryKey: ['preprints', 'mine'],
@@ -16,7 +18,7 @@ export function usePreprintList() {
   });
 
   return {
-    items: data || [],
+    items: data ?? EMPTY_ITEMS,
     loading: isLoading,
     error: error ?? null,
     apiPending: error instanceof ApiUnavailableError,

@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
+import { LanguageSwitcher, useTranslation } from '@/i18n';
 
 export type LecturerNavKey = 'reviews' | 'submissions' | 'profile';
 
@@ -17,6 +18,7 @@ export interface LecturerShellProps {
 }
 
 export function LecturerShell({ active, title, pendingCount, children }: LecturerShellProps) {
+  const { t, locale } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -48,11 +50,11 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
   }, [showNotifications]);
   const { user, loading: authLoading } = useAuth();
   const displayName = authLoading
-    ? 'Loading profile…'
+    ? t('common.loading')
     : user?.name?.trim() || user?.email?.split('@')[0] || 'Lecturer';
   const displayRole = authLoading
-    ? 'Loading account…'
-    : user?.role === 'LECTURER' ? 'Faculty Reviewer' : user?.role === 'ADMIN' ? 'Administrator' : user?.email || 'Reviewer';
+    ? t('common.loading')
+    : user?.role === 'LECTURER' ? t('admin.lecturers') : user?.role === 'ADMIN' ? 'Administrator' : user?.email || 'Reviewer';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -106,7 +108,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
             type="button"
             className="student-sidebar__close-btn"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close Sidebar"
+            aria-label={t('common.close')}
           >
             ×
           </button>
@@ -115,7 +117,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
         {/* Navigation Group */}
         <nav className="student-sidebar__nav" aria-label="Lecturer navigation">
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">WORKSPACE</span>
+            <span className="student-sidebar__group-title">{t('lecturer.workspace')}</span>
             <Link
               href={ROUTES.LECTURER.SUBMISSIONS}
               className={`student-sidebar__link ${active === 'submissions' ? 'student-sidebar__link--active' : ''}`}
@@ -129,13 +131,13 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                   <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">My Manuscripts</span>
+              <span className="student-sidebar__text">{t('lecturer.myManuscripts')}</span>
             </Link>
           </div>
 
           {/* Group: Peer Review */}
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">PEER REVIEW</span>
+            <span className="student-sidebar__group-title">{t('lecturer.peerReview')}</span>
             <Link
               href={ROUTES.LECTURER.REVIEWS}
               className={`student-sidebar__link ${active === 'reviews' ? 'student-sidebar__link--active' : ''}`}
@@ -148,7 +150,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                   <path d="m9 9 2 2 4-4" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Review queue</span>
+              <span className="student-sidebar__text">{t('lecturer.reviewQueue')}</span>
               {pendingCount !== undefined && pendingCount > 0 && (
                 <span style={{ marginLeft: 'auto', fontSize: '12.5px', fontWeight: 700, color: '#0071bc' }}>
                   {pendingCount}
@@ -159,7 +161,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
 
           {/* Group: Profile */}
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">PROFILE</span>
+            <span className="student-sidebar__group-title">{t('admin.system')}</span>
             <Link
               href={ROUTES.LECTURER.PROFILE}
               className={`student-sidebar__link ${active === 'profile' ? 'student-sidebar__link--active' : ''}`}
@@ -171,7 +173,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                   <circle cx="12" cy="7" r="4" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Profile</span>
+              <span className="student-sidebar__text">{t('common.profile')}</span>
             </Link>
           </div>
         </nav>
@@ -196,8 +198,8 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
               type="button"
               onClick={() => authApi.logout()}
               className="student-sidebar__logout-btn"
-              title="Sign Out"
-              aria-label="Sign Out"
+              title={t('common.logout')}
+              aria-label={t('common.logout')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -229,7 +231,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
 
             <div className="student-topbar__breadcrumbs">
               <span className="student-topbar__crumb-root">
-                {active === 'submissions' ? 'Faculty Workspace' : 'Reviewer Workspace'}
+                {active === 'submissions' ? t('lecturer.workspace') : t('lecturer.peerReview')}
               </span>
               <span className="student-topbar__crumb-sep">/</span>
               <span className="student-topbar__crumb-current">{title}</span>
@@ -242,7 +244,12 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              <input type="text" placeholder="Search manuscripts, DOIs, reviews..." className="student-topbar__search-input" aria-label="Search manuscripts" />
+              <input
+                type="text"
+                placeholder={t('common.searchShell')}
+                className="student-topbar__search-input"
+                aria-label={t('common.searchManuscripts')}
+              />
             </div>
 
             <div className="student-topbar__notif-wrapper" ref={notifRef}>
@@ -262,7 +269,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
               {showNotifications && (
                 <div className="student-topbar__notif-popover">
                   <div className="student-topbar__notif-header">
-                    <strong>Academic Review Alerts</strong>
+                    <strong>{locale === 'vi' ? 'Thông báo thẩm định' : 'Academic Review Alerts'}</strong>
                     {pendingCount !== undefined && pendingCount > 0 && (
                       <span className="student-topbar__notif-count">{pendingCount}</span>
                     )}
@@ -272,16 +279,24 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                       <Link href={ROUTES.LECTURER.REVIEWS} className="student-topbar__notif-item" onClick={() => setShowNotifications(false)}>
                         <div className="student-topbar__notif-item-icon student-topbar__notif-item-icon--amber">!</div>
                         <div className="student-topbar__notif-item-text">
-                          <p className="student-topbar__notif-item-title">{pendingCount} manuscript(s) awaiting review</p>
-                          <p className="student-topbar__notif-item-desc">Open the Review Queue to submit your evaluation and decisions.</p>
+                          <p className="student-topbar__notif-item-title">
+                            {locale === 'vi' ? `${pendingCount} bản thảo đang chờ thẩm định` : `${pendingCount} manuscript(s) awaiting review`}
+                          </p>
+                          <p className="student-topbar__notif-item-desc">
+                            {locale === 'vi' ? 'Mở danh sách thẩm định để gửi đánh giá và nhận xét.' : 'Open the Review Queue to submit your evaluation and decisions.'}
+                          </p>
                         </div>
                       </Link>
                     ) : (
-                      <p className="student-topbar__notif-item-desc">No pending review tasks in your queue.</p>
+                      <p className="student-topbar__notif-item-desc">
+                        {locale === 'vi' ? 'Không có nhiệm vụ thẩm định nào đang chờ.' : 'No pending review tasks in your queue.'}
+                      </p>
                     )}
                   </div>
                   <div className="student-topbar__notif-footer">
-                    <Link href={ROUTES.LECTURER.REVIEWS} onClick={() => setShowNotifications(false)}>View review queue →</Link>
+                    <Link href={ROUTES.LECTURER.REVIEWS} onClick={() => setShowNotifications(false)}>
+                      {locale === 'vi' ? 'Xem danh sách chờ duyệt →' : 'View review queue →'}
+                    </Link>
                   </div>
                 </div>
               )}
@@ -292,7 +307,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span>New Submission</span>
+              <span>{t('nav.newSubmission')}</span>
             </Link>
           </div>
         </header>

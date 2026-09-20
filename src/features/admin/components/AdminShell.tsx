@@ -8,6 +8,7 @@ import { PageHeader } from '@hyperdata/design-system';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
+import { LanguageSwitcher, useTranslation } from '@/i18n';
 
 export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'profile';
 
@@ -30,6 +31,7 @@ export function AdminSidebar({
   onClose?: () => void;
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Administrator';
   const displayRole = user?.role === 'ADMIN' ? 'System Administrator' : user?.email || 'Administrator';
 
@@ -73,7 +75,7 @@ export function AdminSidebar({
             type="button"
             className="student-sidebar__close-btn"
             onClick={onClose}
-            aria-label="Close Sidebar"
+            aria-label={t('common.close')}
           >
             ×
           </button>
@@ -83,7 +85,7 @@ export function AdminSidebar({
       {/* Navigation Groups */}
       <nav className="student-sidebar__nav" aria-label="Admin navigation">
         <div className="student-sidebar__group">
-          <span className="student-sidebar__group-title">WORKSPACE</span>
+          <span className="student-sidebar__group-title">{t('admin.workspace')}</span>
           <Link
             href={ROUTES.ADMIN.SUBMISSIONS}
             className={`student-sidebar__link ${active === 'submissions' || active === 'dashboard' ? 'student-sidebar__link--active' : ''}`}
@@ -98,7 +100,7 @@ export function AdminSidebar({
                 <line x1="10" x2="8" y1="9" y2="9" />
               </svg>
             </span>
-            <span className="student-sidebar__text">Submissions</span>
+            <span className="student-sidebar__text">{t('admin.submissions')}</span>
             {pendingCount !== undefined && pendingCount > 0 && (
               <span style={{ marginLeft: 'auto', fontSize: '12.5px', fontWeight: 700, color: '#0071bc' }}>
                 {pendingCount}
@@ -118,13 +120,13 @@ export function AdminSidebar({
                 <path d="m9 9 2 2 4-4" />
               </svg>
             </span>
-            <span className="student-sidebar__text">Reviews</span>
+            <span className="student-sidebar__text">{t('admin.reviews')}</span>
           </Link>
         </div>
 
         {/* Group: SYSTEM */}
         <div className="student-sidebar__group">
-          <span className="student-sidebar__group-title">SYSTEM</span>
+          <span className="student-sidebar__group-title">{t('admin.system')}</span>
           <Link
             href={ROUTES.ADMIN.USERS}
             className={`student-sidebar__link ${active === 'users' ? 'student-sidebar__link--active' : ''}`}
@@ -138,7 +140,7 @@ export function AdminSidebar({
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </span>
-            <span className="student-sidebar__text">User accounts</span>
+            <span className="student-sidebar__text">{t('admin.userManagement')}</span>
           </Link>
 
           <Link
@@ -152,7 +154,7 @@ export function AdminSidebar({
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </span>
-            <span className="student-sidebar__text">Profile</span>
+            <span className="student-sidebar__text">{t('common.profile')}</span>
           </Link>
         </div>
       </nav>
@@ -176,8 +178,8 @@ export function AdminSidebar({
             type="button"
             onClick={() => authApi.logout()}
             className="student-sidebar__logout-btn"
-            title="Sign Out"
-            aria-label="Sign Out"
+            title={t('common.logout')}
+            aria-label={t('common.logout')}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -193,6 +195,8 @@ export function AdminSidebar({
 
 
 export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSidebar?: () => void }) {
+  const { t } = useTranslation();
+
   return (
     <header className="student-topbar">
       <div className="student-topbar__left">
@@ -211,10 +215,14 @@ export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSide
         </button>
 
         <div className="student-topbar__breadcrumbs">
-          <span className="student-topbar__crumb-root">Admin Workspace</span>
+          <span className="student-topbar__crumb-root">{t('admin.dashboard')}</span>
           <span className="student-topbar__crumb-sep">/</span>
           <span className="student-topbar__crumb-current">{title}</span>
         </div>
+      </div>
+
+      <div className="student-topbar__right">
+        {/* Right action area */}
       </div>
     </header>
   );

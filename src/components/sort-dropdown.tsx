@@ -15,9 +15,21 @@ interface SortDropdownProps {
   ariaLabel?: string;
   className?: string;
   style?: React.CSSProperties;
+  disabled?: boolean;
+  size?: 'sm' | 'md';
 }
 
-export function SortDropdown({ value, options, onChange, id, ariaLabel, className = '', style }: SortDropdownProps) {
+export function SortDropdown({
+  value,
+  options,
+  onChange,
+  id,
+  ariaLabel,
+  className = '',
+  style,
+  disabled = false,
+  size = 'md',
+}: SortDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,19 +45,37 @@ export function SortDropdown({ value, options, onChange, id, ariaLabel, classNam
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleToggle = () => setIsOpen(!isOpen);
+  const handleToggle = () => {
+    if (!disabled) {
+      setIsOpen(!isOpen);
+    }
+  };
 
   const handleSelect = (newValue: string) => {
     onChange(newValue);
     setIsOpen(false);
   };
 
+  const combinedStyle: React.CSSProperties = {
+    ...style,
+    ...(isOpen ? { zIndex: 100 } : {}),
+  };
+
   return (
-    <div className={`student-sort-dropdown ${className}`} ref={containerRef} style={style}>
+    <div
+      className={`student-sort-dropdown ${size === 'sm' ? 'student-sort-dropdown--sm' : ''} ${className}`}
+      ref={containerRef}
+      style={combinedStyle}
+    >
       <button
         type="button"
         id={id}
-        className={`student-sort-dropdown__trigger ${isOpen ? 'student-sort-dropdown__trigger--open' : ''}`}
+        disabled={disabled}
+        className={`student-sort-dropdown__trigger ${
+          isOpen ? 'student-sort-dropdown__trigger--open' : ''
+        } ${disabled ? 'student-sort-dropdown__trigger--disabled' : ''} ${
+          size === 'sm' ? 'student-sort-dropdown__trigger--sm' : ''
+        }`}
         onClick={handleToggle}
         aria-haspopup="listbox"
         aria-expanded={isOpen}

@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { HyperdataLogo } from '@/components/hyperdata-logo';
+import { LanguageSwitcher } from '@/i18n';
 import '@/styles/public-landing.css';
 import '@/styles/auth-forms.css';
 
@@ -336,7 +337,8 @@ export default function LoginPage() {
             <Link href="/#faq" className="pl-nav__link">Hỏi đáp</Link>
           </nav>
 
-          <div className="pl-header__actions">
+          <div className="pl-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSwitcher variant="toggle" />
             <Link href="/#register-section" className="pl-header-action pl-header-action--primary">
               Đăng ký sinh viên
             </Link>

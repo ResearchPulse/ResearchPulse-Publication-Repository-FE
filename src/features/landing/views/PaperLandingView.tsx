@@ -3,6 +3,7 @@ import { PaperPortalShowcase } from '../components/PaperPortalShowcase';
 import { PaperDisciplineSpotlight } from '../components/PaperDisciplineSpotlight';
 import { PaperWorkflowSection } from '../components/PaperWorkflowSection';
 import { ScrollRevealObserver } from '../components/ScrollRevealObserver';
+import { LanguageSwitcher } from '@/i18n';
 
 const features = [
   {
@@ -110,7 +111,8 @@ export function PaperLandingView() {
             <a href="#faq">FAQ</a>
           </nav>
 
-          <div className="paper-header-actions">
+          <div className="paper-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSwitcher variant="toggle" />
             <a className="paper-sign-in" href={signInUrl}>
               Sign in
             </a>

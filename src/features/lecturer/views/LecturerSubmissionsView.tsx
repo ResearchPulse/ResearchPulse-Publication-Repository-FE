@@ -9,6 +9,7 @@ import type { StudentPreprint } from '@/features/preprint/types';
 import { ROUTES } from '@/app/router';
 import { TableSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
+import { useTranslation } from '@/i18n';
 
 function formatUpdatedDate(value: string) {
   const date = new Date(value);
@@ -24,6 +25,7 @@ function formatUpdatedDate(value: string) {
 
 
 export function LecturerSubmissionsView() {
+  const { t, locale } = useTranslation();
   const { items, loading, error, apiPending } = usePreprintList();
   const [selectedTab, setSelectedTab] = useState<'ALL' | 'PRIVATE' | PreprintStatus>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -235,45 +237,36 @@ export function LecturerSubmissionsView() {
             className={`student-tab-pill ${selectedTab === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('ALL')}
           >
-            All <span className="student-tab-pill__count">{metrics.total}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{metrics.total}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'UNDER_REVIEW' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('UNDER_REVIEW')}
           >
-            In Review <span className="student-tab-pill__count">{metrics.underReview}</span>
+            {t('student.preprints.underReview')} <span className="student-tab-pill__count">{metrics.underReview}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'NEEDS_REVISION' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setSelectedTab('NEEDS_REVISION')}
           >
-            Needs Revision <span className="student-tab-pill__count">{metrics.needsRevision}</span>
+            {t('student.preprints.needsRevision')} <span className="student-tab-pill__count">{metrics.needsRevision}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'APPROVED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('APPROVED')}
           >
-            Published <span className="student-tab-pill__count">{metrics.approved}</span>
+            {t('student.preprints.approved')} <span className="student-tab-pill__count">{metrics.approved}</span>
           </button>
-          {metrics.privateCount > 0 && (
-            <button
-              type="button"
-              className={`student-tab-pill ${selectedTab === 'PRIVATE' ? 'student-tab-pill--active' : ''}`}
-              onClick={() => setSelectedTab('PRIVATE')}
-            >
-              Private <span className="student-tab-pill__count">{metrics.privateCount}</span>
-            </button>
-          )}
           {metrics.drafts > 0 && (
             <button
               type="button"
               className={`student-tab-pill ${selectedTab === 'DRAFT' ? 'student-tab-pill--active' : ''}`}
               onClick={() => setSelectedTab('DRAFT')}
             >
-              Drafts <span className="student-tab-pill__count">{metrics.drafts}</span>
+              {t('student.preprints.draft')} <span className="student-tab-pill__count">{metrics.drafts}</span>
             </button>
           )}
         </div>
@@ -287,7 +280,7 @@ export function LecturerSubmissionsView() {
             </svg>
             <input
               type="search"
-              placeholder="Search manuscripts..."
+              placeholder={t('common.searchManuscripts')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -300,14 +293,14 @@ export function LecturerSubmissionsView() {
           </div>
 
           <div className="student-sort-box">
-            <span className="student-sort-label">Sort:</span>
+            <span className="student-sort-label">{t('common.sortBy')}</span>
             <SortDropdown
               value={safeSortBy}
               onChange={(val) => setSortBy(val as 'UPDATED' | 'TITLE' | 'STATUS')}
               options={[
-                { value: 'UPDATED', label: 'Recently Updated' },
-                { value: 'TITLE', label: 'Title (A-Z)' },
-                { value: 'STATUS', label: 'Status' },
+                { value: 'UPDATED', label: t('common.recentlyUpdated') },
+                { value: 'TITLE', label: t('common.titleAZ') },
+                { value: 'STATUS', label: t('common.byStatus') },
               ]}
               style={{ width: '160px' }}
             />

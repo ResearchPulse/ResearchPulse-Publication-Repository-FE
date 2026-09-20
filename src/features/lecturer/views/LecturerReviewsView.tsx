@@ -33,8 +33,10 @@ function displayDate(value?: string) {
 
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from '@/i18n';
 
 export function LecturerReviewsView() {
+  const { t, locale } = useTranslation();
   const [filter, setFilter] = useState<QueueFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -102,21 +104,21 @@ export function LecturerReviewsView() {
             className={`student-tab-pill ${filter === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('ALL')}
           >
-            All <span className="student-tab-pill__count">{items.length}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{items.length}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'AWAITING_REVIEW' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setFilter('AWAITING_REVIEW')}
           >
-            Awaiting Review <span className="student-tab-pill__count">{pendingCount}</span>
+            {locale === 'vi' ? 'Chờ thẩm định' : 'Awaiting Review'} <span className="student-tab-pill__count">{pendingCount}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'COMPLETED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('COMPLETED')}
           >
-            Completed <span className="student-tab-pill__count">{completedCount}</span>
+            {locale === 'vi' ? 'Đã hoàn thành' : 'Completed'} <span className="student-tab-pill__count">{completedCount}</span>
           </button>
         </div>
 
@@ -129,7 +131,7 @@ export function LecturerReviewsView() {
             </svg>
             <input
               type="search"
-              placeholder="Search manuscript, author..."
+              placeholder={t('common.searchManuscriptAuthor')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -142,14 +144,14 @@ export function LecturerReviewsView() {
           </div>
 
           <div className="student-sort-box">
-            <span className="student-sort-label">Sort:</span>
+            <span className="student-sort-label">{t('common.sortBy')}</span>
             <SortDropdown
               value={safeSortBy}
               onChange={(val) => setSortBy(val as SortOption)}
               options={[
-                { value: 'UPDATED', label: 'Recently Updated' },
-                { value: 'TITLE', label: 'Title (A-Z)' },
-                { value: 'STATUS', label: 'Review Status' },
+                { value: 'UPDATED', label: t('common.recentlyUpdated') },
+                { value: 'TITLE', label: t('common.titleAZ') },
+                { value: 'STATUS', label: locale === 'vi' ? 'Trạng thái thẩm định' : 'Review Status' },
               ]}
               style={{ width: '160px' }}
             />

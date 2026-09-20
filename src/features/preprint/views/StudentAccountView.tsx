@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
 import { StudentShell } from '../components';
+import { LanguageSwitcher, useTranslation } from '@/i18n';
 
 export function StudentAccountView() {
   const { user, refresh, updateUser } = useAuth();
+  const { t, locale } = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -81,7 +83,7 @@ export function StudentAccountView() {
   };
 
   return (
-    <StudentShell title="Tài khoản" showStandardHeader={false}>
+    <StudentShell title={t('student.account.title')} showStandardHeader={false}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
         {/* Success Alert Banner */}
@@ -153,7 +155,7 @@ export function StudentAccountView() {
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>
                   {displayName}
                 </h2>
-                <span className="user-badge user-badge--approved">ĐÃ XÁC THỰC</span>
+                <span className="user-badge user-badge--approved">{t('student.account.active').toUpperCase()}</span>
               </div>
               <p style={{ margin: '4px 0 0', fontSize: '13.5px', color: '#64748b' }}>
                 {displayEmail} · <span style={{ color: '#0071bc', fontWeight: 600 }}>{displayRole}</span>
@@ -175,7 +177,7 @@ export function StudentAccountView() {
                 <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                 <path d="m15 5 4 4"/>
               </svg>
-              <span>{isEditing ? 'Đóng chỉnh sửa' : 'Chỉnh sửa hồ sơ'}</span>
+              <span>{isEditing ? t('common.close') : t('common.edit')}</span>
             </button>
 
             <button
@@ -183,7 +185,7 @@ export function StudentAccountView() {
               onClick={() => authApi.logout()}
               className="student-btn student-btn--secondary student-btn--sm"
             >
-              Đăng xuất
+              {t('common.logout')}
             </button>
           </div>
         </div>
@@ -250,7 +252,7 @@ export function StudentAccountView() {
               >
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    Họ và tên <span style={{ color: '#ef4444' }}>*</span>
+                    {t('student.account.fullName')} <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -273,7 +275,7 @@ export function StudentAccountView() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    Mã số sinh viên (MSSV)
+                    {t('student.account.studentId')}
                   </label>
                   <input
                     type="text"
@@ -295,7 +297,7 @@ export function StudentAccountView() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    Chuyên ngành học
+                    {t('student.account.major')}
                   </label>
                   <input
                     type="text"
@@ -317,7 +319,7 @@ export function StudentAccountView() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    Email (Cố định theo tài khoản)
+                    {t('student.account.email')}
                   </label>
                   <input
                     type="text"
@@ -345,7 +347,7 @@ export function StudentAccountView() {
                   disabled={isSaving}
                   className="student-btn student-btn--secondary student-btn--sm"
                 >
-                  Hủy bỏ
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -353,7 +355,7 @@ export function StudentAccountView() {
                   className="student-btn student-btn--primary student-btn--sm"
                   style={{ minWidth: '110px' }}
                 >
-                  {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  {isSaving ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </form>
@@ -364,7 +366,7 @@ export function StudentAccountView() {
         <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-              Thông tin cá nhân &amp; Học thuật
+              {t('student.account.tabProfile')}
             </h3>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
               {user?.updatedAt ? `Cập nhật: ${new Date(user.updatedAt).toLocaleDateString('vi-VN')}` : 'Đã xác thực hồ sơ'}
@@ -381,7 +383,7 @@ export function StudentAccountView() {
           >
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Họ và tên
+                {t('student.account.fullName')}
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayName}
@@ -390,7 +392,7 @@ export function StudentAccountView() {
 
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Email tài khoản
+                {t('student.account.email')}
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayEmail}
@@ -399,7 +401,7 @@ export function StudentAccountView() {
 
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Vai trò trên hệ thống
+                {t('student.account.role')}
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#0071bc', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayRole}
@@ -408,7 +410,7 @@ export function StudentAccountView() {
 
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Mã số sinh viên (MSSV)
+                {t('student.account.studentId')}
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayStudentId}
@@ -417,7 +419,7 @@ export function StudentAccountView() {
 
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Chuyên ngành học
+                {t('student.account.major')}
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayMajor}
@@ -426,11 +428,11 @@ export function StudentAccountView() {
 
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Trạng thái tài khoản
+                {t('student.account.status')}
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }} />
-                Đang hoạt động (Active)
+                {t('student.account.active')}
               </div>
             </div>
           </div>
@@ -439,7 +441,7 @@ export function StudentAccountView() {
         {/* Security & Access Card */}
         <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
           <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-            Bảo mật &amp; Phiên truy cập
+            {t('student.account.tabSecurity')}
           </h3>
 
           <div
@@ -462,14 +464,14 @@ export function StudentAccountView() {
               }}
             >
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Mật khẩu đăng nhập</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{t('auth.password')}</div>
                 <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>••••••••••••</div>
               </div>
               <a
                 href="/reset-password"
                 className="student-btn student-btn--secondary student-btn--sm"
               >
-                Đổi mật khẩu
+                {t('student.account.changePasswordTitle')}
               </a>
             </div>
 
@@ -491,12 +493,52 @@ export function StudentAccountView() {
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Bảo mật phiên làm việc</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Session Security</div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                  Xác thực HTTP-Only Cookie &amp; Bearer JWT an toàn
+                  Secure HTTP-Only Cookie &amp; Bearer JWT
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Preferences & Language Card */}
+        <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+            {locale === 'vi' ? 'Cài đặt hệ thống & Tùy chọn' : 'System Preferences & Settings'}
+          </h3>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '18px 20px',
+              background: '#f8fafc',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              gap: '16px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                {locale === 'vi' ? 'Ngôn ngữ hiển thị hệ thống' : 'System Display Language'}
+              </div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                {locale === 'vi'
+                  ? 'Cài đặt này sẽ được áp dụng thống nhất cho toàn bộ giao diện và các trang trong hệ thống.'
+                  : 'This preference will be applied across all dashboard views and workspace pages.'}
+              </div>
+            </div>
+            
+            {/* Embedded Language Switcher Dropdown */}
+            <LanguageSwitcher variant="dropdown" />
           </div>
         </div>
       </div>

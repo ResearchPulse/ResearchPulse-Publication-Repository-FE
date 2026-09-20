@@ -8,8 +8,10 @@ import { SortDropdown } from '@/components/sort-dropdown';
 import { usePreprintList } from '../hooks';
 import { studentPreprintApi } from '../api';
 import type { PreprintVersionInfo } from '../types';
+import { useTranslation } from '@/i18n';
 
 export function StudentVersionArchiveView() {
+  const { t, locale } = useTranslation();
   const { items, loading: listLoading } = usePreprintList();
   const [versionsByPublication, setVersionsByPublication] = useState<Record<string, PreprintVersionInfo[]>>({});
   const [versionsLoading, setVersionsLoading] = useState(false);
@@ -21,7 +23,7 @@ export function StudentVersionArchiveView() {
 
   useEffect(() => {
     if (listLoading || items.length === 0) {
-      setVersionsByPublication({});
+      setVersionsByPublication((prev) => (Object.keys(prev).length === 0 ? prev : {}));
       return;
     }
 
@@ -109,26 +111,26 @@ export function StudentVersionArchiveView() {
   };
 
   return (
-    <StudentShell title="Lịch sử phiên bản" showStandardHeader={false}>
+    <StudentShell title={t('nav.versions')} showStandardHeader={false}>
       {/* 1. Filter & Search Toolbar */}
       <div className="student-filter-toolbar">
         {/* Left: Dropdown select manuscript */}
         <div className="student-sort-box" style={{ gap: '8px' }}>
           <span className="student-sort-label" style={{ fontWeight: 600, color: '#475569' }}>
-            Bản thảo:
+            {t('student.preprints.tableManuscript')}:
           </span>
           <SortDropdown
             value={selectedManuscriptId}
             onChange={(val) => setSelectedManuscriptId(val)}
             options={[
-              { value: 'ALL', label: `Tất cả bản thảo (${items.length})` },
+              { value: 'ALL', label: locale === 'vi' ? `Tất cả bản thảo (${items.length})` : `All Manuscripts (${items.length})` },
               ...items.map((m) => ({
                 value: m.id,
-                label: m.title || 'Bản thảo chưa đặt tên',
+                label: m.title || (locale === 'vi' ? 'Bản thảo chưa đặt tên' : 'Untitled manuscript'),
               })),
             ]}
             style={{ width: '280px' }}
-            ariaLabel="Lọc phiên bản theo bản thảo"
+            ariaLabel={locale === 'vi' ? 'Lọc phiên bản theo bản thảo' : 'Filter versions by manuscript'}
           />
         </div>
 
@@ -141,7 +143,7 @@ export function StudentVersionArchiveView() {
             </svg>
             <input
               type="search"
-              placeholder="Tìm kiếm tiêu đề, DOI, SHA-256..."
+              placeholder={t('common.searchArchive')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -157,9 +159,9 @@ export function StudentVersionArchiveView() {
             type="button"
             className="student-btn student-btn--secondary archive-toggle-all-btn"
             onClick={toggleAllCollapse}
-            aria-label={isAllExpanded ? 'Thu gọn tất cả phiên bản bản thảo' : 'Mở rộng tất cả phiên bản bản thảo'}
+            aria-label={isAllExpanded ? (locale === 'vi' ? 'Thu gọn tất cả phiên bản bản thảo' : 'Collapse all manuscript versions') : (locale === 'vi' ? 'Mở rộng tất cả phiên bản bản thảo' : 'Expand all manuscript versions')}
           >
-            <span>{isAllExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}</span>
+            <span>{isAllExpanded ? (locale === 'vi' ? 'Thu gọn tất cả' : 'Collapse all') : (locale === 'vi' ? 'Mở rộng tất cả' : 'Expand all')}</span>
           </button>
         </div>
       </div>

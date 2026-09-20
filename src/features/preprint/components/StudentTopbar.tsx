@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation, LanguageSwitcher } from '@/i18n';
 
 interface StudentTopbarProps {
   onToggleSidebar?: () => void;
@@ -12,21 +13,24 @@ interface StudentTopbarProps {
 
 export function StudentTopbar({
   onToggleSidebar,
-  title = 'Bản thảo của tôi',
+  title,
   revisionCount = 0,
 }: StudentTopbarProps) {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  const currentTitle = title || t('student.topbar.myPreprintsTitle');
+
   const getBreadcrumbGroup = () => {
     if (pathname.startsWith('/student/mentor-feedback')) {
-      return 'Thẩm định';
+      return t('student.topbar.reviewGroup');
     }
     if (pathname.startsWith('/student/account')) {
-      return 'Cá nhân';
+      return t('student.topbar.personalGroup');
     }
-    return 'Bản thảo';
+    return t('student.topbar.preprintsGroup');
   };
 
   const breadcrumbGroup = getBreadcrumbGroup();
@@ -73,7 +77,7 @@ export function StudentTopbar({
         <div className="student-topbar__breadcrumbs">
           <span className="student-topbar__crumb-root">{breadcrumbGroup}</span>
           <span className="student-topbar__crumb-sep">/</span>
-          <span className="student-topbar__crumb-current">{title}</span>
+          <span className="student-topbar__crumb-current">{currentTitle}</span>
         </div>
       </div>
 
@@ -83,7 +87,7 @@ export function StudentTopbar({
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <input type="text" placeholder="Tìm kiếm bản thảo, DOI, phản hồi..." className="student-topbar__search-input" aria-label="Tìm kiếm bản thảo" />
+          <input type="text" placeholder={t('common.search')} className="student-topbar__search-input" aria-label={t('common.search')} />
         </div>
 
         <div className="student-topbar__notif-wrapper" ref={notifRef}>
@@ -91,7 +95,7 @@ export function StudentTopbar({
             type="button"
             className="student-topbar__notif-btn"
             onClick={() => setShowNotifications(!showNotifications)}
-            aria-label={`Thông báo (${revisionCount} cảnh báo cần xử lý)`}
+            aria-label={`${t('common.notifications')} (${revisionCount})`}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -103,7 +107,7 @@ export function StudentTopbar({
           {showNotifications && (
             <div className="student-topbar__notif-popover">
               <div className="student-topbar__notif-header">
-                <strong>Thông báo học thuật</strong>
+                <strong>{t('common.notifications')}</strong>
                 <span className="student-topbar__notif-count">{revisionCount}</span>
               </div>
               <div className="student-topbar__notif-list">
@@ -117,7 +121,7 @@ export function StudentTopbar({
                   </Link>
                 ) : (
                   <div className="student-topbar__notif-empty">
-                    <p>Không có thông báo học thuật mới.</p>
+                    <p>{t('common.noNotifications')}</p>
                   </div>
                 )}
               </div>
@@ -133,7 +137,7 @@ export function StudentTopbar({
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span>Nộp bản thảo mới</span>
+          <span>{t('student.topbar.newPreprintButton')}</span>
         </Link>
       </div>
     </header>

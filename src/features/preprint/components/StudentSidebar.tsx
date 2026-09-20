@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
+import { useTranslation } from '@/i18n';
 
 interface StudentSidebarProps {
   revisionCount?: number;
@@ -22,6 +23,7 @@ export function StudentSidebar({
 }: StudentSidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Student';
   const displayOrg = user?.email || '';
@@ -101,7 +103,7 @@ export function StudentSidebar({
               type="button"
               className="student-sidebar__close-btn"
               onClick={onClose}
-              aria-label="Close Sidebar"
+              aria-label={t('common.close')}
             >
               ×
             </button>
@@ -109,10 +111,10 @@ export function StudentSidebar({
         </div>
 
         {/* Navigation Section */}
-        <nav className="student-sidebar__nav" aria-label="Thanh điều hướng học thuật">
+        <nav className="student-sidebar__nav" aria-label="Sidebar Navigation">
           {/* Group: Manuscripts */}
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">BẢN THẢO</span>
+            <span className="student-sidebar__group-title">{t('student.topbar.preprintsGroup').toUpperCase()}</span>
 
             <Link
               href="/student/my-preprints"
@@ -127,7 +129,7 @@ export function StudentSidebar({
                   <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Bản thảo của tôi</span>
+              <span className="student-sidebar__text">{t('student.sidebar.myPreprints')}</span>
               {totalCount > 0 && (
                 <span className="student-sidebar__badge">{totalCount}</span>
               )}
@@ -144,13 +146,13 @@ export function StudentSidebar({
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Lịch sử phiên bản</span>
+              <span className="student-sidebar__text">{t('student.sidebar.versions')}</span>
             </Link>
           </div>
 
           {/* Group: Review & Mentorship */}
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">THẨM ĐỊNH</span>
+            <span className="student-sidebar__group-title">{t('student.topbar.reviewGroup').toUpperCase()}</span>
 
             <Link
               href="/student/mentor-feedback"
@@ -162,7 +164,7 @@ export function StudentSidebar({
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Nhận xét</span>
+              <span className="student-sidebar__text">{t('student.sidebar.mentorFeedback')}</span>
               {revisionCount > 0 && (
                 <span className="student-sidebar__badge student-sidebar__badge--alert">
                   {revisionCount}
@@ -173,7 +175,7 @@ export function StudentSidebar({
 
           {/* Group: Account */}
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">CÁ NHÂN</span>
+            <span className="student-sidebar__group-title">{t('student.topbar.personalGroup').toUpperCase()}</span>
 
             <Link
               href="/student/account"
@@ -186,7 +188,7 @@ export function StudentSidebar({
                   <circle cx="12" cy="7" r="4" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Tài khoản</span>
+              <span className="student-sidebar__text">{t('student.sidebar.account')}</span>
             </Link>
           </div>
         </nav>
@@ -196,10 +198,9 @@ export function StudentSidebar({
           <div className="student-sidebar__profile-card">
             <div className="student-sidebar__avatar">
               <span>{initials}</span>
-              <span className="student-sidebar__status-dot" aria-label="Trực tuyến" />
+              <span className="student-sidebar__status-dot" aria-label="Active" />
             </div>
             <div className="student-sidebar__profile-info">
-
               <span className="student-sidebar__name" title={displayName}>
                 {displayName}
               </span>
@@ -208,14 +209,13 @@ export function StudentSidebar({
                   {displayOrg}
                 </span>
               )}
-
             </div>
             <button
               type="button"
               onClick={() => authApi.logout()}
               className="student-sidebar__logout-btn"
-              title="Đăng xuất"
-              aria-label="Đăng xuất"
+              title={t('common.logout')}
+              aria-label={t('common.logout')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

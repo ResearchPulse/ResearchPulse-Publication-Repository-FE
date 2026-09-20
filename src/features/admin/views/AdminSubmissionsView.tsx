@@ -8,6 +8,7 @@ import { adminApi, type AdminPublication, type AdminPublicationStatus, type Admi
 import { TableSkeleton } from '@/components/skeleton';
 import type { PreprintStatus } from '@/shared/types';
 import { ROUTES } from '@/app/router';
+import { useTranslation } from '@/i18n';
 
 type StatusFilter = 'ALL' | AdminPublicationStatus;
 type RoleFilter = 'ALL' | 'LECTURER' | 'STUDENT';
@@ -43,6 +44,7 @@ function displayTitle(item: AdminPublication) {
 }
 
 export function AdminSubmissionsView() {
+  const { t, locale } = useTranslation();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
@@ -117,9 +119,9 @@ export function AdminSubmissionsView() {
   return (
     <AdminShell active="submissions" title="Submissions" pendingCount={displayMetrics.underReview}>
       <AdminPageHeader
-        eyebrow="Editorial Workspace"
-        title="Submissions Management"
-        description="Track incoming manuscripts, monitor peer evaluations, and oversee publication workflows across all stages."
+        eyebrow={t('admin.editorialWorkspace')}
+        title={t('admin.submissionsManagement')}
+        description={t('admin.submissionsDesc')}
       />
 
       {error && (
@@ -151,7 +153,7 @@ export function AdminSubmissionsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{displayMetrics.total}</span>
-            <span className="student-metric-label">Total Manuscripts</span>
+            <span className="student-metric-label">{t('admin.totalManuscripts')}</span>
           </div>
         </div>
 
@@ -173,7 +175,7 @@ export function AdminSubmissionsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{displayMetrics.underReview}</span>
-            <span className="student-metric-label">In Peer Review</span>
+            <span className="student-metric-label">{t('admin.inReview')}</span>
           </div>
         </div>
 
@@ -198,7 +200,7 @@ export function AdminSubmissionsView() {
             <span className="student-metric-value" style={{ color: displayMetrics.needsRevision > 0 ? '#d97706' : undefined }}>
               {displayMetrics.needsRevision}
             </span>
-            <span className="student-metric-label">Needs Revision</span>
+            <span className="student-metric-label">{t('admin.needsRevision')}</span>
           </div>
         </div>
 
@@ -220,7 +222,7 @@ export function AdminSubmissionsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value" style={{ color: '#16a34a' }}>{displayMetrics.published}</span>
-            <span className="student-metric-label">Published</span>
+            <span className="student-metric-label">{t('admin.published')}</span>
           </div>
         </div>
       </div>
@@ -236,7 +238,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            All Submissions <span className="student-tab-pill__count">{displayMetrics.total}</span>
+            {t('admin.submissions')} <span className="student-tab-pill__count">{displayMetrics.total}</span>
           </button>
 
           <button
@@ -247,7 +249,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Faculty Papers <span className="student-tab-pill__count">{displayMetrics.facultySubmissions ?? 0}</span>
+            {t('admin.lecturers')} <span className="student-tab-pill__count">{displayMetrics.facultySubmissions ?? 0}</span>
           </button>
 
           <button
@@ -258,7 +260,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Student Papers <span className="student-tab-pill__count">{displayMetrics.studentSubmissions ?? 0}</span>
+            {t('admin.students')} <span className="student-tab-pill__count">{displayMetrics.studentSubmissions ?? 0}</span>
           </button>
         </div>
       </div>
@@ -274,7 +276,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            All <span className="student-tab-pill__count">{displayMetrics.total}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{displayMetrics.total}</span>
           </button>
           <button
             type="button"
@@ -284,7 +286,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            In Review <span className="student-tab-pill__count">{displayMetrics.underReview}</span>
+            {t('admin.inReview')} <span className="student-tab-pill__count">{displayMetrics.underReview}</span>
           </button>
           <button
             type="button"
@@ -294,7 +296,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Needs Revision <span className="student-tab-pill__count">{displayMetrics.needsRevision}</span>
+            {t('admin.needsRevision')} <span className="student-tab-pill__count">{displayMetrics.needsRevision}</span>
           </button>
           <button
             type="button"
@@ -304,7 +306,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Published <span className="student-tab-pill__count">{displayMetrics.published}</span>
+            {t('admin.published')} <span className="student-tab-pill__count">{displayMetrics.published}</span>
           </button>
           <button
             type="button"
@@ -314,7 +316,7 @@ export function AdminSubmissionsView() {
               setPage(1);
             }}
           >
-            Rejected <span className="student-tab-pill__count">{displayMetrics.rejected}</span>
+            {t('admin.rejected')} <span className="student-tab-pill__count">{displayMetrics.rejected}</span>
           </button>
         </div>
 
@@ -327,7 +329,7 @@ export function AdminSubmissionsView() {
             <input
               type="text"
               className="student-search-input"
-              placeholder="Search title, author or keyword..."
+              placeholder={t('admin.searchSubmissions')}
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -342,7 +344,7 @@ export function AdminSubmissionsView() {
                   setPage(1);
                 }}
                 className="student-search-clear"
-                aria-label="Clear search"
+                aria-label={t('admin.clearSearch')}
               >
                 ×
               </button>
@@ -357,11 +359,11 @@ export function AdminSubmissionsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Editorial submissions queue">
             <thead>
               <tr>
-                <th style={{ width: '45%' }}>Manuscript</th>
-                <th>Author</th>
-                <th>Version</th>
-                <th>Updated</th>
-                <th>Status</th>
+                <th style={{ width: '45%' }}>{t('admin.titleAndVersion')}</th>
+                <th>{t('admin.author')}</th>
+                <th>{t('nav.versions')}</th>
+                <th>{t('admin.submittedDate')}</th>
+                <th>{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -378,27 +380,31 @@ export function AdminSubmissionsView() {
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
             </div>
-            <h3>No submissions found</h3>
+            <h3>{t('admin.noSubmissions')}</h3>
             <p>
               {query || status !== 'ALL' || roleFilter !== 'ALL'
-                ? 'No submissions match your current filters. Try changing your search query, status tab, or author role tab.'
-                : 'New research submissions will appear here automatically.'}
+                ? (locale === 'vi'
+                    ? 'Không có bản thảo nào khớp với bộ lọc hiện tại. Hãy thử thay đổi từ khóa tìm kiếm hoặc tab trạng thái.'
+                    : 'No submissions match your current filters. Try changing your search query, status tab, or author role tab.')
+                : (locale === 'vi'
+                    ? 'Các bản thảo nghiên cứu mới sẽ tự động hiển thị tại đây.'
+                    : 'New research submissions will appear here automatically.')}
             </p>
           </div>
         ) : (
           <table className="dashboard-table dashboard-table--repository" aria-label="Editorial submissions queue">
             <thead>
               <tr>
-                <th style={{ width: '45%' }}>Manuscript</th>
-                <th>Author</th>
-                <th>Version</th>
-                <th>Updated</th>
-                <th>Status</th>
+                <th style={{ width: '45%' }}>{t('admin.titleAndVersion')}</th>
+                <th>{t('admin.author')}</th>
+                <th>{t('nav.versions')}</th>
+                <th>{t('admin.submittedDate')}</th>
+                <th>{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
               {result.items.map((item) => {
-                const authorName = item.uploader?.name || item.uploader?.email || 'Author unavailable';
+                const authorName = item.uploader?.name || item.uploader?.email || (locale === 'vi' ? 'Không có tên tác giả' : 'Author unavailable');
 
                 return (
                   <tr key={item.id}>
@@ -443,7 +449,7 @@ export function AdminSubmissionsView() {
 
                     {/* Updated */}
                     <td className="dashboard-table__date">
-                      {new Date(item.updatedAt).toLocaleDateString('en-US', {
+                      {new Date(item.updatedAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
@@ -474,7 +480,7 @@ export function AdminSubmissionsView() {
             }}
           >
             <span style={{ fontSize: '13px', color: '#64748b' }}>
-              Page {pagination.page} of {pagination.totalPages} · {pagination.total} total submissions
+              {t('admin.pageOf', { page: pagination.page, totalPages: pagination.totalPages })} · {t('admin.totalSubmissionsNum', { total: pagination.total })}
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
@@ -483,7 +489,7 @@ export function AdminSubmissionsView() {
                 disabled={page <= 1 || loading}
                 onClick={() => setPage((current) => current - 1)}
               >
-                Previous
+                {t('common.previous')}
               </button>
               <button
                 type="button"
@@ -491,7 +497,7 @@ export function AdminSubmissionsView() {
                 disabled={page >= pagination.totalPages || loading}
                 onClick={() => setPage((current) => current + 1)}
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>

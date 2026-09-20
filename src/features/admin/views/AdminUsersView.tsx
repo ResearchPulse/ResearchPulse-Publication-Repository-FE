@@ -6,6 +6,7 @@ import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminOverview, type AdminUser } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
+import { useTranslation } from '@/i18n';
 
 type ActiveTab = 'ALL' | 'STUDENT' | 'LECTURER' | 'ADMIN' | 'PENDING';
 type ActiveFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
@@ -25,6 +26,7 @@ function getUserInitials(name?: string | null, email?: string): string {
 }
 
 export function AdminUsersView() {
+  const { t, locale } = useTranslation();
   const [tab, setTab] = useState<ActiveTab>('ALL');
   const [search, setSearch] = useState('');
   const [active, setActive] = useState<ActiveFilter>('ALL');
@@ -111,6 +113,7 @@ export function AdminUsersView() {
   const totalUsersCount = overview?.users?.total || result?.pagination?.total || 0;
   const studentsCount = overview?.users?.students || 0;
   const lecturersCount = overview?.users?.lecturers || 0;
+  const adminsCount = Math.max(0, totalUsersCount - studentsCount - lecturersCount);
 
   // Decide pending registration (Approve / Reject)
   const decidePendingUser = async (user: AdminUser, decision: 'approve' | 'reject') => {
@@ -191,11 +194,11 @@ export function AdminUsersView() {
   };
 
   return (
-    <AdminShell active="users" title="Users" pendingCount={pendingUsers.length}>
+    <AdminShell active="users" title={t('nav.users')} pendingCount={pendingUsers.length}>
       <AdminPageHeader
-        eyebrow="Access Administration"
-        title="User Management"
-        description="Oversee user accounts, assign academic roles, and verify incoming student registration requests."
+        eyebrow={t('admin.usersEyebrow')}
+        title={t('admin.usersTitle')}
+        description={t('admin.usersDesc')}
       />
 
       {/* Dismissible Feedback Message */}
@@ -273,7 +276,7 @@ export function AdminUsersView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{totalUsersCount}</span>
-            <span className="student-metric-label">Total Accounts</span>
+            <span className="student-metric-label">{t('admin.totalAccounts')}</span>
           </div>
         </div>
 
@@ -295,7 +298,7 @@ export function AdminUsersView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{studentsCount}</span>
-            <span className="student-metric-label">Students</span>
+            <span className="student-metric-label">{t('admin.students')}</span>
           </div>
         </div>
 
@@ -319,7 +322,7 @@ export function AdminUsersView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{lecturersCount}</span>
-            <span className="student-metric-label">Faculty Lecturers</span>
+            <span className="student-metric-label">{t('admin.lecturers')}</span>
           </div>
         </div>
 
@@ -343,7 +346,7 @@ export function AdminUsersView() {
             <span className="student-metric-value" style={{ color: pendingUsers.length > 0 ? '#d97706' : undefined }}>
               {pendingUsers.length}
             </span>
-            <span className="student-metric-label">Pending Approval</span>
+            <span className="student-metric-label">{t('admin.pendingApproval')}</span>
           </div>
         </div>
       </div>
@@ -359,7 +362,7 @@ export function AdminUsersView() {
               setPage(1);
             }}
           >
-            All <span className="student-tab-pill__count">{totalUsersCount}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{totalUsersCount}</span>
           </button>
           <button
             type="button"
@@ -369,7 +372,7 @@ export function AdminUsersView() {
               setPage(1);
             }}
           >
-            Students <span className="student-tab-pill__count">{studentsCount}</span>
+            {t('admin.students')} <span className="student-tab-pill__count">{studentsCount}</span>
           </button>
           <button
             type="button"
@@ -379,7 +382,7 @@ export function AdminUsersView() {
               setPage(1);
             }}
           >
-            Lecturers <span className="student-tab-pill__count">{lecturersCount}</span>
+            {t('admin.lecturers')} <span className="student-tab-pill__count">{lecturersCount}</span>
           </button>
           <button
             type="button"
@@ -389,7 +392,7 @@ export function AdminUsersView() {
               setPage(1);
             }}
           >
-            Admins
+            {t('admin.admins')} <span className="student-tab-pill__count">{adminsCount}</span>
           </button>
           <button
             type="button"
@@ -399,7 +402,7 @@ export function AdminUsersView() {
               setPage(1);
             }}
           >
-            Pending <span className="student-tab-pill__count">{pendingUsers.length}</span>
+            {t('admin.pendingApproval')} <span className="student-tab-pill__count">{pendingUsers.length}</span>
           </button>
         </div>
 
@@ -411,7 +414,7 @@ export function AdminUsersView() {
             </svg>
             <input
               type="search"
-              placeholder={tab === 'PENDING' ? 'Search applicants, student ID...' : 'Search name, email, student ID...'}
+              placeholder={tab === 'PENDING' ? t('common.searchUsersPending') : t('common.searchUsersAll')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -437,7 +440,7 @@ export function AdminUsersView() {
 
           {tab !== 'PENDING' && (
             <div className="student-sort-box">
-              <span className="student-sort-label">Status:</span>
+              <span className="student-sort-label">{t('common.status')}:</span>
               <SortDropdown
                 value={active}
                 onChange={(val) => {
@@ -445,12 +448,11 @@ export function AdminUsersView() {
                   setPage(1);
                 }}
                 options={[
-                  { value: 'ALL', label: 'All account states' },
-                  { value: 'ACTIVE', label: 'Active' },
-                  { value: 'INACTIVE', label: 'Inactive' },
+                  { value: 'ALL', label: locale === 'vi' ? 'Tất cả trạng thái tài khoản' : 'All account states' },
+                  { value: 'ACTIVE', label: t('admin.active') },
+                  { value: 'INACTIVE', label: t('admin.inactive') },
                 ]}
-                ariaLabel="Filter by account status"
-                style={{ width: '160px' }}
+                style={{ width: '180px' }}
               />
             </div>
           )}
@@ -465,11 +467,11 @@ export function AdminUsersView() {
             <table className="data-table admin-users-table">
               <thead>
                 <tr>
-                  <th>Applicant</th>
-                  <th>Student ID</th>
-                  <th>Major</th>
-                  <th>Registered</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>{locale === 'vi' ? 'Người đăng ký' : 'Applicant'}</th>
+                  <th>{locale === 'vi' ? 'Mã sinh viên' : 'Student ID'}</th>
+                  <th>{locale === 'vi' ? 'Ngành học' : 'Major'}</th>
+                  <th>{locale === 'vi' ? 'Ngày đăng ký' : 'Registered'}</th>
+                  <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -513,14 +515,14 @@ export function AdminUsersView() {
                             disabled={busyId === user.id}
                             onClick={() => decidePendingUser(user, 'approve')}
                           >
-                            Approve
+                            {locale === 'vi' ? 'Phê duyệt' : 'Approve'}
                           </Button>
                           <Button
                             variant="secondary"
                             disabled={busyId === user.id}
                             onClick={() => decidePendingUser(user, 'reject')}
                           >
-                            Reject
+                            {locale === 'vi' ? 'Từ chối' : 'Reject'}
                           </Button>
                         </div>
                       </td>
@@ -547,11 +549,11 @@ export function AdminUsersView() {
             <table className="data-table admin-users-table">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Account Status</th>
-                  <th>Last Login</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>{locale === 'vi' ? 'Người dùng' : 'User'}</th>
+                  <th>{locale === 'vi' ? 'Vai trò' : 'Role'}</th>
+                  <th>{locale === 'vi' ? 'Trạng thái' : 'Account Status'}</th>
+                  <th>{locale === 'vi' ? 'Đăng nhập cuối' : 'Last Login'}</th>
+                  <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -587,25 +589,26 @@ export function AdminUsersView() {
                         </div>
                       </td>
 
-                      {/* ROLE COLUMN: INLINE SELECT */}
-                      <td>
-                        <select
+                      {/* ROLE COLUMN: INLINE CUSTOM DROPDOWN */}
+                      <td style={{ minWidth: '150px' }}>
+                        <SortDropdown
                           value={draftRole}
                           disabled={busyId === user.id}
-                          onChange={(e) =>
+                          size="sm"
+                          options={[
+                            { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
+                            { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
+                            { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
+                          ]}
+                          onChange={(val) =>
                             setRoleDrafts((curr) => ({
                               ...curr,
-                              [user.id]: e.target.value as AdminUser['role'],
+                              [user.id]: val as AdminUser['role'],
                             }))
                           }
-                          className="admin-role-select"
-                          aria-label={`Role for ${user.email}`}
-                          title="Select user role"
-                        >
-                          <option value="STUDENT">Student</option>
-                          <option value="LECTURER">Lecturer</option>
-                          <option value="ADMIN">Admin</option>
-                        </select>
+                          ariaLabel={`Role for ${user.email}`}
+                          style={{ width: '135px' }}
+                        />
                       </td>
 
                       {/* ACCOUNT STATUS COLUMN */}
@@ -620,7 +623,7 @@ export function AdminUsersView() {
                               user.isActive ? 'admin-status-dot--active' : 'admin-status-dot--inactive'
                             }`}
                           />
-                          <span>{user.isActive ? 'Active' : 'Inactive'}</span>
+                          <span>{user.isActive ? (locale === 'vi' ? 'Hoạt động' : 'Active') : (locale === 'vi' ? 'Vô hiệu' : 'Inactive')}</span>
                         </span>
                       </td>
 
@@ -633,7 +636,7 @@ export function AdminUsersView() {
                                 month: 'short',
                                 day: 'numeric',
                               })
-                            : 'Never'}
+                            : (locale === 'vi' ? 'Chưa từng' : 'Never')}
                         </span>
                       </td>
 
@@ -645,14 +648,14 @@ export function AdminUsersView() {
                             disabled={busyId === user.id || draftRole === user.role}
                             onClick={() => handleSaveRole(user, draftRole)}
                           >
-                            Save role
+                            {locale === 'vi' ? 'Lưu vai trò' : 'Save role'}
                           </Button>
                           <Button
                             variant="secondary"
                             disabled={busyId === user.id}
                             onClick={() => updateActive(user)}
                           >
-                            {user.isActive ? 'Deactivate' : 'Activate'}
+                            {user.isActive ? (locale === 'vi' ? 'Vô hiệu hóa' : 'Deactivate') : (locale === 'vi' ? 'Kích hoạt' : 'Activate')}
                           </Button>
                         </div>
                       </td>

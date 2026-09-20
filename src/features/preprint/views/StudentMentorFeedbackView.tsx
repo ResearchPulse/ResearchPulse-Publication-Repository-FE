@@ -8,6 +8,7 @@ import { SortDropdown } from '@/components/sort-dropdown';
 import { studentPreprintApi } from '../api';
 import { usePreprintList } from '../hooks';
 import type { StudentPreprint } from '../types';
+import { useTranslation } from '@/i18n';
 
 type FeedbackFilter = 'ALL' | 'ACTION' | 'REVIEW' | 'APPROVED';
 type SortOption = 'UPDATED' | 'TITLE' | 'REVIEWER';
@@ -44,6 +45,7 @@ function getInitials(name?: string, fallback = 'GV') {
 }
 
 export function StudentMentorFeedbackView() {
+  const { t, locale } = useTranslation();
   const { items, loading: listLoading, error: listError } = usePreprintList();
   const [filter, setFilter] = useState<FeedbackFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,8 +64,12 @@ export function StudentMentorFeedbackView() {
 
   useEffect(() => {
     let active = true;
+    if (listLoading) {
+      return;
+    }
+
     if (items.length === 0) {
-      setReviewedManuscripts([]);
+      setReviewedManuscripts((prev) => (prev.length === 0 ? prev : []));
       setReviewsLoading(false);
       return () => {
         active = false;
@@ -91,7 +97,7 @@ export function StudentMentorFeedbackView() {
     return () => {
       active = false;
     };
-  }, [items]);
+  }, [items, listLoading]);
 
   // Counts for filter pills
   const actionCount = useMemo(
@@ -175,38 +181,38 @@ export function StudentMentorFeedbackView() {
   };
 
   return (
-    <StudentShell title="Nhận xét" showStandardHeader={false}>
+    <StudentShell title={t('nav.mentorFeedback')} showStandardHeader={false}>
       {/* 1. Filter Toolbar */}
       <div className="student-filter-toolbar">
         {/* Status Tab Pills */}
-        <div className="student-tabs-pills" role="tablist" aria-label="Lọc phản hồi theo trạng thái">
+        <div className="student-tabs-pills" role="tablist" aria-label={t('student.preprints.filterStatus')}>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('ALL')}
           >
-            Tất cả <span className="student-tab-pill__count">{totalTracked}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{totalTracked}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'REVIEW' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('REVIEW')}
           >
-            Đang thẩm định <span className="student-tab-pill__count">{reviewCount}</span>
+            {t('student.preprints.underReview')} <span className="student-tab-pill__count">{reviewCount}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'ACTION' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setFilter('ACTION')}
           >
-            Cần chỉnh sửa <span className="student-tab-pill__count">{actionCount}</span>
+            {t('student.preprints.needsRevision')} <span className="student-tab-pill__count">{actionCount}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'APPROVED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('APPROVED')}
           >
-            Đã duyệt <span className="student-tab-pill__count">{approvedCount}</span>
+            {t('student.preprints.approved')} <span className="student-tab-pill__count">{approvedCount}</span>
           </button>
         </div>
 
@@ -219,7 +225,7 @@ export function StudentMentorFeedbackView() {
             </svg>
             <input
               type="search"
-              placeholder="Tìm kiếm bản thảo, phản hồi..."
+              placeholder={t('common.searchFeedback')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -232,14 +238,14 @@ export function StudentMentorFeedbackView() {
           </div>
 
           <div className="student-sort-box">
-            <span className="student-sort-label">Sắp xếp:</span>
+            <span className="student-sort-label">{t('common.sortBy')}</span>
             <SortDropdown
               value={sortBy}
               onChange={(val) => setSortBy(val as SortOption)}
               options={[
-                { value: 'UPDATED', label: 'Mới cập nhật' },
-                { value: 'TITLE', label: 'Tiêu đề (A-Z)' },
-                { value: 'REVIEWER', label: 'Tên người phản biện' },
+                { value: 'UPDATED', label: t('common.recentlyUpdated') },
+                { value: 'TITLE', label: t('common.titleAZ') },
+                { value: 'REVIEWER', label: locale === 'vi' ? 'Tên người phản biện' : 'Reviewer Name' },
               ]}
               style={{ width: '160px' }}
             />
@@ -250,9 +256,9 @@ export function StudentMentorFeedbackView() {
             onClick={toggleAll}
             className="student-btn student-btn--secondary student-btn--sm"
             style={{ height: '36px', whiteSpace: 'nowrap' }}
-            aria-label={isAllExpanded ? 'Thu gọn tất cả bản thảo' : 'Mở rộng tất cả bản thảo'}
+            aria-label={isAllExpanded ? (locale === 'vi' ? 'Thu gọn tất cả bản thảo' : 'Collapse all manuscripts') : (locale === 'vi' ? 'Mở rộng tất cả bản thảo' : 'Expand all manuscripts')}
           >
-            <span>{isAllExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}</span>
+            <span>{isAllExpanded ? (locale === 'vi' ? 'Thu gọn tất cả' : 'Collapse all') : (locale === 'vi' ? 'Mở rộng tất cả' : 'Expand all')}</span>
           </button>
         </div>
       </div>

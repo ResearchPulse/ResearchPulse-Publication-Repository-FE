@@ -7,6 +7,7 @@ import { adminApi, type AdminReview, type AdminPublication } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
 import { ROUTES } from '@/app/router';
+import { useTranslation } from '@/i18n';
 
 type ReviewFilterTab = 'ALL' | 'PENDING' | 'NEEDS_REVISION' | 'PUBLISH' | 'REJECT';
 type SortOption = 'UPDATED' | 'REVIEWER' | 'TITLE';
@@ -25,6 +26,7 @@ function formatDate(value?: string | null) {
 
 
 export function AdminReviewsView() {
+  const { t, locale } = useTranslation();
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -147,14 +149,14 @@ export function AdminReviewsView() {
   }, [reviews, activeTab, searchQuery, safeSortBy]);
 
   return (
-    <AdminShell active="reviews" title="Reviews">
+    <AdminShell active="reviews" title={t('admin.reviews')} pendingCount={metrics.pending}>
       <AdminPageHeader
-        eyebrow="Editorial Review Matrix"
-        title="Review Oversight"
-        description="Monitor faculty peer evaluations, track review SLAs, and evaluate lecturer recommendations across all manuscripts."
+        eyebrow={t('admin.reviewsEyebrow')}
+        title={t('admin.reviewsTitle')}
+        description={t('admin.reviewsDesc')}
         actions={
           <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-btn student-btn--secondary" style={{ textDecoration: 'none' }}>
-            Browse Submissions →
+            {t('admin.browseSubmissions')}
           </Link>
         }
       />
@@ -173,7 +175,7 @@ export function AdminReviewsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.total}</span>
-            <span className="student-metric-label">Total Lecturer Reviews</span>
+            <span className="student-metric-label">{t('admin.totalLecturerReviews')}</span>
           </div>
         </div>
 
@@ -186,7 +188,7 @@ export function AdminReviewsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.pending}</span>
-            <span className="student-metric-label">Awaiting Feedback</span>
+            <span className="student-metric-label">{t('admin.awaitingFeedback')}</span>
           </div>
         </div>
 
@@ -200,7 +202,7 @@ export function AdminReviewsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value" style={{ color: '#d97706' }}>{metrics.needsRevision}</span>
-            <span className="student-metric-label">Revisions Requested</span>
+            <span className="student-metric-label">{t('admin.revisionsRequested')}</span>
           </div>
         </div>
 
@@ -213,7 +215,7 @@ export function AdminReviewsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value" style={{ color: '#16a34a' }}>{metrics.publish}</span>
-            <span className="student-metric-label">Publish Recommended</span>
+            <span className="student-metric-label">{t('admin.publishRecommended')}</span>
           </div>
         </div>
       </div>
@@ -226,28 +228,28 @@ export function AdminReviewsView() {
             className={`student-tab-pill ${activeTab === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setActiveTab('ALL')}
           >
-            All <span className="student-tab-pill__count">{metrics.total}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{metrics.total}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${activeTab === 'PENDING' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setActiveTab('PENDING')}
           >
-            Awaiting Review <span className="student-tab-pill__count">{metrics.pending}</span>
+            {locale === 'vi' ? 'Chờ phản hồi' : 'Awaiting Review'} <span className="student-tab-pill__count">{metrics.pending}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${activeTab === 'NEEDS_REVISION' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setActiveTab('NEEDS_REVISION')}
           >
-            Needs Revision <span className="student-tab-pill__count">{metrics.needsRevision}</span>
+            {t('admin.needsRevision')} <span className="student-tab-pill__count">{metrics.needsRevision}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${activeTab === 'PUBLISH' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setActiveTab('PUBLISH')}
           >
-            Publish Recommended <span className="student-tab-pill__count">{metrics.publish}</span>
+            {t('admin.publishRecommended')} <span className="student-tab-pill__count">{metrics.publish}</span>
           </button>
         </div>
 
@@ -260,7 +262,7 @@ export function AdminReviewsView() {
             <input
               type="text"
               className="student-search-input"
-              placeholder="Search manuscript, lecturer..."
+              placeholder={t('common.searchReviewLecturer')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -277,15 +279,15 @@ export function AdminReviewsView() {
           </div>
 
           <div className="student-sort-box">
-            <label htmlFor="admin-sort-reviews" className="student-sort-label">Sort:</label>
+            <label htmlFor="admin-sort-reviews" className="student-sort-label">{t('common.sortBy')}</label>
             <SortDropdown
               id="admin-sort-reviews"
               value={safeSortBy}
               onChange={(val) => setSortBy(val as SortOption)}
               options={[
-                { value: 'UPDATED', label: 'Recently Updated' },
-                { value: 'REVIEWER', label: 'Lecturer Name' },
-                { value: 'TITLE', label: 'Manuscript Title' },
+                { value: 'UPDATED', label: t('common.recentlyUpdated') },
+                { value: 'REVIEWER', label: locale === 'vi' ? 'Giảng viên' : 'Reviewer' },
+                { value: 'TITLE', label: t('common.titleAZ') },
               ]}
               style={{ width: '160px' }}
             />
@@ -328,11 +330,11 @@ export function AdminReviewsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Faculty review records">
             <thead>
               <tr>
-                <th style={{ width: '38%' }}>Manuscript</th>
-                <th>Lecturer Reviewer</th>
-                <th>Evaluation Status</th>
-                <th style={{ width: '24%' }}>Feedback Notes</th>
-                <th>Submitted / SLA</th>
+                <th style={{ width: '28%' }}>{t('admin.tableManuscript')}</th>
+                <th style={{ minWidth: '220px' }}>{t('admin.tableReviewer')}</th>
+                <th style={{ minWidth: '170px', whiteSpace: 'nowrap' }}>{t('admin.tableEvalStatus')}</th>
+                <th style={{ width: '25%' }}>{t('admin.tableFeedbackNotes')}</th>
+                <th style={{ minWidth: '140px', whiteSpace: 'nowrap' }}>{t('admin.tableSubmittedSLA')}</th>
               </tr>
             </thead>
             <tbody>
@@ -349,27 +351,27 @@ export function AdminReviewsView() {
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
             </div>
-            <h3>No lecturer reviews found</h3>
+            <h3>{locale === 'vi' ? 'Không tìm thấy đánh giá nào' : 'No lecturer reviews found'}</h3>
             <p>
               {searchQuery
-                ? `No reviews matched "${searchQuery}". Try a different keyword.`
+                ? (locale === 'vi' ? `Không có nhận xét nào khớp với "${searchQuery}".` : `No reviews matched "${searchQuery}". Try a different keyword.`)
                 : activeTab !== 'ALL'
-                ? 'No lecturer reviews match the selected status filter.'
-                : 'No faculty reviews have been submitted for preprints yet.'}
+                ? (locale === 'vi' ? 'Không có nhận xét nào khớp với bộ lọc trạng thái được chọn.' : 'No lecturer reviews match the selected status filter.')
+                : (locale === 'vi' ? 'Chưa có nhận xét nào từ giảng viên cho các bản thảo.' : 'No faculty reviews have been submitted for preprints yet.')}
             </p>
             <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-btn student-btn--primary" style={{ textDecoration: 'none' }}>
-              Inspect Submissions →
+              {t('admin.browseSubmissions')}
             </Link>
           </div>
         ) : (
           <table className="dashboard-table dashboard-table--repository" aria-label="Faculty review records">
             <thead>
               <tr>
-                <th style={{ width: '38%' }}>Manuscript</th>
-                <th>Lecturer Reviewer</th>
-                <th>Evaluation Status</th>
-                <th style={{ width: '24%' }}>Feedback Notes</th>
-                <th>Submitted / SLA</th>
+                <th style={{ width: '28%' }}>{t('admin.tableManuscript')}</th>
+                <th style={{ minWidth: '220px' }}>{t('admin.tableReviewer')}</th>
+                <th style={{ minWidth: '170px', whiteSpace: 'nowrap' }}>{t('admin.tableEvalStatus')}</th>
+                <th style={{ width: '25%' }}>{t('admin.tableFeedbackNotes')}</th>
+                <th style={{ minWidth: '140px', whiteSpace: 'nowrap' }}>{t('admin.tableSubmittedSLA')}</th>
               </tr>
             </thead>
             <tbody>
@@ -400,7 +402,7 @@ export function AdminReviewsView() {
                         </span>
                         {(review.publication?.uploader?.name || review.publication?.uploader?.email) && (
                           <span className="dashboard-table__sha" style={{ fontSize: '11.5px', color: '#64748b' }}>
-                            Author: {review.publication.uploader?.name ? `${review.publication.uploader.name} (${review.publication.uploader.email})` : review.publication.uploader?.email}
+                            {locale === 'vi' ? 'Tác giả' : 'Author'}: {review.publication.uploader?.name ? `${review.publication.uploader.name} (${review.publication.uploader.email})` : review.publication.uploader?.email}
                           </span>
                         )}
                       </div>
@@ -416,26 +418,26 @@ export function AdminReviewsView() {
                           <strong style={{ display: 'block', fontSize: '13.5px', color: '#0f172a' }}>
                             {review.reviewer?.name || review.reviewer?.email || review.reviewerId}
                           </strong>
-                          <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                            {review.reviewer?.email || 'Faculty Reviewer'}
+                          <span style={{ fontSize: '11.5px', color: '#64748b', overflowWrap: 'anywhere' }}>
+                            {review.reviewer?.email || t('admin.facultyReviewerDefault')}
                           </span>
                         </div>
                       </div>
                     </td>
 
                     {/* Evaluation Status Column */}
-                    <td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
                       {review.recommendation === 'NEEDS_REVISION' && (
-                        <span className="user-badge user-badge--revision">NEEDS REVISION</span>
+                        <span className="user-badge user-badge--revision">{t('admin.needsRevision').toUpperCase()}</span>
                       )}
                       {review.recommendation === 'PUBLISH' && (
-                        <span className="user-badge user-badge--approved">RECOMMEND PUBLISH</span>
+                        <span className="user-badge user-badge--approved">{t('admin.recommendPublish')}</span>
                       )}
                       {review.recommendation === 'REJECT' && (
-                        <span className="user-badge user-badge--withdrawn">RECOMMEND REJECT</span>
+                        <span className="user-badge user-badge--withdrawn">{t('admin.recommendReject')}</span>
                       )}
                       {!review.recommendation && (
-                        <span className="user-badge user-badge--review">IN PROGRESS</span>
+                        <span className="user-badge user-badge--review">{t('admin.inProgress')}</span>
                       )}
                     </td>
 
@@ -447,18 +449,18 @@ export function AdminReviewsView() {
                         </span>
                       ) : (
                         <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
-                          Pending reviewer submission
+                          {t('admin.pendingReviewerSubmission')}
                         </span>
                       )}
                     </td>
 
                     {/* SLA / Submitted Column */}
-                    <td className="dashboard-table__date">
+                    <td className="dashboard-table__date" style={{ whiteSpace: 'nowrap' }}>
                       <div style={{ fontSize: '12.5px', color: '#334155', fontWeight: 500 }}>
                         {formatDate(review.submittedAt || review.updatedAt)}
                       </div>
                       <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        {review.submittedAt ? 'Evaluation complete' : 'Expected SLA 48–72h'}
+                        {review.submittedAt ? t('admin.evaluationComplete') : t('admin.expectedSla')}
                       </span>
                     </td>
                   </tr>
