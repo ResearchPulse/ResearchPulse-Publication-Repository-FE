@@ -32,6 +32,17 @@ export function AdminUsersView() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Custom Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    cancelLabel: string;
+    isDanger?: boolean;
+    onConfirm: () => Promise<void> | void;
+  } | null>(null);
+
   const PAGE_SIZE = 10;
 
   const refreshPending = (targetPage = page) => {
@@ -111,27 +122,41 @@ export function AdminUsersView() {
     );
   }, [pendingUsers, search]);
 
-  // Approve = issue temp password + email; Reject = mark registration rejected
-  const decidePendingUser = async (user: AdminUser, decision: 'approve' | 'reject') => {
-    if (!window.confirm(`${decision === 'approve' ? 'Approve' : 'Reject'} registration for ${user.email}?`)) return;
-    setBusyId(user.id);
-    setMessage(null);
-    setError(null);
-    try {
-      await (decision === 'approve' ? adminApi.approveUser(user.id) : adminApi.rejectUser(user.id));
-      refreshPending(page);
-      setMessage(
-        decision === 'approve'
-          ? `Approved registration for ${user.name || user.email}. Temporary credentials have been emailed.`
-          : `Registration for ${user.email} was rejected.`,
-      );
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : 'Unable to process pending registration.');
-    } finally {
-      setBusyId(null);
-    }
+  // Decide pending registration (Approve / Reject) with custom confirmation modal
+  const decidePendingUser = (user: AdminUser, decision: 'approve' | 'reject') => {
+    const isApprove = decision === 'approve';
+    setConfirmModal({
+      open: true,
+      title: isApprove
+        ? (locale === 'vi' ? 'Duyệt đăng ký tài khoản' : 'Approve Registration')
+        : (locale === 'vi' ? 'Từ chối đăng ký tài khoản' : 'Reject Registration'),
+      description: isApprove
+        ? (locale === 'vi' ? `Xác nhận duyệt yêu cầu đăng ký của ${user.email}? Tài khoản sẽ được cấp thông tin đăng nhập tạm thời.` : `Approve registration request for ${user.email}? Temporary credentials will be issued.`)
+        : (locale === 'vi' ? `Xác nhận từ chối yêu cầu đăng ký của ${user.email}?` : `Reject registration request for ${user.email}?`),
+      confirmLabel: isApprove ? (locale === 'vi' ? 'Duyệt' : 'Approve') : (locale === 'vi' ? 'Từ chối' : 'Reject'),
+      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
+      isDanger: !isApprove,
+      onConfirm: async () => {
+        setBusyId(user.id);
+        setMessage(null);
+        setError(null);
+        try {
+          await (decision === 'approve' ? adminApi.approveUser(user.id) : adminApi.rejectUser(user.id));
+          refreshPending(page);
+          setMessage(
+            decision === 'approve'
+              ? (locale === 'vi' ? `Đã duyệt đăng ký cho ${user.name || user.email}. Thông tin đăng nhập tạm thời đã được cấp.` : `Approved registration for ${user.name || user.email}. Temporary credentials issued.`)
+              : (locale === 'vi' ? `Đã từ chối đăng ký cho ${user.email}.` : `Registration for ${user.email} was rejected.`),
+          );
+        } catch (reason: unknown) {
+          setError(reason instanceof Error ? reason.message : 'Unable to process pending registration.');
+        } finally {
+          setBusyId(null);
+          setConfirmModal(null);
+        }
+      },
+    });
   };
-
 
   return (
     <AdminShell active="users" title={t('nav.users')} pendingCount={pagination?.total ?? pendingUsers.length}>
@@ -302,7 +327,7 @@ export function AdminUsersView() {
                     <td>
                       <span style={{ fontSize: '12.5px', color: '#64748b' }}>
                         {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                          ? new Date(user.createdAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : undefined, { year: 'numeric', month: 'short', day: 'numeric' })
                           : locale === 'vi' ? 'Gần đây' : 'Recently'}
                       </span>
                     </td>
@@ -379,6 +404,78 @@ export function AdminUsersView() {
           </div>
         )}
       </div>
+
+      {/* Custom General Confirmation Modal */}
+      {confirmModal && confirmModal.open && (
+        <div className="admin-modal-backdrop" onClick={() => !busyId && setConfirmModal(null)}>
+          <div
+            className="admin-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <div className={`admin-modal-icon ${confirmModal.isDanger ? 'admin-modal-icon--rejected' : 'admin-modal-icon--published'}`}>
+                {confirmModal.isDanger ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <h3 className="admin-modal-title">{confirmModal.title}</h3>
+                <p className="admin-modal-subtitle">{confirmModal.description}</p>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={() => !busyId && setConfirmModal(null)}
+                aria-label="Close"
+                disabled={Boolean(busyId)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn-cancel"
+                onClick={() => setConfirmModal(null)}
+                disabled={Boolean(busyId)}
+              >
+                {confirmModal.cancelLabel}
+              </button>
+              <button
+                type="button"
+                className={`admin-btn-confirm ${confirmModal.isDanger ? 'admin-btn-confirm--rejected' : 'admin-btn-confirm--published'}`}
+                onClick={() => confirmModal.onConfirm()}
+                disabled={Boolean(busyId)}
+              >
+                {busyId ? (
+                  <>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                      <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                    </svg>
+                    {locale === 'vi' ? 'Đang xử lý...' : 'Processing...'}
+                  </>
+                ) : (
+                  confirmModal.confirmLabel
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminShell>
   );
 }

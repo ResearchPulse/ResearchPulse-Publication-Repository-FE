@@ -11,6 +11,8 @@ export function usePreprintDetail(id: string) {
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError(null);
     studentPreprintApi.get(id)
       .then((result) => { if (active) setItem(result); })
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason : new Error('Unable to load preprint.')); })

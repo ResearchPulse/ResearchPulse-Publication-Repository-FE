@@ -98,12 +98,14 @@
       "myPreprintsTitle": "Bản thảo của tôi",
       "mentorFeedbackTitle": "Phản hồi & Thẩm định từ Giảng viên",
       "versionsTitle": "Lịch sử các phiên bản nộp",
+      "publishedTitle": "Kho bài báo đã xuất bản",
       "accountTitle": "Thông tin tài khoản & Bảo mật",
       "newPreprintButton": "Nộp bản thảo mới"
     },
     "sidebar": {
       "workspace": "Không gian sinh viên",
       "myPreprints": "Bản thảo của tôi",
+      "published": "Kho bài báo đã xuất bản",
       "mentorFeedback": "Nhận xét của Giảng viên",
       "versions": "Lịch sử phiên bản",
       "account": "Tài khoản cá nhân",

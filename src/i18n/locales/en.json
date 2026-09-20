@@ -98,12 +98,14 @@
       "myPreprintsTitle": "My Preprints",
       "mentorFeedbackTitle": "Faculty Feedback & Reviews",
       "versionsTitle": "Version History",
+      "publishedTitle": "Published Papers Repository",
       "accountTitle": "Account & Security Settings",
       "newPreprintButton": "Submit New Preprint"
     },
     "sidebar": {
       "workspace": "Student Workspace",
       "myPreprints": "My Preprints",
+      "published": "Published Papers",
       "mentorFeedback": "Mentor Feedback",
       "versions": "Version History",
       "account": "Personal Profile",
