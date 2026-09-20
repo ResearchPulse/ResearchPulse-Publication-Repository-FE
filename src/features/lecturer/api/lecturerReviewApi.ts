@@ -108,7 +108,18 @@ function withReviewStatus(publication: LecturerPublication, review?: LecturerRev
   };
 }
 
+export type LecturerStats = {
+  completedReviews: number;
+  reviewQueue: number;
+  turnaroundSla: number;
+  turnaroundSlaFormatted: string;
+  totalAssigned?: number;
+  onTimeReviews?: number;
+};
+
 export const lecturerReviewApi = {
+  getStats: () => request<LecturerStats>('/lecturer-stats'),
+
   async list(): Promise<{ items: LecturerReviewItem[]; total: number }> {
     const publications = await request<LecturerPublication[]>('/?assignedToMe=true&limit=50');
     const items = publications.map((publication) => withReviewStatus(publication, publication.myReview));
