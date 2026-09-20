@@ -2,23 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
+import { LecturerShell } from '@/features/lecturer/components';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreprintDetail } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
+import { DetailSkeleton } from '@/components/skeleton';
 
-const NativePdfViewer = dynamic(
-  () => import('../components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="student-loading-box" style={{ padding: '60px 20px' }}>
-        <div className="student-spinner" />
-        <p>Loading manuscript reader…</p>
-      </div>
-    ),
-  }
-);
 
 interface PreprintDetailViewProps {
   id: string;
@@ -26,11 +18,39 @@ interface PreprintDetailViewProps {
 
 type TabType = 'OVERVIEW' | 'PDF_VIEW' | 'REVIEWS' | 'TIMELINE';
 
+function PreprintDetailShell({
+  isLecturer,
+  title,
+  children,
+}: {
+  isLecturer: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return isLecturer ? (
+    <LecturerShell active="submissions" title={title}>
+      {children}
+    </LecturerShell>
+  ) : (
+    <StudentShell title="Manuscript Details" showStandardHeader={false}>
+      {children}
+    </StudentShell>
+  );
+}
+
 export function PreprintDetailView({ id }: PreprintDetailViewProps) {
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const isLecturer = user?.role === 'LECTURER' || (pathname?.startsWith('/lecturer/') ?? false);
+  const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
+  const editPath = isLecturer ? `${workspacePath}/new?id=${id}` : `${workspacePath}/${id}/edit`;
+  const versionsPath = `${workspacePath}/${id}/versions`;
+
   const { item, loading, error } = usePreprintDetail(id);
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
   const [copiedDoi, setCopiedDoi] = useState(false);
   const [pdfExpanded, setPdfExpanded] = useState(false);
+  const [showAllAuthors, setShowAllAuthors] = useState(false);
 
   const handleCopyDoi = () => {
     if (!item?.doi) return;
@@ -114,17 +134,13 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
     }
   };
 
+  const shellTitle = item?.title
+    ? (item.title.length > 35 ? item.title.substring(0, 35) + '…' : item.title)
+    : 'Manuscript Details';
+
   return (
-    <StudentShell
-      title="Manuscript Details"
-      showStandardHeader={false}
-    >
-      {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading manuscript archive…</p>
-        </div>
-      )}
+    <PreprintDetailShell isLecturer={isLecturer} title={shellTitle}>
+      {loading && <DetailSkeleton />}
 
       {error && (
         <div className="student-error-banner">
@@ -150,8 +166,9 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             {item.authors && item.authors.length > 0 && (
               <div className="student-paper-hero__byline">
                 <div className="student-paper-hero__authors-wrap">
-                  {item.authors.map((author, index) => {
+                  {(showAllAuthors ? item.authors : item.authors.slice(0, 3)).map((author, index) => {
                     const affIdx = authorAffiliationIndices[index] || 1;
+                    const isLastVisible = index === (showAllAuthors ? item.authors.length : Math.min(3, item.authors.length)) - 1;
                     return (
                       <span key={index} className="student-paper-hero__author">
                         <span className="student-paper-hero__author-name">{author.name}</span>
@@ -162,10 +179,50 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                             ✉
                           </span>
                         )}
-                        {index < item.authors.length - 1 && <span className="student-paper-hero__sep">,</span>}
+                        {!isLastVisible && <span className="student-paper-hero__sep">,</span>}
                       </span>
                     );
                   })}
+
+                  {item.authors.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllAuthors(!showAllAuthors)}
+                      style={{
+                        marginLeft: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'none',
+                        border: 'none',
+                        padding: '2px 0',
+                        cursor: 'pointer',
+                        color: '#64748b',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      <span>{showAllAuthors ? 'Hide details' : 'Show details'}</span>
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          transform: showAllAuthors ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                        }}
+                        aria-hidden="true"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
                 {/* Deduplicated Affiliation Footnotes */}
@@ -218,7 +275,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                   </button>
                 )}
 
-                <Link href={`/student/my-preprints/${item.id}/versions`} className="student-btn student-btn--ghost">
+                <Link href={versionsPath} className="student-btn student-btn--ghost">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 14 14" />
@@ -227,13 +284,13 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 </Link>
 
                 {item.status === 'NEEDS_REVISION' && (
-                  <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
+                  <Link href={editPath} className="student-btn student-btn--warning">
                     <span>Revise Manuscript →</span>
                   </Link>
                 )}
 
                 {item.status === 'DRAFT' && (
-                  <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--primary">
+                  <Link href={editPath} className="student-btn student-btn--primary">
                     <span>Continue Draft →</span>
                   </Link>
                 )}
@@ -256,7 +313,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 &ldquo;{item.reviews[0].comments}&rdquo;
               </p>
               <div className="student-revision-banner__action">
-                <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning student-btn--sm">
+                <Link href={editPath} className="student-btn student-btn--warning student-btn--sm">
                   <span>Open Revision Editor →</span>
                 </Link>
                 <button type="button" onClick={() => setActiveTab('REVIEWS')} className="student-btn student-btn--ghost student-btn--sm">
@@ -382,10 +439,30 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
           {activeTab === 'PDF_VIEW' && (
             <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               {item.download_url ? (
-                <NativePdfViewer
-                  url={item.download_url}
-                  fileName={item.file_name || `${item.title?.substring(0, 50) || 'manuscript'}.pdf`}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                    <a
+                      href={item.download_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="student-btn student-btn--secondary student-btn--sm"
+                      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                      <span>Open in New Tab</span>
+                    </a>
+                  </div>
+                  <iframe
+                    className="lecturer-pdf-viewer"
+                    src={item.download_url}
+                    title={`PDF preview for ${item.title || 'manuscript'}`}
+                    style={{ width: '100%', minHeight: '800px', border: '1px solid #e2e8f0', borderRadius: '12px' }}
+                  />
+                </div>
               ) : (
                 <div className="student-empty-card" style={{ padding: '60px 20px' }}>
                   <div className="student-empty-icon">
@@ -459,7 +536,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
                       {rev.decision === 'NEEDS_REVISION' && (
                         <div className="student-review-footer-action">
-                          <Link href={`/student/my-preprints/${item.id}/edit`} className="student-btn student-btn--warning">
+                          <Link href={editPath} className="student-btn student-btn--warning">
                             <span>Open Revision Form (Upload Revised Draft) →</span>
                           </Link>
                         </div>
@@ -528,7 +605,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
           )}
         </div>
       )}
-    </StudentShell>
+    </PreprintDetailShell>
   );
 }
 

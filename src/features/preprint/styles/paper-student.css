@@ -2903,8 +2903,19 @@
     gap: 20px;
   }
   .student-metrics-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .student-metric-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .student-metric-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .student-metric-value {
+    font-size: 18px;
   }
   .student-filter-toolbar {
     flex-direction: column;
@@ -2917,7 +2928,8 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex-wrap: nowrap;
-    padding: 4px 6px;
+    padding: 4px 14px 4px 4px;
+    scroll-snap-type: x mandatory;
   }
   .student-tabs-pills::-webkit-scrollbar {
     display: none;
@@ -2925,6 +2937,7 @@
   .student-tab-pill {
     flex-shrink: 0;
     white-space: nowrap;
+    scroll-snap-align: start;
   }
   .student-toolbar-actions,
   .student-search-sort-group {
@@ -2945,10 +2958,13 @@
   }
   .student-sort-box {
     width: 100%;
-    justify-content: space-between;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .student-sort-select {
     flex: 1;
+    width: 100%;
   }
   .student-form-row {
     flex-direction: column;
@@ -2977,22 +2993,91 @@
     padding: 16px 12px;
   }
   .student-metric-card {
-    padding: 14px 16px;
-    gap: 12px;
+    padding: 10px 12px;
+    gap: 10px;
   }
   .student-metric-icon {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
   }
   .student-metric-value {
-    font-size: 20px;
+    font-size: 17px;
   }
+
+  /* Mobile Card View for Manuscript Repository Table */
   .dashboard-table-card {
-    border-radius: 8px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
   }
-  .dashboard-table th,
-  .dashboard-table td {
-    padding: 12px 14px;
+  .dashboard-table-wrapper {
+    overflow-x: visible;
+  }
+  .dashboard-table--repository {
+    min-width: 0 !important;
+    width: 100%;
+    display: block;
+    border: none;
+  }
+  .dashboard-table--repository thead {
+    display: none;
+  }
+  .dashboard-table--repository tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .dashboard-table--repository tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .dashboard-table--repository tr:hover {
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  }
+  .dashboard-table--repository td {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  .dashboard-table--repository td.dashboard-table__title-cell {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    margin-bottom: 4px;
+  }
+  .dashboard-table--repository .dashboard-table__title-link {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #0f172a;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .dashboard-table--repository .dashboard-table__sha {
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  .dashboard-table--repository td.dashboard-table__date {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: #94a3b8;
   }
 }
 
@@ -3494,6 +3579,7 @@
 }
 
 .student-sidebar__close-btn {
+  display: none;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -3502,7 +3588,6 @@
   line-height: 1;
   padding: 4px 8px;
   border-radius: 6px;
-  display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
@@ -4252,6 +4337,34 @@
   color: #0071bc;
 }
 
+.dashboard-table__title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard-table__title-group .dashboard-table__title-link {
+  display: inline;
+  margin-bottom: 0;
+}
+
+.dashboard-private-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2.5px 7.5px;
+  border-radius: 9999px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 .dashboard-table__sha {
   font-family: monospace;
   font-size: 11px;
@@ -4654,7 +4767,7 @@
   }
 
   .student-sidebar__close-btn {
-    display: block;
+    display: flex;
   }
 
   .student-sidebar-backdrop {
@@ -4664,6 +4777,27 @@
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(2px);
     z-index: 85;
+  }
+
+  .student-topbar {
+    padding: 10px 16px;
+  }
+
+  .student-topbar__crumb-root,
+  .student-topbar__crumb-sep {
+    display: none;
+  }
+
+  .student-topbar__crumb-current {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+
+  .student-topbar__right {
+    gap: 8px;
   }
 
   .student-topbar__menu-btn {
@@ -4689,7 +4823,8 @@
   }
 
   .dashboard-metrics-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 
   .dashboard-stepper {
@@ -4810,10 +4945,30 @@
 }
 
 @media (max-width: 480px) {
+  .student-topbar {
+    padding: 10px 12px;
+  }
+  .student-topbar__crumb-current {
+    max-width: 110px;
+  }
+  .student-topbar__cta {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
   .student-meta-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+  }
+}
+
+@media (max-width: 380px) {
+  .student-topbar__cta span {
+    display: none;
+  }
+  .student-topbar__cta {
+    padding: 6px 8px;
   }
 }
 
@@ -5305,6 +5460,21 @@
     flex-direction: column;
     gap: 12px;
   }
+}
+/* Lecturer Manuscript Privacy Toggle Card */
+.lecturer-privacy-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+  cursor: pointer;
+  user-select: none;
 }
 
 /* Searchable Select Component */
@@ -5808,9 +5978,516 @@
   font-weight: 600;
 }
 
+.lecturer-privacy-card:hover {
+  border-color: #cbd5e1;
+  background-color: #f1f5f9;
+}
 
+.lecturer-privacy-card--active {
+  background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
+  border-color: #93c5fd;
+  box-shadow: 0 2px 8px rgba(0, 113, 188, 0.08);
+}
 
+.lecturer-privacy-card--active:hover {
+  background: linear-gradient(135deg, #e8f3ff 0%, #f1f5f9 100%);
+  border-color: #60a5fa;
+}
 
+.lecturer-privacy-card__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
 
+.lecturer-privacy-card__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
 
+.lecturer-privacy-card--active .lecturer-privacy-card__icon {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #0071bc;
+}
 
+.lecturer-privacy-card__content {
+  min-width: 0;
+}
+
+.lecturer-privacy-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lecturer-privacy-card__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.lecturer-privacy-card__badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.lecturer-privacy-card__badge--private {
+  background: #eff6ff;
+  color: #0071bc;
+  border-color: #bfdbfe;
+}
+
+.lecturer-privacy-card__desc {
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0 0;
+  line-height: 1.45;
+}
+
+/* Custom SaaS Toggle Switch */
+.lecturer-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.lecturer-toggle-switch__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.lecturer-toggle-switch__slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px;
+}
+
+.lecturer-toggle-switch__slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.lecturer-toggle-switch__input:checked + .lecturer-toggle-switch__slider {
+  background-color: #0071bc;
+}
+
+.lecturer-toggle-switch__input:focus-visible + .lecturer-toggle-switch__slider {
+  outline: 2px solid #0071bc;
+  outline-offset: 2px;
+}
+
+.lecturer-toggle-switch__input:checked + .lecturer-toggle-switch__slider::before {
+  transform: translateX(20px);
+}
+
+/* Reviewer Avatar Brand Circle */
+.reviewer-avatar-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0071bc 0%, #0284c7 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12.5px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 113, 188, 0.2);
+}
+
+/* ==========================================================================
+   Redesigned Mentor Feedback Card (Unified Flat Card with Left Accent Border)
+   ========================================================================== */
+.mentor-feedback-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #94a3b8;
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: all 0.2s ease;
+}
+
+.mentor-feedback-card:hover {
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+}
+
+.mentor-feedback-card--alert {
+  border-left-color: #f59e0b;
+}
+
+.mentor-feedback-card--approved {
+  border-left-color: #10b981;
+}
+
+.mentor-feedback-card--review {
+  border-left-color: #0284c7;
+}
+
+.mentor-feedback-card--withdrawn {
+  border-left-color: #ef4444;
+}
+
+.mentor-feedback-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mentor-feedback-card__reviewer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mentor-feedback-card__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.mentor-feedback-card__meta {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.mentor-feedback-card__manuscript {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mentor-feedback-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.4;
+  color: #0f172a;
+}
+
+.mentor-feedback-card__title a {
+  color: #0f172a;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.mentor-feedback-card__title a:hover {
+  color: #0071bc;
+}
+
+.mentor-feedback-card__tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Feedback Bubble */
+.mentor-feedback-card__comment-box {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  padding: 12px 16px;
+  position: relative;
+}
+
+.mentor-feedback-card__comment-text {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.55;
+  font-style: italic;
+  word-break: break-word;
+  margin: 0;
+}
+
+.mentor-feedback-card__comment-text--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mentor-feedback-card__toggle-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #0284c7;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mentor-feedback-card__toggle-btn:hover {
+  color: #0369a1;
+  text-decoration: underline;
+}
+
+.mentor-feedback-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .mentor-feedback-card {
+    padding: 16px 18px;
+    gap: 12px;
+  }
+  .mentor-feedback-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .mentor-feedback-card__actions .student-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   Redesigned Version Archive (Git-Style Lineage Timeline)
+   ========================================================================== */
+.archive-git-timeline {
+  position: relative;
+  padding-left: 28px;
+  margin-top: 14px;
+}
+
+.archive-git-timeline::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 10px;
+  width: 2px;
+  background-color: #e2e8f0;
+}
+
+.archive-git-entry {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.archive-git-entry:last-child {
+  margin-bottom: 0;
+}
+
+.archive-git-node {
+  position: absolute;
+  left: -28px;
+  top: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748b;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.archive-git-entry--latest .archive-git-node {
+  background: linear-gradient(135deg, #0071bc 0%, #0284c7 100%);
+  border-color: #0071bc;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.15);
+}
+
+.archive-git-body {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: all 0.15s ease;
+}
+
+.archive-git-entry--latest .archive-git-body {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.archive-git-body:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.archive-git-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.archive-git-summary-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.archive-git-version-tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.archive-git-summary-text {
+  font-size: 12.5px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archive-git-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.archive-git-date {
+  font-size: 11.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.archive-git-files-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+
+.archive-sha-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.archive-sha-pill:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.archive-sha-pill--copied {
+  background: #dcfce7 !important;
+  color: #16a34a !important;
+  border-color: #86efac !important;
+}
+
+.archive-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #0284c7;
+  text-decoration: none;
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.archive-download-btn:hover {
+  background: #f0f9ff;
+  color: #0369a1;
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .archive-git-timeline {
+    padding-left: 22px;
+  }
+  .archive-git-node {
+    left: -22px;
+    width: 18px;
+    height: 18px;
+    font-size: 8.5px;
+  }
+  .archive-git-summary-line {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .archive-git-summary-text {
+    white-space: normal;
+  }
+  .archive-git-files-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .archive-download-btn {
+    margin-left: 0;
+  }
+}

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks';
 import { StudentDashboardLayout } from '../components';
+import { Skeleton, TableSkeleton } from '@/components/skeleton';
 import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 
@@ -82,7 +83,7 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.total}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.total}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--neutral">
             <span>Registered in repository</span>
           </div>
@@ -98,7 +99,7 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.underReview}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.underReview}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--sky">
             <span>Under advisory evaluation</span>
           </div>
@@ -115,7 +116,7 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.needsRevision}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.needsRevision}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--amber">
             <span>Needs student response</span>
           </div>
@@ -131,7 +132,7 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.approved}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.approved}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--green">
             <span>Camera-ready / Public</span>
           </div>
@@ -171,7 +172,22 @@ export function StudentDashboardView() {
         </div>
 
         {loading ? (
-          <div className="dashboard-loading">Loading manuscripts…</div>
+          <div className="dashboard-table-wrapper">
+            <table className="dashboard-table dashboard-table--repository">
+              <thead>
+                <tr>
+                  <th style={{ width: '48%' }}>Manuscript</th>
+                  <th>Discipline</th>
+                  <th>Version</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                <TableSkeleton rows={4} type="submissions" />
+              </tbody>
+            </table>
+          </div>
         ) : error ? (
           <div className="dashboard-error">Error: {error.message}</div>
         ) : displayedItems.length === 0 ? (
@@ -192,12 +208,14 @@ export function StudentDashboardView() {
                 {displayedItems.map((item) => (
                   <tr key={item.id}>
                     <td className="dashboard-table__title-cell">
-                      <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
-                        {item.title}
-                      </Link>
-                      <span className="dashboard-table__sha">
-                        {item.sha256 ? `SHA-256: ${item.sha256.substring(0, 16)}…` : 'Cryptographic timestamp pending'}
-                      </span>
+                      <div className="dashboard-table__title-group">
+                        <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
+                          {item.title}
+                        </Link>
+                        {item.is_private && (
+                          <span className="dashboard-private-pill">Private</span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/app/router';
 import { LecturerShell } from '../components';
+import { TableSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerReviewItem } from '../api';
 
 type QueueFilter = 'ALL' | 'AWAITING_REVIEW' | 'COMPLETED';
@@ -150,9 +151,21 @@ export function LecturerReviewsView() {
 
       {/* 3. Loading, Error, Empty & Table States */}
       {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading manuscripts from the faculty review queue…</p>
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Available review manuscripts list">
+            <thead>
+              <tr>
+                <th style={{ width: '48%' }}>Manuscript</th>
+                <th>Author</th>
+                <th>Version</th>
+                <th>Review SLA</th>
+                <th style={{ textAlign: 'right' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={5} type="reviews" />
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -195,7 +208,7 @@ export function LecturerReviewsView() {
             <thead>
               <tr>
                 <th style={{ width: '48%' }}>Manuscript</th>
-                <th>Student Author</th>
+                <th>Author</th>
                 <th>Version</th>
                 <th>Review SLA</th>
                 <th style={{ textAlign: 'right' }}>Status</th>
@@ -205,8 +218,7 @@ export function LecturerReviewsView() {
               {visibleItems.map((item) => {
                 const isPending = item.reviewStatus === 'AWAITING_REVIEW';
                 const cleanTitle = displayTitle(item);
-                const authorName = item.uploader?.name || item.authors?.[0]?.name || 'Student Researcher';
-                const authorInitial = (authorName[0] || 'S').toUpperCase();
+                const authorName = item.uploader?.name || 'Anonymous Author';
 
                 return (
                   <tr key={item.id}>
@@ -222,11 +234,41 @@ export function LecturerReviewsView() {
                       </Link>
                     </td>
 
-                    {/* Student Author */}
+                    {/* Author (Student visible, Faculty Double-Blind) */}
                     <td>
-                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
-                        {authorName}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
+                          {authorName}
+                        </span>
+                        {item.uploader?.role === 'LECTURER' ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              background: '#f1f5f9',
+                              color: '#64748b',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            Double-Blind
+                          </span>
+                        ) : item.uploader?.email ? (
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: '#64748b',
+                              fontWeight: 400,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {item.uploader.email}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     {/* Version */}

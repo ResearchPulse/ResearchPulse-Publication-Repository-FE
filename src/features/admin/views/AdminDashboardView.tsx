@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/app/router';
 import { AdminShell } from '../components';
 import { adminApi, type AdminOverview } from '../api';
+import { Skeleton, TableSkeleton } from '@/components/skeleton';
 
 type SubmissionStatusFilter = 'ALL' | 'REVIEWING' | 'NEEDS_REVISION' | 'PUBLISHED';
 type SortOption = 'UPDATED' | 'TITLE' | 'STATUS';
@@ -137,7 +138,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.total}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.total}</span>
             <span className="student-metric-label">Total Manuscripts</span>
           </div>
         </div>
@@ -150,7 +151,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.underReview}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.underReview}</span>
             <span className="student-metric-label">In Peer Review</span>
           </div>
         </div>
@@ -164,7 +165,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.needsRevision}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.needsRevision}</span>
             <span className="student-metric-label">Needs Revision</span>
           </div>
         </div>
@@ -177,7 +178,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.published}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.published}</span>
             <span className="student-metric-label">Published</span>
           </div>
         </div>
@@ -255,9 +256,21 @@ export function AdminDashboardView() {
 
       {/* 3. Loading, Error, Empty & Table States */}
       {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading submission queue from editorial repository…</p>
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Editorial submissions list">
+            <thead>
+              <tr>
+                <th>Manuscript</th>
+                <th>Author</th>
+                <th>Version</th>
+                <th>Last Updated</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={5} type="submissions" />
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -291,7 +304,7 @@ export function AdminDashboardView() {
           <p>
             {searchQuery
               ? `No submissions match "${searchQuery}". Try searching with a different keyword.`
-              : 'All preprints have been triaged and processed. New student submissions will appear here automatically.'}
+              : 'All preprints have been triaged and processed. New submissions will appear here automatically.'}
           </p>
         </div>
       )}
@@ -302,7 +315,7 @@ export function AdminDashboardView() {
             <thead>
               <tr>
                 <th>Manuscript</th>
-                <th>Student Author</th>
+                <th>Author</th>
                 <th>Version</th>
                 <th>Last Updated</th>
                 <th>Status</th>
@@ -310,11 +323,11 @@ export function AdminDashboardView() {
             </thead>
             <tbody>
               {visibleItems.map((item) => {
-                const authorName = item.uploader?.name || item.uploader?.email?.split('@')[0] || 'Student Researcher';
+                const authorName = item.uploader?.name || item.uploader?.email || 'Author unavailable';
 
                 return (
                   <tr key={item.id}>
-                    {/* Manuscript Title & SHA / Identifier */}
+                    {/* Manuscript Title */}
                     <td className="dashboard-table__title-cell">
                       <Link
                         href={ROUTES.ADMIN.SUBMISSION_DETAIL(item.id)}
@@ -323,16 +336,27 @@ export function AdminDashboardView() {
                       >
                         {item.title}
                       </Link>
-                      <span className="dashboard-table__sha">
-                        {item.uploader?.email || `ID: ${item.id}`}
-                      </span>
                     </td>
 
-                    {/* Student Author */}
+                    {/* Author with Email Subtext */}
                     <td>
-                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
-                        {authorName}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
+                          {authorName}
+                        </span>
+                        {item.uploader?.email ? (
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: '#64748b',
+                              fontWeight: 400,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {item.uploader.email}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     {/* Version */}

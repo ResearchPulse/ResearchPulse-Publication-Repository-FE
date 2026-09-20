@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StudentShell } from '../components';
+import { TableSkeleton } from '@/components/skeleton';
 import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import type { StudentPreprint } from '../types';
@@ -265,9 +266,21 @@ export function PreprintListView() {
 
       {/* Loading & Error States */}
       {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading your manuscripts from repository…</p>
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Manuscripts repository list">
+            <thead>
+              <tr>
+                <th style={{ width: '48%' }}>Manuscript</th>
+                <th>Discipline</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={5} type="submissions" />
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -314,12 +327,14 @@ export function PreprintListView() {
               {filteredItems.map((item: StudentPreprint) => (
                 <tr key={item.id}>
                   <td className="dashboard-table__title-cell">
-                    <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
-                      {item.title}
-                    </Link>
-                    <span className="dashboard-table__sha">
-                      {item.sha256 ? `SHA-256: ${item.sha256.substring(0, 16)}…` : 'Cryptographic timestamp pending'}
-                    </span>
+                    <div className="dashboard-table__title-group">
+                      <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
+                        {item.title}
+                      </Link>
+                      {item.is_private && (
+                        <span className="dashboard-private-pill">Private</span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>

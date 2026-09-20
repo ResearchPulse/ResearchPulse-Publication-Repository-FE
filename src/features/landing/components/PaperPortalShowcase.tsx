@@ -98,7 +98,7 @@ export function PaperPortalShowcase() {
           </div>
           <div className="paper-portal-top-user">
             <span className="paper-portal-badge-live">● Live Sync</span>
-            <i title="Student Author">NM</i>
+            <i title="Author">NM</i>
           </div>
         </div>
 

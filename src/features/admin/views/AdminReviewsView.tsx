@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminReview, type AdminPublication } from '../api';
+import { TableSkeleton } from '@/components/skeleton';
 import { ROUTES } from '@/app/router';
 
 type ReviewFilterTab = 'ALL' | 'PENDING' | 'NEEDS_REVISION' | 'PUBLISH' | 'REJECT';
@@ -318,10 +319,20 @@ export function AdminReviewsView() {
       {/* 3. Review Oversight Academic Table Card */}
       <div className="dashboard-table-card dashboard-table-wrapper">
         {loading ? (
-          <div className="student-loading-box">
-            <div className="student-spinner" />
-            <p>Loading peer reviews…</p>
-          </div>
+          <table className="dashboard-table dashboard-table--repository" aria-label="Faculty review records">
+            <thead>
+              <tr>
+                <th style={{ width: '38%' }}>Manuscript</th>
+                <th>Lecturer Reviewer</th>
+                <th>Evaluation Status</th>
+                <th style={{ width: '24%' }}>Feedback Notes</th>
+                <th>Submitted / SLA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={6} type="reviews" />
+            </tbody>
+          </table>
         ) : filteredReviews.length === 0 ? (
           <div className="student-empty-card" style={{ padding: '48px 24px' }}>
             <div className="student-empty-icon">
@@ -381,9 +392,9 @@ export function AdminReviewsView() {
                         <span className="dashboard-version-pill">
                           {review.publication?.currentVersionLabel || (review.round ? `v${review.round}.0` : 'v1.0')}
                         </span>
-                        {review.publication?.uploader?.name && (
+                        {(review.publication?.uploader?.name || review.publication?.uploader?.email) && (
                           <span className="dashboard-table__sha" style={{ fontSize: '11.5px', color: '#64748b' }}>
-                            Author: {review.publication.uploader.name}
+                            Author: {review.publication.uploader?.name ? `${review.publication.uploader.name} (${review.publication.uploader.email})` : review.publication.uploader?.email}
                           </span>
                         )}
                       </div>

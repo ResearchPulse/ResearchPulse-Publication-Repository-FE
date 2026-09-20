@@ -237,7 +237,7 @@ function normalizePublication(
     discipline: publication.discipline || '',
     keywords: publication.keywords || [],
     audiences: publication.audiences || [],
-    is_private: publication.isPrivate || false,
+    is_private: Boolean(publication.isPrivate ?? (publication as any).is_private),
     status,
     current_version: currentVersion,
     revision_required: revisionRequired,
@@ -405,6 +405,13 @@ export const studentPreprintApi = {
       body: JSON.stringify(payload),
     });
     return normalizePublication(publication);
+  },
+
+  setPrivate: async (id: string, isPrivate: boolean): Promise<void> => {
+    await request('/' + encodeURIComponent(id) + '/private', {
+      method: 'PATCH',
+      body: JSON.stringify({ isPrivate }),
+    });
   },
 
   submit: async (id: string): Promise<StudentPreprint> => {

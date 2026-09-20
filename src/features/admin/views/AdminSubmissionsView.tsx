@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react';
 import { StatusBadge } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminPublication, type AdminPublicationStatus, type AdminOverview } from '../api';
+import { TableSkeleton } from '@/components/skeleton';
 import type { PreprintStatus } from '@/shared/types';
 import { ROUTES } from '@/app/router';
 
 type StatusFilter = 'ALL' | AdminPublicationStatus;
+type RoleFilter = 'ALL' | 'LECTURER' | 'STUDENT';
 
 function badgeStatus(status: AdminPublicationStatus): PreprintStatus {
   switch (status) {
@@ -43,6 +45,7 @@ function displayTitle(item: AdminPublication) {
 export function AdminSubmissionsView() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('ALL');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Awaited<ReturnType<typeof adminApi.listSubmissions>> | null>(null);
   const [metrics, setMetrics] = useState<AdminOverview['metrics'] | null>(null);
@@ -68,7 +71,7 @@ export function AdminSubmissionsView() {
     };
   }, []);
 
-  // Fetch submissions list whenever page, query, or status filter changes
+  // Fetch submissions list whenever page, query, status, or roleFilter changes
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -80,6 +83,7 @@ export function AdminSubmissionsView() {
         limit: 20,
         search: query.trim() || undefined,
         status: status === 'ALL' ? undefined : status,
+        uploaderRole: roleFilter === 'ALL' ? undefined : roleFilter,
       })
       .then((next) => {
         if (active) setResult(next);
@@ -94,7 +98,7 @@ export function AdminSubmissionsView() {
     return () => {
       active = false;
     };
-  }, [page, query, status]);
+  }, [page, query, status, roleFilter]);
 
   const displayMetrics = metrics || {
     submitted: 0,
@@ -103,6 +107,8 @@ export function AdminSubmissionsView() {
     published: 0,
     rejected: 0,
     processing: 0,
+    facultySubmissions: 0,
+    studentSubmissions: 0,
     total: result?.pagination?.total || 0,
   };
 
@@ -122,8 +128,8 @@ export function AdminSubmissionsView() {
         </div>
       )}
 
-      {/* 1. Metrics Grid (Matching Student & Lecturer Dashboard) */}
-      <div className="student-metrics-grid" style={{ marginBottom: '28px' }}>
+      {/* 1. Metrics Grid */}
+      <div className="student-metrics-grid" style={{ marginBottom: '24px' }}>
         <div
           className={`student-metric-card ${status === 'ALL' ? 'student-metric-card--active' : ''}`}
           onClick={() => {
@@ -219,6 +225,44 @@ export function AdminSubmissionsView() {
         </div>
       </div>
 
+      {/* Submitter Category Tabs (All / Faculty / Student) - System Style */}
+      <div className="student-filter-toolbar" style={{ marginBottom: '14px' }}>
+        <div className="student-tabs-pills" role="tablist" aria-label="Filter submissions by submitter category">
+          <button
+            type="button"
+            className={`student-tab-pill ${roleFilter === 'ALL' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => {
+              setRoleFilter('ALL');
+              setPage(1);
+            }}
+          >
+            All Submissions <span className="student-tab-pill__count">{displayMetrics.total}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`student-tab-pill ${roleFilter === 'LECTURER' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => {
+              setRoleFilter('LECTURER');
+              setPage(1);
+            }}
+          >
+            Faculty Papers <span className="student-tab-pill__count">{displayMetrics.facultySubmissions ?? 0}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`student-tab-pill ${roleFilter === 'STUDENT' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => {
+              setRoleFilter('STUDENT');
+              setPage(1);
+            }}
+          >
+            Student Papers <span className="student-tab-pill__count">{displayMetrics.studentSubmissions ?? 0}</span>
+          </button>
+        </div>
+      </div>
+
       {/* 2. Filter Toolbar: Filter Tab Pills & Search Box */}
       <div className="student-filter-toolbar" style={{ marginBottom: '20px' }}>
         <div className="student-tabs-pills">
@@ -310,10 +354,20 @@ export function AdminSubmissionsView() {
       {/* 3. Submissions Academic Table Card */}
       <div className="dashboard-table-card dashboard-table-wrapper">
         {loading ? (
-          <div className="student-loading-box">
-            <div className="student-spinner" />
-            <p>Loading submissions queue…</p>
-          </div>
+          <table className="dashboard-table dashboard-table--repository" aria-label="Editorial submissions queue">
+            <thead>
+              <tr>
+                <th style={{ width: '45%' }}>Manuscript</th>
+                <th>Author</th>
+                <th>Version</th>
+                <th>Updated</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={6} type="submissions" />
+            </tbody>
+          </table>
         ) : !result?.items.length ? (
           <div className="student-empty-card" style={{ padding: '48px 24px' }}>
             <div className="student-empty-icon">
@@ -326,9 +380,9 @@ export function AdminSubmissionsView() {
             </div>
             <h3>No submissions found</h3>
             <p>
-              {query || status !== 'ALL'
-                ? 'No submissions match your current filters. Try changing your search query or status tab.'
-                : 'New student research submissions will appear here automatically.'}
+              {query || status !== 'ALL' || roleFilter !== 'ALL'
+                ? 'No submissions match your current filters. Try changing your search query, status tab, or author role tab.'
+                : 'New research submissions will appear here automatically.'}
             </p>
           </div>
         ) : (
@@ -336,7 +390,7 @@ export function AdminSubmissionsView() {
             <thead>
               <tr>
                 <th style={{ width: '45%' }}>Manuscript</th>
-                <th>Student Author</th>
+                <th>Author</th>
                 <th>Version</th>
                 <th>Updated</th>
                 <th>Status</th>
@@ -344,7 +398,7 @@ export function AdminSubmissionsView() {
             </thead>
             <tbody>
               {result.items.map((item) => {
-                const authorName = item.uploader?.name || item.uploader?.email || 'Student author unavailable';
+                const authorName = item.uploader?.name || item.uploader?.email || 'Author unavailable';
 
                 return (
                   <tr key={item.id}>
@@ -357,16 +411,27 @@ export function AdminSubmissionsView() {
                       >
                         {displayTitle(item)}
                       </Link>
-                      <span className="dashboard-table__sha">
-                        {item.uploader?.email || `ID: ${item.id}`}
-                      </span>
                     </td>
 
-                    {/* Student Author */}
+                    {/* Author with Email Subtext */}
                     <td>
-                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
-                        {authorName}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
+                          {authorName}
+                        </span>
+                        {item.uploader?.email ? (
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: '#64748b',
+                              fontWeight: 400,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {item.uploader.email}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     {/* Version */}

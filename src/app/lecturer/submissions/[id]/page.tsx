@@ -1,6 +1,6 @@
-import { PreprintEditorView } from '@/features/preprint';
+import { PreprintDetailView } from '@/features/preprint';
 
 export default async function LecturerSubmissionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <PreprintEditorView id={id} />;
+  return <PreprintDetailView id={id} />;
 }
