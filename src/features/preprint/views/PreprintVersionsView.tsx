@@ -33,7 +33,7 @@ function PreprintVersionsShell({
   ) : (
     <StudentShell
       title={title}
-      kicker="Manuscript Lineage & Provenance"
+      kicker={isLecturer ? 'Lịch sử dòng đời bản thảo' : 'Dòng thời gian & Xuất xứ phiên bản'}
       actions={actions}
     >
       {children}
@@ -63,7 +63,7 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
         setVersions(res.versions || []);
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err : new Error('Unable to load version history.'));
+        if (active) setError(err instanceof Error ? err : new Error('Không thể tải lịch sử phiên bản.'));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -74,7 +74,7 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
     };
   }, [id]);
 
-  const pageTitle = item ? `Version History: ${item.title}` : 'Version History';
+  const pageTitle = item ? `Lịch sử phiên bản: ${item.title}` : 'Lịch sử phiên bản';
 
   return (
     <PreprintVersionsShell
@@ -85,11 +85,11 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
           <div className="student-detail-top-actions">
             {(item.status === 'NEEDS_REVISION' || item.status === 'DRAFT') && (
               <Link href={editPath} className="student-btn student-btn--warning">
-                <span>Submit New Version →</span>
+                <span>Nộp phiên bản mới →</span>
               </Link>
             )}
             <Link href={detailPath} className="student-btn student-btn--secondary">
-              <span>Back to Manuscript</span>
+              <span>Quay lại bản thảo</span>
             </Link>
           </div>
         )
@@ -99,16 +99,16 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
 
       {error && (
         <div className="student-error-banner">
-          <strong>Error loading versions:</strong> {error.message}
+          <strong>Lỗi khi tải phiên bản:</strong> {error.message}
         </div>
       )}
 
       {!loading && !error && (
         <div className="student-versions-container">
           <div className="student-versions-header-box">
-            <h3>Permanent Version Archive</h3>
+            <h3>Lưu trữ phiên bản bất biến</h3>
             <p>
-              Preprints cannot be erased once released. Every revision remains permanently accessible with its cryptographic timestamp, file artifact, and author response notes.
+              Bản thảo không thể bị xóa sau khi đã phát hành. Mọi bản sửa đổi được lưu vĩnh viễn kèm theo dấu thời gian mật mã, tệp đính kèm và ghi chú phản hồi của tác giả.
             </p>
           </div>
 
@@ -122,25 +122,37 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
                     <div className="student-version-pill">
                       {ver.version_label}
                     </div>
-                    {isLatest && <span className="student-latest-tag">Current</span>}
+                    {isLatest && <span className="student-latest-tag">Hiện tại</span>}
                   </div>
 
                   <div className="student-version-main">
                     <div className="student-version-header-row">
                       <div className="student-version-title-group">
-                        <strong className="student-version-title">Version {ver.version} Release</strong>
+                        <strong className="student-version-title">Phát hành phiên bản {ver.version}</strong>
                         <span className="student-version-date">
-                          Timestamped on {new Date(ver.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                          Xác thực lúc {new Date(ver.created_at).toLocaleDateString('vi-VN', { month: 'long', day: 'numeric', year: 'numeric' })}
                         </span>
                       </div>
                       <span className={`student-status-badge student-status-badge--${ver.status.toLowerCase().replace('_', '-')}`}>
-                        {ver.status}
+                        {ver.status === 'PUBLISHED'
+                          ? 'ĐÃ XUẤT BẢN'
+                          : ver.status === 'APPROVED'
+                          ? 'ĐÃ DUYỆT'
+                          : ver.status === 'NEEDS_REVISION'
+                          ? 'CẦN CHỈNH SỬA'
+                          : ver.status === 'UNDER_REVIEW'
+                          ? 'ĐANG THẨM ĐỊNH'
+                          : ver.status === 'REJECTED'
+                          ? 'ĐÃ TỪ CHỐI'
+                          : ver.status === 'WITHDRAWN'
+                          ? 'ĐÃ RÚT'
+                          : 'BẢN NHÁP'}
                       </span>
                     </div>
 
                     {ver.change_summary && (
                       <div className="student-version-summary-box">
-                        <span className="student-version-summary-label">Change Summary:</span>
+                        <span className="student-version-summary-label">Tóm tắt thay đổi:</span>
                         <p className="student-version-summary-text">{ver.change_summary}</p>
                       </div>
                     )}
@@ -169,10 +181,10 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
                           rel="noreferrer"
                           className="student-action-link student-action-link--primary"
                         >
-                          Download PDF
+                          Tải tệp PDF
                         </a>
                       ) : (
-                        <span className="student-action-link">PDF unavailable</span>
+                        <span className="student-action-link">Tệp PDF không khả dụng</span>
                       )}
                     </div>
                   </div>

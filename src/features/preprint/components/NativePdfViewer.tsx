@@ -56,11 +56,11 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
             </svg>
           </div>
           <span className="native-pdf-toolbar__title" title={fileName || 'manuscript.pdf'}>
-            {fileName || 'Manuscript Document'}
+            {fileName || 'Tài liệu bản thảo'}
           </span>
           {numPages && (
             <span className="native-pdf-toolbar__pages">
-              {numPages} {numPages === 1 ? 'page' : 'pages'}
+              · {numPages} trang
             </span>
           )}
         </div>
@@ -73,8 +73,8 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
               className="native-pdf-btn native-pdf-btn--icon"
               onClick={zoomOut}
               disabled={scale <= 0.6}
-              title="Zoom Out"
-              aria-label="Zoom Out"
+              title="Thu nhỏ"
+              aria-label="Thu nhỏ"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -88,8 +88,8 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
               className="native-pdf-btn native-pdf-btn--icon"
               onClick={zoomIn}
               disabled={scale >= 2.0}
-              title="Zoom In"
-              aria-label="Zoom In"
+              title="Phóng to"
+              aria-label="Phóng to"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -106,28 +106,28 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
             target="_blank"
             rel="noreferrer"
             className="native-pdf-btn native-pdf-btn--outline"
-            title="Open PDF in new browser tab"
+            title="Mở PDF trong tab mới"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
               <line x1="10" y1="14" x2="21" y2="3" />
             </svg>
-            <span>Open Tab</span>
+            <span>Mở tab mới</span>
           </a>
 
           <a
             href={url}
             download={fileName || 'manuscript.pdf'}
             className="native-pdf-btn native-pdf-btn--primary"
-            title="Download PDF"
+            title="Tải xuống tệp PDF"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            <span>Download</span>
+            <span>Tải xuống</span>
           </a>
         </div>
       </div>
@@ -140,14 +140,14 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
           loading={
             <div className="native-pdf-loading">
               <div className="student-spinner" />
-              <p>Rendering manuscript pages…</p>
+              <p>Đang tải các trang bản thảo…</p>
             </div>
           }
           error={
             <div className="native-pdf-error">
-              <p>Unable to render PDF directly.</p>
+              <p>Không thể hiển thị tệp PDF trực tiếp.</p>
               <a href={url} target="_blank" rel="noreferrer" className="student-btn student-btn--primary">
-                Open / Download PDF
+                Mở / Tải tệp PDF
               </a>
             </div>
           }
@@ -156,7 +156,7 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
             Array.from(new Array(numPages), (_, index) => (
               <div key={`page_${index + 1}`} className="native-pdf-page-card">
                 <div className="native-pdf-page-badge">
-                  Page {index + 1} of {numPages}
+                  Trang {index + 1} / {numPages}
                 </div>
                 <Page
                   pageNumber={index + 1}

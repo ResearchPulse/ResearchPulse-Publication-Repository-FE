@@ -1,4 +1,4 @@
-import type { StudentPreprint, PreprintVersionInfo, ReviewNote, PreprintAnalysis } from '../types';
+import type { StudentPreprint, PreprintVersionInfo, ReviewNote, PreprintAnalysis, ReviewDecision } from '../types';
 
 export class ApiUnavailableError extends Error {
   code = 'API_NOT_AVAILABLE' as const;
@@ -17,7 +17,7 @@ export class PreprintApiError extends Error {
 }
 
 type BackendPublicationStatus = 'PROCESSING' | 'DRAFTING' | 'REVIEWING' | 'PUBLISHED' | 'REJECTED' | 'FAILED';
-type BackendVersionStatus = BackendPublicationStatus | 'ARCHIVED';
+type BackendVersionStatus = BackendPublicationStatus | 'ARCHIVED' | 'NEEDS_REVISION' | 'APPROVED';
 
 type BackendAuthor = {
   id?: string;
@@ -34,11 +34,13 @@ type BackendReview = {
   id: string;
   versionId?: string;
   reviewerId: string;
+  round?: number;
   comment?: string | null;
   recommendation?: 'PUBLISH' | 'NEEDS_REVISION' | 'REJECT' | null;
   submittedAt?: string | null;
   createdAt: string;
   reviewer?: { id: string; email: string; name?: string | null };
+  assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'LEGACY';
 };
 
 type BackendVersion = {
@@ -131,23 +133,31 @@ function mapStatus(status: BackendPublicationStatus): StudentPreprint['status'] 
 }
 
 function mapVersionStatus(status: BackendVersionStatus): PreprintVersionInfo['status'] {
-  return status === 'ARCHIVED' ? 'ARCHIVED' : mapStatus(status);
+  if (status === 'ARCHIVED') return 'ARCHIVED';
+  if (status === 'NEEDS_REVISION') return 'NEEDS_REVISION';
+  if (status === 'APPROVED') return 'APPROVED';
+  return mapStatus(status as BackendPublicationStatus);
 }
 
 function mapReview(review: BackendReview): ReviewNote {
-  const decision = review.recommendation === 'NEEDS_REVISION'
+  const isSubmitted = Boolean(review.submittedAt);
+  const decision: ReviewDecision = review.recommendation === 'NEEDS_REVISION'
     ? 'NEEDS_REVISION'
     : review.recommendation === 'REJECT'
       ? 'REJECTED'
-      : 'APPROVED';
+      : (review.recommendation === 'PUBLISH' || (isSubmitted && (review as any).decision === 'APPROVED'))
+        ? 'APPROVED'
+        : 'PENDING';
 
   return {
     id: review.id,
-    reviewer_name: review.reviewer?.name || review.reviewer?.email || 'Lecturer Reviewer',
-    reviewer_title: 'Lecturer Reviewer',
+    reviewer_name: review.reviewer?.name || review.reviewer?.email || 'Giảng viên hướng dẫn',
+    reviewer_title: 'Giảng viên hướng dẫn',
     decision,
     comments: review.comment || '',
     created_at: review.submittedAt || review.createdAt,
+    round: review.round,
+    assignmentRole: review.assignmentRole,
   };
 }
 
@@ -220,14 +230,20 @@ function normalizePublication(
 ): StudentPreprint {
   const currentVersion = publication.currentVersion?.version || versions.find((version) => version.isCurrent)?.version || 1;
   const allReviews = reviews.length > 0 ? reviews : ((publication as any).reviews || []);
-  const hasNeedsRevision = allReviews.some((r: any) => r.recommendation === 'NEEDS_REVISION' || r.decision === 'NEEDS_REVISION');
+  // Only expose primary lecturer reviews to student
+  const primaryReviews = allReviews.filter((r: any) => r.assignmentRole !== 'SECONDARY');
+  const hasNeedsRevision = primaryReviews.some((r: any) => r.recommendation === 'NEEDS_REVISION' || r.decision === 'NEEDS_REVISION');
   const isDraftWithSubmission = publication.status === 'DRAFTING' && Boolean(publication.currentVersion?.submittedAt);
-  const revisionRequired = isDraftWithSubmission || hasNeedsRevision;
+  const revisionRequired = publication.status === 'DRAFTING' && (isDraftWithSubmission || hasNeedsRevision);
 
   let status: StudentPreprint['status'] = mapStatus(publication.status);
-  if (hasNeedsRevision || isDraftWithSubmission) {
+  if (publication.status === 'DRAFTING' && (hasNeedsRevision || isDraftWithSubmission)) {
     status = 'NEEDS_REVISION';
   }
+
+  const primaryReview = primaryReviews.find((r: any) => r.assignmentRole === 'PRIMARY') || primaryReviews[0];
+  const lecturerAuthor = (publication.authors || []).find((a: any) => a.role === 'LECTURER' || (a as any).author?.role === 'LECTURER');
+  const supervisorName = primaryReview?.reviewer?.name || (primaryReview as any)?.reviewer_name || lecturerAuthor?.name || (lecturerAuthor as any)?.author?.name;
 
   return {
     id: publication.id,
@@ -251,6 +267,7 @@ function normalizePublication(
       isPrimary: index === 0,
       isCorresponding: index === 0,
     })),
+    supervisor: supervisorName || undefined,
     file_name: publication.currentVersion?.fileName || fileNameFromObjectKey(publication.objectKey),
     file_size: formatFileSize(publication.fileSize),
     sha256: publication.sha256 || undefined,
@@ -258,7 +275,7 @@ function normalizePublication(
     download_url: publication.downloadUrl,
     updated_at: publication.updatedAt,
     submitted_at: publication.status === 'DRAFTING' ? undefined : publication.updatedAt,
-    reviews: reviews.map(mapReview),
+    reviews: primaryReviews.map(mapReview),
     timeline: timeline.map((event) => ({
       id: event.id,
       type: event.type,

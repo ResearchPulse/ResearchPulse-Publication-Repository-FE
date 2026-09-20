@@ -11,8 +11,20 @@ type RawUser = {
   id?: string;
   sub?: string;
   email?: string;
-  name?: string;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  studentId?: string | null;
+  major?: string | null;
+  affiliation?: string | null;
+  orcid?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
   role?: string;
+  status?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type AuthPayload = RawUser & { user?: RawUser };
@@ -30,8 +42,20 @@ function normalizeUser(payload: AuthPayload): User | null {
   return {
     id,
     email: raw.email ?? '',
-    name: raw.name,
+    name: raw.name ?? undefined,
+    firstName: raw.firstName ?? undefined,
+    lastName: raw.lastName ?? undefined,
+    studentId: raw.studentId ?? undefined,
+    major: raw.major ?? undefined,
+    affiliation: raw.affiliation ?? undefined,
+    orcid: raw.orcid ?? undefined,
+    bio: raw.bio ?? undefined,
+    avatarUrl: raw.avatarUrl ?? undefined,
     role: normalizeRole(raw.role),
+    status: raw.status ?? undefined,
+    isActive: raw.isActive,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
   };
 }
 

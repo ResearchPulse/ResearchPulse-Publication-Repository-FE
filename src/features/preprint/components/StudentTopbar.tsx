@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 
 interface StudentTopbarProps {
@@ -11,11 +12,24 @@ interface StudentTopbarProps {
 
 export function StudentTopbar({
   onToggleSidebar,
-  title = 'Research Dashboard',
+  title = 'Bản thảo của tôi',
   revisionCount = 0,
 }: StudentTopbarProps) {
+  const pathname = usePathname();
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const getBreadcrumbGroup = () => {
+    if (pathname.startsWith('/student/mentor-feedback')) {
+      return 'Thẩm định';
+    }
+    if (pathname.startsWith('/student/account')) {
+      return 'Cá nhân';
+    }
+    return 'Bản thảo';
+  };
+
+  const breadcrumbGroup = getBreadcrumbGroup();
 
   useEffect(() => {
     if (!showNotifications) return;
@@ -57,7 +71,7 @@ export function StudentTopbar({
         )}
 
         <div className="student-topbar__breadcrumbs">
-          <span className="student-topbar__crumb-root">Scholar Workspace</span>
+          <span className="student-topbar__crumb-root">{breadcrumbGroup}</span>
           <span className="student-topbar__crumb-sep">/</span>
           <span className="student-topbar__crumb-current">{title}</span>
         </div>
@@ -69,7 +83,7 @@ export function StudentTopbar({
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <input type="text" placeholder="Search manuscripts, DOIs, reviews..." className="student-topbar__search-input" aria-label="Search manuscripts" />
+          <input type="text" placeholder="Tìm kiếm bản thảo, DOI, phản hồi..." className="student-topbar__search-input" aria-label="Tìm kiếm bản thảo" />
         </div>
 
         <div className="student-topbar__notif-wrapper" ref={notifRef}>
@@ -77,7 +91,7 @@ export function StudentTopbar({
             type="button"
             className="student-topbar__notif-btn"
             onClick={() => setShowNotifications(!showNotifications)}
-            aria-label={`Notifications (${revisionCount} active alerts)`}
+            aria-label={`Thông báo (${revisionCount} cảnh báo cần xử lý)`}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -89,7 +103,7 @@ export function StudentTopbar({
           {showNotifications && (
             <div className="student-topbar__notif-popover">
               <div className="student-topbar__notif-header">
-                <strong>Academic Alerts</strong>
+                <strong>Thông báo học thuật</strong>
                 <span className="student-topbar__notif-count">{revisionCount}</span>
               </div>
               <div className="student-topbar__notif-list">
@@ -97,18 +111,18 @@ export function StudentTopbar({
                   <Link href="/student/mentor-feedback" className="student-topbar__notif-item" onClick={() => setShowNotifications(false)}>
                     <div className="student-topbar__notif-item-icon student-topbar__notif-item-icon--amber">!</div>
                     <div className="student-topbar__notif-item-text">
-                      <p className="student-topbar__notif-item-title">Reviewer feedback available</p>
-                      <p className="student-topbar__notif-item-desc">Open Mentor Feedback to review the latest lecturer comments.</p>
+                      <p className="student-topbar__notif-item-title">Có phản hồi mới từ người phản biện</p>
+                      <p className="student-topbar__notif-item-desc">Mở mục Phản hồi của GVHD để xem nhận xét mới nhất.</p>
                     </div>
                   </Link>
                 ) : (
                   <div className="student-topbar__notif-empty">
-                    <p>No new academic alerts.</p>
+                    <p>Không có thông báo học thuật mới.</p>
                   </div>
                 )}
               </div>
               <div className="student-topbar__notif-footer">
-                <Link href="/student/mentor-feedback" onClick={() => setShowNotifications(false)}>View mentor feedback →</Link>
+                <Link href="/student/mentor-feedback" onClick={() => setShowNotifications(false)}>Xem phản hồi của GVHD →</Link>
               </div>
             </div>
           )}
@@ -119,7 +133,7 @@ export function StudentTopbar({
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span>New Submission</span>
+          <span>Nộp bản thảo mới</span>
         </Link>
       </div>
     </header>

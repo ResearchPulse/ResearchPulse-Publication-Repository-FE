@@ -44,10 +44,19 @@ function PreprintDetailShell({
       {children}
     </LecturerShell>
   ) : (
-    <StudentShell title="Manuscript Details" showStandardHeader={false}>
+    <StudentShell title="Chi tiết bản thảo" showStandardHeader={false}>
       {children}
     </StudentShell>
   );
+}
+
+function getInitials(name?: string, fallback = 'GV') {
+  if (!name || !name.trim()) return fallback;
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
 }
 
 export function PreprintDetailView({ id }: PreprintDetailViewProps) {
@@ -80,7 +89,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
     const indices: number[] = [];
 
     item.authors.forEach((author) => {
-      const inst = author.institution?.trim() || 'Independent Scholar';
+      const inst = author.institution?.trim() || 'Học giả độc lập';
       let idx = affiliations.indexOf(inst);
       if (idx === -1) {
         affiliations.push(inst);
@@ -98,42 +107,42 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
         return (
           <span className="student-status-badge student-status-badge--published">
             <span className="student-status-dot" />
-            Published
+            Đã xuất bản
           </span>
         );
       case 'APPROVED':
         return (
           <span className="student-status-badge student-status-badge--approved">
             <span className="student-status-dot" />
-            Approved
+            Đã duyệt
           </span>
         );
       case 'NEEDS_REVISION':
         return (
           <span className="student-status-badge student-status-badge--revision">
             <span className="student-status-dot" />
-            Needs Revision
+            Cần chỉnh sửa
           </span>
         );
       case 'UNDER_REVIEW':
         return (
           <span className="student-status-badge student-status-badge--review">
             <span className="student-status-dot" />
-            Under Review
+            Đang thẩm định
           </span>
         );
       case 'DRAFT':
         return (
           <span className="student-status-badge student-status-badge--draft">
             <span className="student-status-dot" />
-            Draft
+            Bản nháp
           </span>
         );
       case 'WITHDRAWN':
         return (
           <span className="student-status-badge student-status-badge--withdrawn">
             <span className="student-status-dot" />
-            Withdrawn
+            Đã rút
           </span>
         );
       default:
@@ -148,7 +157,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
   const shellTitle = item?.title
     ? (item.title.length > 35 ? item.title.substring(0, 35) + '…' : item.title)
-    : 'Manuscript Details';
+    : 'Chi tiết bản thảo';
 
   return (
     <PreprintDetailShell isLecturer={isLecturer} title={shellTitle}>
@@ -156,7 +165,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
 
       {error && (
         <div className="student-error-banner">
-          <strong>Unable to load manuscript:</strong> {error.message}
+          <strong>Không thể tải bản thảo:</strong> {error.message}
         </div>
       )}
 
@@ -166,9 +175,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
           <section className="student-paper-hero">
             <div className="student-paper-hero__top">
               <div className="student-paper-hero__eyebrow">
-                <span className="student-paper-hero__kicker">PREPRINT MANUSCRIPT</span>
-                <span className="student-paper-hero__dot">•</span>
-                <span className="student-paper-hero__discipline">{item.discipline || 'General Research'}</span>
+                <span className="student-paper-hero__kicker">BẢN THẢO NGHIÊN CỨU</span>
               </div>
             </div>
 
@@ -185,9 +192,9 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                       <span key={index} className="student-paper-hero__author">
                         <span className="student-paper-hero__author-name">{author.name}</span>
                         <sup className="student-paper-hero__author-sup">{affIdx}</sup>
-                        {author.isPrimary && <span className="student-author-tag student-author-tag--primary">Primary</span>}
+                        {author.isPrimary && <span className="student-author-tag student-author-tag--primary">Tác giả chính</span>}
                         {author.isCorresponding && (
-                          <span className="student-author-tag student-author-tag--corr" title={`Corresponding Author: ${author.email}`}>
+                          <span className="student-author-tag student-author-tag--corr" title={`Tác giả liên hệ: ${author.email}`}>
                             ✉
                           </span>
                         )}
@@ -215,7 +222,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                         verticalAlign: 'middle',
                       }}
                     >
-                      <span>{showAllAuthors ? 'Hide details' : 'Show details'}</span>
+                      <span>{showAllAuthors ? 'Thu gọn' : 'Xem chi tiết'}</span>
                       <svg
                         width="13"
                         height="13"
@@ -254,20 +261,20 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
             <div className="student-paper-hero__meta-row">
               <div className="student-paper-hero__badges">
                 {renderStatusBadge(item.status)}
-                <span className="student-version-tag">Version {item.current_version}</span>
-                <span className="student-license-tag">CC BY 4.0</span>
+                <span className="student-version-tag">Phiên bản {item.current_version}</span>
+                {/* Card CC BY 4.0 removed per user request */}
                 {item.doi && (
-                  <button type="button" onClick={handleCopyDoi} className="student-doi-pill" title="Click to copy DOI">
+                  <button type="button" onClick={handleCopyDoi} className="student-doi-pill" title="Nhấp để sao chép DOI">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
                     <span>DOI: {item.doi}</span>
-                    {copiedDoi && <span className="student-doi-copied">Copied!</span>}
+                    {copiedDoi && <span className="student-doi-copied">Đã sao chép!</span>}
                   </button>
                 )}
                 <span className="student-paper-hero__date">
-                  Updated on {new Date(item.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  Cập nhật ngày {new Date(item.updated_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                 </span>
               </div>
 
@@ -279,11 +286,11 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                       <polyline points="7 10 12 15 17 10" />
                       <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    <span>Download PDF</span>
+                    <span>Tải tệp PDF</span>
                   </a>
                 ) : (
                   <button type="button" className="student-btn student-btn--secondary" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
-                    <span>PDF Processing</span>
+                    <span>Đang xử lý PDF</span>
                   </button>
                 )}
 
@@ -292,18 +299,18 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 14 14" />
                   </svg>
-                  <span>Versions ({item.versions?.length || 1})</span>
+                  <span>Lịch sử phiên bản ({item.versions?.length || 1})</span>
                 </Link>
 
                 {item.status === 'NEEDS_REVISION' && (
                   <Link href={editPath} className="student-btn student-btn--warning">
-                    <span>Revise Manuscript →</span>
+                    <span>Chỉnh sửa bản thảo →</span>
                   </Link>
                 )}
 
                 {item.status === 'DRAFT' && (
                   <Link href={editPath} className="student-btn student-btn--primary">
-                    <span>Continue Draft →</span>
+                    <span>Tiếp tục bản nháp →</span>
                   </Link>
                 )}
               </div>
@@ -319,17 +326,17 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                <strong>Faculty Revision Notice from {item.reviews[0].reviewer_name}</strong>
+                <strong>Thông báo yêu cầu chỉnh sửa từ {item.reviews[0].reviewer_name}</strong>
               </div>
               <p className="student-revision-banner__comment">
                 &ldquo;{item.reviews[0].comments}&rdquo;
               </p>
               <div className="student-revision-banner__action">
                 <Link href={editPath} className="student-btn student-btn--warning student-btn--sm">
-                  <span>Open Revision Editor →</span>
+                  <span>Mở trình chỉnh sửa bản thảo →</span>
                 </Link>
                 <button type="button" onClick={() => setActiveTab('REVIEWS')} className="student-btn student-btn--ghost student-btn--sm">
-                  View Full Feedback Checklist
+                  Xem toàn bộ nhận xét &amp; đánh giá
                 </button>
               </div>
             </div>
@@ -342,7 +349,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
               className={`student-detail-tab ${activeTab === 'OVERVIEW' ? 'student-detail-tab--active' : ''}`}
               onClick={() => setActiveTab('OVERVIEW')}
             >
-              Overview &amp; Metadata
+              Tổng quan
             </button>
             <button
               type="button"
@@ -357,7 +364,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                   <line x1="16" y1="17" x2="8" y2="17" />
                   <polyline points="10 9 9 9 8 9" />
                 </svg>
-                <span>Manuscript PDF</span>
+                <span>Xem tệp PDF</span>
               </span>
             </button>
             <button
@@ -365,14 +372,14 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
               className={`student-detail-tab ${activeTab === 'REVIEWS' ? 'student-detail-tab--active' : ''}`}
               onClick={() => setActiveTab('REVIEWS')}
             >
-              Faculty Mentorship &amp; Reviews {item.reviews?.length ? `(${item.reviews.length})` : ''}
+              Đánh giá của giảng viên {item.reviews?.filter((r) => r.decision !== 'PENDING' && r.assignmentRole !== 'SECONDARY').length ? `(${item.reviews.filter((r) => r.decision !== 'PENDING' && r.assignmentRole !== 'SECONDARY').length})` : ''}
             </button>
             <button
               type="button"
               className={`student-detail-tab ${activeTab === 'TIMELINE' ? 'student-detail-tab--active' : ''}`}
               onClick={() => setActiveTab('TIMELINE')}
             >
-              Provenance &amp; Timeline
+              Lịch sử phiên bản
             </button>
           </div>
 
@@ -384,11 +391,11 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 <div className="student-panel-main">
                   <section className="student-section-card">
                     <h3 className="student-section-card__title">Abstract</h3>
-                    <p className="student-section-card__abstract">{item.abstract || 'No abstract provided.'}</p>
+                    <p className="student-section-card__abstract">{item.abstract || 'Chưa có abstract nghiên cứu.'}</p>
 
                     {item.keywords && item.keywords.length > 0 && (
                       <div className="student-keywords-wrap">
-                        <span className="student-keywords-label">Keywords:</span>
+                        <span className="student-keywords-label">Từ khóa:</span>
                         {item.keywords.map((kw) => (
                           <span key={kw} className="student-keyword-pill">
                             {kw}
@@ -402,42 +409,34 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 {/* Right Column: Metadata Sidebar */}
                 <div className="student-panel-sidebar">
                   <div className="student-meta-card">
-                    <h4 className="student-meta-card__title">Publication Details</h4>
+                    <h4 className="student-meta-card__title">Thông tin bản thảo</h4>
                     <div className="student-meta-list">
                       <div className="student-meta-item">
-                        <span className="student-meta-key">Status:</span>
+                        <span className="student-meta-key">Trạng thái:</span>
                         <span className="student-meta-val">{renderStatusBadge(item.status)}</span>
                       </div>
                       <div className="student-meta-item">
-                        <span className="student-meta-key">Current Version:</span>
+                        <span className="student-meta-key">Phiên bản hiện tại:</span>
                         <span className="student-meta-val">v{item.current_version}</span>
                       </div>
                       <div className="student-meta-item">
-                        <span className="student-meta-key">Discipline:</span>
-                        <span className="student-meta-val">{item.discipline || 'General'}</span>
+                        <span className="student-meta-key">Lĩnh vực nghiên cứu:</span>
+                        <span className="student-meta-val">{item.discipline || 'Tổng quát'}</span>
                       </div>
                       {item.supervisor && (
                         <div className="student-meta-item">
-                          <span className="student-meta-key">Faculty Advisor:</span>
+                          <span className="student-meta-key">GVHD hướng dẫn:</span>
                           <span className="student-meta-val">{item.supervisor}</span>
                         </div>
                       )}
                       <div className="student-meta-item">
-                        <span className="student-meta-key">License:</span>
+                        <span className="student-meta-key">Giấy phép:</span>
                         <span className="student-meta-val">Creative Commons CC BY 4.0</span>
                       </div>
                       {item.doi && (
                         <div className="student-meta-item">
-                          <span className="student-meta-key">Permanent DOI:</span>
+                          <span className="student-meta-key">Mã định danh DOI:</span>
                           <span className="student-meta-val student-meta-val--code">{item.doi}</span>
-                        </div>
-                      )}
-                      {item.sha256 && (
-                        <div className="student-meta-item">
-                          <span className="student-meta-key">SHA-256:</span>
-                          <span className="student-meta-val student-meta-val--code" title={item.sha256}>
-                            {item.sha256.substring(0, 16)}…
-                          </span>
                         </div>
                       )}
                     </div>
@@ -465,78 +464,152 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                       <line x1="9" y1="15" x2="15" y2="15" />
                     </svg>
                   </div>
-                  <h3>PDF Preview Not Available</h3>
-                  <p>The manuscript PDF file is currently being processed or archived in cloud storage.</p>
+                  <h3>Không có bản xem trước PDF</h3>
+                  <p>Tệp PDF bản thảo hiện đang được xử lý hoặc lưu trữ trên hệ thống đám mây.</p>
                 </div>
               )}
             </div>
           )}
 
           {/* Tab 3: Faculty Mentorship & Reviews */}
-          {activeTab === 'REVIEWS' && (
-            <div className="student-tab-panel" style={{ marginTop: '20px' }}>
-              {item.reviews && item.reviews.length > 0 ? (
-                <div className="student-reviews-feed">
-                  {item.reviews.map((rev) => (
-                    <article key={rev.id} className="student-review-card">
+          {activeTab === 'REVIEWS' && (() => {
+            const primaryReviews = (item.reviews || []).filter((r) => r.assignmentRole !== 'SECONDARY');
+            const finalizedPrimaryReviews = primaryReviews.filter((r) => r.decision !== 'PENDING');
+            const currentRoundReview = finalizedPrimaryReviews.find((r) => (r.round || 1) === item.current_version);
+            const hasCurrentRoundReview = Boolean(currentRoundReview);
+
+            return (
+              <div className="student-tab-panel" style={{ marginTop: '20px' }}>
+                {/* Active Round Box: Only shown if current round is UNDER_REVIEW and does not already have a finalized review */}
+                {item.status === 'UNDER_REVIEW' && !hasCurrentRoundReview && (
+                  !item.supervisor ? (
+                    /* State A: Manuscript submitted, awaiting admin to assign a lecturer */
+                    <article className="student-review-card" style={{ background: '#ffffff', marginBottom: '20px' }}>
                       <div className="student-review-header">
-                        <div className="student-reviewer-avatar">LT</div>
+                        <div className="student-reviewer-avatar" style={{ background: '#64748b' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                        </div>
                         <div className="student-reviewer-info">
                           <div className="student-reviewer-name-row">
-                            <strong>{rev.reviewer_name}</strong>
-                            <span className="student-reviewer-badge">{rev.reviewer_title}</span>
+                            <strong>Chờ phân công giảng viên</strong>
+                            <span className="student-reviewer-badge" style={{ background: '#f1f5f9', color: '#475569' }}>Ban biên tập</span>
                           </div>
                           <span className="student-review-date">
-                            Review decision logged on {new Date(rev.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                            Phiên bản v{item.current_version} · Chờ tiếp nhận hồ sơ
                           </span>
                         </div>
                         <div className="student-review-decision">
-                          {rev.decision === 'APPROVED' ? (
-                            <span className="student-decision-badge student-decision-badge--approved">
-                              Approved for Publication
+                          <span className="user-badge" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>CHỜ PHÂN CÔNG</span>
+                        </div>
+                      </div>
+                      <div className="student-review-body" style={{ marginTop: '10px' }}>
+                        <h4 className="student-review-subheading" style={{ color: '#0f172a' }}>Hồ sơ đang chờ xử lý</h4>
+                        <p className="student-review-text" style={{ fontStyle: 'normal', color: '#475569' }}>
+                          Bản thảo <strong>(Phiên bản v{item.current_version})</strong> đã được gửi lên hệ thống thành công. Ban biên tập đang tiến hành rà soát chuyên môn để phân công giảng viên hướng dẫn phù hợp.
+                        </p>
+                      </div>
+                    </article>
+                  ) : (
+                    /* State B: Lecturer assigned and currently evaluating */
+                    <article className="student-review-card" style={{ background: '#ffffff', marginBottom: '20px' }}>
+                      <div className="student-review-header">
+                        <div className="student-reviewer-avatar" style={{ background: '#0071bc' }}>
+                          {getInitials(item.supervisor)}
+                        </div>
+                        <div className="student-reviewer-info">
+                          <div className="student-reviewer-name-row">
+                            <strong>{item.supervisor}</strong>
+                          </div>
+                          <span className="student-review-date">
+                            Phiên bản v{item.current_version} · Đang thẩm định vòng {item.current_version}
+                          </span>
+                        </div>
+                        <div className="student-review-decision">
+                          <span className="user-badge user-badge--review">ĐANG THẨM ĐỊNH</span>
+                        </div>
+                      </div>
+                      <div className="student-review-body" style={{ marginTop: '10px' }}>
+                        <h4 className="student-review-subheading" style={{ color: '#0f172a' }}>Vòng thẩm định hiện tại (Phiên bản v{item.current_version})</h4>
+                        <p className="student-review-text" style={{ fontStyle: 'normal', color: '#334155' }}>
+                          Bản thảo <strong>(Phiên bản v{item.current_version})</strong> đã được phân công cho giảng viên <strong>{item.supervisor}</strong>. Giảng viên đang tiến hành thẩm định và đánh giá nội dung.
+                        </p>
+                      </div>
+                    </article>
+                  )
+                )}
+
+                {finalizedPrimaryReviews.length > 0 ? (
+                  <div className="student-reviews-feed">
+                    {finalizedPrimaryReviews.map((rev) => {
+                    const reviewerInitials = getInitials(rev.reviewer_name);
+                    const isHistoricalRound = item.current_version > (rev.round || 1);
+
+                    return (
+                      <article key={rev.id} className="student-review-card">
+                        <div className="student-review-header">
+                          <div className="student-reviewer-avatar">
+                            {reviewerInitials}
+                          </div>
+                          <div className="student-reviewer-info">
+                            <div className="student-reviewer-name-row">
+                              <strong>{rev.reviewer_name}</strong>
+                              <span className="student-version-tag" style={{ marginLeft: '6px' }}>v{rev.round || 1}</span>
+                            </div>
+                            <span className="student-review-date">
+                              Đánh giá ghi nhận ngày {new Date(rev.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             </span>
-                          ) : (
-                            <span className="student-decision-badge student-decision-badge--revision">
-                              Revision Requested
-                            </span>
+                          </div>
+                          <div className="student-review-decision">
+                            {rev.decision === 'APPROVED' ? (
+                              <span className="student-decision-badge student-decision-badge--approved">
+                                Đã duyệt xuất bản
+                              </span>
+                            ) : (
+                              <span className="student-decision-badge student-decision-badge--revision">
+                                Yêu cầu chỉnh sửa
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="student-review-body">
+                          <h4 className="student-review-subheading">Nhận xét của giảng viên</h4>
+                          <p className="student-review-text">&ldquo;{rev.comments}&rdquo;</p>
+
+                          {rev.recommendations && rev.recommendations.length > 0 && (
+                            <div className="student-review-recommendations">
+                              <h4 className="student-review-subheading">Các điểm cần chỉnh sửa cụ thể:</h4>
+                              <ul className="student-review-checklist">
+                                {rev.recommendations.map((rec, i) => (
+                                  <li key={i} className="student-review-checklist-item">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <circle cx="12" cy="12" r="10" />
+                                      <line x1="12" y1="8" x2="12" y2="12" />
+                                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                    <span>{rec}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           )}
                         </div>
-                      </div>
 
-                      <div className="student-review-body">
-                        <h4 className="student-review-subheading">Faculty Comments &amp; Assessment</h4>
-                        <p className="student-review-text">&ldquo;{rev.comments}&rdquo;</p>
-
-                        {rev.recommendations && rev.recommendations.length > 0 && (
-                          <div className="student-review-recommendations">
-                            <h4 className="student-review-subheading">Actionable Revisions Required:</h4>
-                            <ul className="student-review-checklist">
-                              {rev.recommendations.map((rec, i) => (
-                                <li key={i} className="student-review-checklist-item">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="12" y1="8" x2="12" y2="12" />
-                                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                                  </svg>
-                                  <span>{rec}</span>
-                                </li>
-                              ))}
-                            </ul>
+                        {rev.decision === 'NEEDS_REVISION' && !isHistoricalRound && (
+                          <div className="student-review-footer-action">
+                            <Link href={editPath} className="student-btn student-btn--warning">
+                              <span>Mở biểu mẫu nộp bản sửa đổi (Tải lên bản thảo mới) →</span>
+                            </Link>
                           </div>
                         )}
-                      </div>
-
-                      {rev.decision === 'NEEDS_REVISION' && (
-                        <div className="student-review-footer-action">
-                          <Link href={editPath} className="student-btn student-btn--warning">
-                            <span>Open Revision Form (Upload Revised Draft) →</span>
-                          </Link>
-                        </div>
-                      )}
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
-              ) : (
+              ) : item.status !== 'UNDER_REVIEW' ? (
                 <div className="student-empty-card">
                   <div className="student-empty-icon">
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -544,22 +617,23 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                       <polyline points="12 6 12 12 16 14" />
                     </svg>
                   </div>
-                  <h3>Under Faculty Evaluation</h3>
+                  <h3>Chưa có nhận xét của giảng viên</h3>
                   <p>
-                    Your manuscript is currently queued for mentorship review. Our faculty advisors typically return structured comments and evaluation within 48 hours.
+                    Bản thảo hiện tại chưa có nhận xét đánh giá chính thức từ giảng viên hướng dẫn.
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
-          )}
+          );
+        })()}
 
           {/* Tab 4: Provenance & Timeline */}
           {activeTab === 'TIMELINE' && (
             <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               <div className="student-timeline-card">
-                <h3 className="student-timeline-title">Audit Trail &amp; Provenance Record</h3>
+                <h3 className="student-timeline-title">Nhật ký kiểm toán &amp; Xác thực bản thảo</h3>
                 <p className="student-timeline-desc">
-                  Every submission, review event, and version change is cryptographically tracked in this immutable ledger.
+                  Mọi lượt nộp, sự kiện đánh giá và thay đổi phiên bản đều được ghi nhận bất biến cùng dấu thời gian và mã băm xác thực.
                 </p>
 
                 <div className="student-timeline-list">
@@ -573,15 +647,15 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                         <div className="student-timeline-content">
                           <div className="student-timeline-meta">
                             <span className="student-timeline-timestamp">
-                              {new Date(event.timestamp).toLocaleString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
+                              {new Date(event.timestamp).toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
                                 year: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })}
                             </span>
-                            <span className="student-timeline-actor">by {event.actor}</span>
+                            <span className="student-timeline-actor">bởi {event.actor}</span>
                           </div>
                           <h4 className="student-timeline-heading">{event.title}</h4>
                           <p className="student-timeline-text">{event.description}</p>
@@ -589,7 +663,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                       </div>
                     ))
                   ) : (
-                    <p className="student-muted">No timeline events recorded yet.</p>
+                    <p className="student-muted">Chưa có sự kiện nào được ghi nhận.</p>
                   )}
                 </div>
               </div>
