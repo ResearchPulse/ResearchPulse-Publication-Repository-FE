@@ -1646,16 +1646,15 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 18px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background-color: #f8fafc;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .student-author-card--primary {
-  border-color: #bae6fd;
-  background-color: #f0f9ff;
+  border: none;
+  background: transparent;
 }
 
 .student-author-avatar {
