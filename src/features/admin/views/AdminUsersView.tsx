@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@hyperdata/design-system';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Field, SelectInput, TextInput } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminOverview, type AdminUser } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
@@ -40,6 +40,65 @@ export function AdminUsersView() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Create-user dialog state
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createName, setCreateName] = useState('');
+  const [createRole, setCreateRole] = useState<AdminUser['role']>('STUDENT');
+  const [createPassword, setCreatePassword] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const openCreateDialog = () => {
+    setCreateError(null);
+    dialogRef.current?.showModal();
+  };
+
+  const closeCreateDialog = () => {
+    if (!creating) dialogRef.current?.close();
+  };
+
+  const createUser = async () => {
+    if (!createEmail.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await adminApi.createUser({
+        email: createEmail.trim(),
+        name: createName.trim() || null,
+        role: createRole,
+        password: createPassword || undefined,
+      });
+      setResult((current) => current ? { ...current, users: [created, ...current.users] } : current);
+      setCreateEmail('');
+      setCreateName('');
+      setCreateRole('STUDENT');
+      setCreatePassword('');
+      setMessage(`Created account for ${created.email}.`);
+      dialogRef.current?.close();
+    } catch (reason: unknown) {
+      setCreateError(reason instanceof Error ? reason.message : 'Unable to create user.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const removeUser = async (user: AdminUser) => {
+    if (!window.confirm(`Delete ${user.email}? This cannot be undone.`)) return;
+
+    setBusyId(user.id);
+    setMessage(null);
+    try {
+      await adminApi.deleteUser(user.id);
+      setResult((current) => current ? { ...current, users: current.users.filter((item) => item.id !== user.id) } : current);
+      setMessage(`Deleted ${user.email}.`);
+    } catch (reason: unknown) {
+      setMessage(reason instanceof Error ? reason.message : 'Unable to delete user.');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   // Fetch overview metrics
   const refreshOverview = () => {
@@ -456,6 +515,16 @@ export function AdminUsersView() {
               />
             </div>
           )}
+
+          {tab !== 'PENDING' && (
+            <Button
+              variant="primary"
+              onClick={openCreateDialog}
+              style={{ padding: '0 16px', height: '38px', fontSize: '13px', whiteSpace: 'nowrap' }}
+            >
+              {locale === 'vi' ? '+ Thêm người dùng' : '+ Create user'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -657,6 +726,14 @@ export function AdminUsersView() {
                           >
                             {user.isActive ? (locale === 'vi' ? 'Vô hiệu hóa' : 'Deactivate') : (locale === 'vi' ? 'Kích hoạt' : 'Activate')}
                           </Button>
+                          <Button
+                            variant="ghost"
+                            disabled={busyId === user.id}
+                            onClick={() => removeUser(user)}
+                            style={{ color: '#dc2626' }}
+                          >
+                            {locale === 'vi' ? 'Xóa' : 'Delete'}
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -717,6 +794,80 @@ export function AdminUsersView() {
           </div>
         )}
       </div>
+
+      <dialog ref={dialogRef} className="users-create-dialog" aria-label="Create user">
+        <h2>{locale === 'vi' ? 'Tạo tài khoản người dùng mới' : 'Create user account'}</h2>
+        <p className="users-create-hint">
+          {locale === 'vi'
+            ? 'Tạo tài khoản đã được phê duyệt và kích hoạt. Có thể để trống mật khẩu để người dùng tự thiết lập qua liên kết đổi mật khẩu.'
+            : 'Creates an approved, active account. Leave the password blank to let the user set one via reset.'}
+        </p>
+        {createError && (
+          <div className="users-create-error" role="alert">
+            {createError}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            createUser();
+          }}
+          style={{ padding: '0 28px' }}
+        >
+          <Field label={locale === 'vi' ? 'Địa chỉ Email *' : 'Email *'}>
+            <TextInput
+              aria-label="New user email"
+              placeholder="new.user@university.edu"
+              type="email"
+              required
+              value={createEmail}
+              onChange={(event) => setCreateEmail(event.target.value)}
+            />
+          </Field>
+          <div style={{ marginTop: '12px' }}>
+            <Field label={locale === 'vi' ? 'Họ và tên' : 'Full name'}>
+              <TextInput
+                aria-label="New user name"
+                placeholder="Full name"
+                value={createName}
+                onChange={(event) => setCreateName(event.target.value)}
+              />
+            </Field>
+          </div>
+          <div style={{ marginTop: '12px' }}>
+            <Field label={locale === 'vi' ? 'Vai trò' : 'Role'}>
+              <SelectInput
+                aria-label="New user role"
+                value={createRole}
+                onChange={(event) => setCreateRole(event.target.value as AdminUser['role'])}
+              >
+                <option value="STUDENT">{locale === 'vi' ? 'Sinh viên' : 'Student'}</option>
+                <option value="LECTURER">{locale === 'vi' ? 'Giảng viên' : 'Lecturer'}</option>
+                <option value="ADMIN">{locale === 'vi' ? 'Quản trị viên' : 'Admin'}</option>
+              </SelectInput>
+            </Field>
+          </div>
+          <div style={{ marginTop: '12px' }}>
+            <Field label={locale === 'vi' ? 'Mật khẩu ban đầu (tùy chọn)' : 'Initial password'} hint={locale === 'vi' ? 'Tùy chọn' : 'Optional'}>
+              <TextInput
+                aria-label="Initial password"
+                placeholder={locale === 'vi' ? 'Mật khẩu (tùy chọn)' : 'Password (optional)'}
+                type="password"
+                value={createPassword}
+                onChange={(event) => setCreatePassword(event.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="review-actions users-create-actions" style={{ marginTop: '20px', padding: '0 0 24px 0' }}>
+            <Button variant="secondary" type="button" disabled={creating} onClick={closeCreateDialog}>
+              {locale === 'vi' ? 'Hủy' : 'Cancel'}
+            </Button>
+            <Button variant="primary" type="submit" disabled={creating || !createEmail.trim()}>
+              {creating ? (locale === 'vi' ? 'Đang tạo...' : 'Creating...') : (locale === 'vi' ? 'Tạo tài khoản' : 'Create user')}
+            </Button>
+          </div>
+        </form>
+      </dialog>
     </AdminShell>
   );
 }
