@@ -9,7 +9,7 @@ import { authApi } from '@/features/auth/api/authApi';
 import { LanguageSwitcher, useTranslation } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
-export type LecturerNavKey = 'reviews' | 'submissions' | 'profile';
+export type LecturerNavKey = 'reviews' | 'submissions' | 'profile' | 'publications';
 
 export interface LecturerShellProps {
   active: LecturerNavKey;
@@ -32,18 +32,14 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
       const parts = name.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      }
+      if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
       return name.slice(0, 2).toUpperCase();
     }
-    if (email) {
-      return email.slice(0, 2).toUpperCase();
-    }
-    return 'L';
+    if (email) return email.slice(0, 2).toUpperCase();
+    return 'LT';
   };
 
-  const initials = authLoading ? '…' : getInitials(user?.name, user?.email);
+  const initials = getInitials(user?.name ?? undefined, user?.email ?? undefined);
 
   return (
     <div className="lecturer-frame">
@@ -105,6 +101,23 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                 </svg>
               </span>
               <span className="student-sidebar__text">{t('lecturer.myManuscripts')}</span>
+            </Link>
+
+            <Link
+              href={ROUTES.LECTURER.PUBLICATIONS}
+              className={`student-sidebar__link ${active === 'publications' ? 'student-sidebar__link--active' : ''}`}
+              onClick={() => setSidebarOpen(false)}
+            >
+              <span className="student-sidebar__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  <line x1="9" y1="6" x2="16" y2="6" />
+                  <line x1="9" y1="10" x2="16" y2="10" />
+                  <line x1="9" y1="14" x2="13" y2="14" />
+                </svg>
+              </span>
+              <span className="student-sidebar__text">{t('lecturer.publicationsRepository')}</span>
             </Link>
           </div>
 

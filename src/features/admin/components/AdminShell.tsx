@@ -2,16 +2,17 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { PageHeader } from '@hyperdata/design-system';
 
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
+import { adminApi } from '../api';
 import { LanguageSwitcher, useTranslation } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
-export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'profile';
+export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'registrations' | 'profile';
 
 export interface AdminShellProps {
   active: AdminNavKey;
@@ -32,7 +33,43 @@ export function AdminSidebar({
   onClose?: () => void;
 }) {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const [internalPendingCount, setInternalPendingCount] = useState<number | undefined>(pendingCount);
+
+  useEffect(() => {
+    if (pendingCount !== undefined) {
+      setInternalPendingCount(pendingCount);
+    }
+  }, [pendingCount]);
+
+  useEffect(() => {
+    adminApi
+      .listPendingUsers({ limit: 1 })
+      .then((res) => {
+        setInternalPendingCount(res.pagination?.total ?? res.users.length);
+      })
+      .catch(() => {});
+
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource('/api/admin/registrations/stream');
+      es.addEventListener('registration:new', () => {
+        adminApi
+          .listPendingUsers({ limit: 1 })
+          .then((res) => {
+            setInternalPendingCount(res.pagination?.total ?? res.users.length);
+          })
+          .catch(() => {});
+      });
+    } catch {
+      // SSE silent catch
+    }
+
+    return () => {
+      es?.close();
+    };
+  }, []);
+
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Administrator';
   const displayRole = user?.role === 'ADMIN' ? 'System Administrator' : user?.email || 'Administrator';
 
@@ -135,13 +172,46 @@ export function AdminSidebar({
           >
             <span className="student-sidebar__icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </span>
-            <span className="student-sidebar__text">{t('admin.userManagement')}</span>
+            <span className="student-sidebar__text">{t('admin.accountManagement')}</span>
+          </Link>
+
+          <Link
+            href={ROUTES.ADMIN.REGISTRATIONS}
+            className={`student-sidebar__link ${active === 'registrations' ? 'student-sidebar__link--active' : ''}`}
+            onClick={onClose}
+          >
+            <span className="student-sidebar__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
+              </svg>
+            </span>
+            <span className="student-sidebar__text">{t('admin.registrationRequests')}</span>
+            {internalPendingCount !== undefined && internalPendingCount > 0 && (
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: '999px',
+                  background: '#fef3c7',
+                  color: '#b45309',
+                  border: '1px solid #fde68a',
+                  lineHeight: 1.4,
+                }}
+              >
+                {internalPendingCount}
+              </span>
+            )}
           </Link>
 
           <Link
@@ -159,6 +229,7 @@ export function AdminSidebar({
           </Link>
         </div>
       </nav>
+
 
       {/* Sidebar Footer with Profile Card */}
       <div className="student-sidebar__footer">

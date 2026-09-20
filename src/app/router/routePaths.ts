@@ -4,7 +4,7 @@
 export const ROUTES = {
   HOME: '/',
   FORBIDDEN: '/forbidden',
-  REGISTER: '/register',
+  REGISTER: '/#register-section',
   AUTH: {
     LOGIN: '/login',
     LOGOUT: '/api/auth/logout',
@@ -18,6 +18,7 @@ export const ROUTES = {
     SUBMISSION_DETAIL: (id: string | number) => `/admin/submissions/${id}`,
     REVIEWS: '/admin/reviews',
     USERS: '/admin/users',
+    REGISTRATIONS: '/admin/registrations',
     PROFILE: '/admin/profile',
   },
   LECTURER: {
@@ -27,6 +28,8 @@ export const ROUTES = {
     SUBMISSIONS: '/lecturer/submissions',
     SUBMISSION_DETAIL: (id: string | number) => `/lecturer/submissions/${id}`,
     NEW_SUBMISSION: '/lecturer/submissions/new',
+    PUBLICATIONS: '/lecturer/publications',
+    PUBLICATION_DETAIL: (id: string | number) => `/lecturer/publications/${id}`,
     PROFILE: '/lecturer/profile',
   },
   STUDENT: {

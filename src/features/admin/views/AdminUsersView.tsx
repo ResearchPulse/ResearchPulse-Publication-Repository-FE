@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Field, TextInput } from '@hyperdata/design-system';
+import { useEffect, useState } from 'react';
+import { Button } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
-import { adminApi, type AdminOverview, type AdminUser } from '../api';
+import { adminApi, type AdminUser, type AdminOverview } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
 import { useTranslation } from '@/i18n';
 
-type ActiveTab = 'ALL' | 'STUDENT' | 'LECTURER' | 'ADMIN' | 'PENDING';
+type AccountRoleTab = 'ALL' | 'STUDENT' | 'LECTURER' | 'ADMIN';
 type ActiveFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
 
 function getUserInitials(name?: string | null, email?: string): string {
@@ -27,19 +27,31 @@ function getUserInitials(name?: string | null, email?: string): string {
 
 export function AdminUsersView() {
   const { t, locale } = useTranslation();
-  const [tab, setTab] = useState<ActiveTab>('ALL');
+  const [roleTab, setRoleTab] = useState<AccountRoleTab>('ALL');
   const [search, setSearch] = useState('');
-  const [active, setActive] = useState<ActiveFilter>('ALL');
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('ALL');
   const [page, setPage] = useState(1);
+
+  // Data states
   const [overview, setOverview] = useState<AdminOverview | null>(null);
-  const [result, setResult] = useState<Awaited<ReturnType<typeof adminApi.listUsers>> | null>(null);
-  const [roleDrafts, setRoleDrafts] = useState<Record<string, AdminUser['role']>>({});
-  const [pendingUsers, setPendingUsers] = useState<AdminUser[]>([]);
-  const [loadingPending, setLoadingPending] = useState(true);
+  const [accounts, setAccounts] = useState<AdminUser[]>([]);
+  const [pagination, setPagination] = useState<{ page: number; totalPages: number; total: number } | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Create User Modal state
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    studentId: '',
+    major: '',
+    role: 'STUDENT' as AdminUser['role'],
+    password: '',
+  });
 
   // Custom Confirm Modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -52,268 +64,244 @@ export function AdminUsersView() {
     onConfirm: () => Promise<void> | void;
   } | null>(null);
 
-  // Create-user dialog state
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const [createEmail, setCreateEmail] = useState('');
-  const [createName, setCreateName] = useState('');
-  const [createRole, setCreateRole] = useState<AdminUser['role']>('STUDENT');
-  const [createPassword, setCreatePassword] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const PAGE_SIZE = 10;
 
-  // Create user via dialog
-  const openCreateDialog = () => {
-    setCreateError(null);
-    dialogRef.current?.showModal();
+  // Refresh Overview metrics
+  const refreshOverview = () => {
+    adminApi
+      .overview()
+      .then((data) => setOverview(data))
+      .catch(() => {});
   };
 
-  const closeCreateDialog = () => {
-    if (!creating) dialogRef.current?.close();
+  // Refresh System Accounts
+  const refreshAccounts = (targetPage = page) => {
+    setLoading(true);
+    const roleParam = roleTab === 'ALL' ? undefined : roleTab;
+    const isActiveParam = activeFilter === 'ALL' ? undefined : activeFilter === 'ACTIVE';
+
+    adminApi
+      .listUsers({
+        page: targetPage,
+        limit: PAGE_SIZE,
+        role: roleParam,
+        search: search.trim() || undefined,
+        isActive: isActiveParam,
+      })
+      .then((res) => {
+        setAccounts(res.users || []);
+        setPagination(res.pagination || null);
+        if (res.users?.length === 0 && targetPage > 1) {
+          setPage(targetPage - 1);
+        }
+      })
+      .catch((reason: unknown) => {
+        setAccounts([]);
+        setPagination(null);
+        setError(reason instanceof Error ? reason.message : 'Unable to load accounts.');
+      })
+      .finally(() => setLoading(false));
   };
 
-  const createUser = async () => {
-    if (!createEmail.trim()) return;
-    setCreating(true);
-    setCreateError(null);
-    try {
-      const created = await adminApi.createUser({
-        email: createEmail.trim(),
-        name: createName.trim() || null,
-        role: createRole,
-        password: createPassword || undefined,
-      });
-      if (tab !== 'PENDING') {
-        setResult((curr) => (curr ? { ...curr, users: [created, ...curr.users] } : curr));
-      }
-      setCreateEmail('');
-      setCreateName('');
-      setCreateRole('STUDENT');
-      setCreatePassword('');
-      setMessage(`Created account for ${created.email}.`);
-      refreshOverview();
-      dialogRef.current?.close();
-    } catch (reason: unknown) {
-      setCreateError(reason instanceof Error ? reason.message : 'Unable to create user.');
-    } finally {
-      setCreating(false);
-    }
-  };
+  useEffect(() => {
+    refreshOverview();
+  }, []);
 
-  // Delete user
-  const removeUser = (user: AdminUser) => {
+  useEffect(() => {
+    refreshAccounts(page);
+  }, [roleTab, page, activeFilter]);
+
+  // Debounced search for accounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      refreshAccounts(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Toggle User Active/Suspended status
+  const handleToggleActive = (user: AdminUser) => {
+    const willActive = !user.isActive;
     setConfirmModal({
       open: true,
-      title: locale === 'vi' ? 'Xác nhận xóa người dùng' : 'Delete User',
+      title: willActive
+        ? (locale === 'vi' ? 'Mở khóa tài khoản' : 'Activate Account')
+        : (locale === 'vi' ? 'Khóa tài khoản' : 'Suspend Account'),
+      description: willActive
+        ? (locale === 'vi' ? `Xác nhận mở khóa và cho phép ${user.email} đăng nhập lại hệ thống?` : `Activate and allow ${user.email} to log in again?`)
+        : (locale === 'vi' ? `Xác nhận tạm khóa tài khoản ${user.email}? Người dùng này sẽ không thể đăng nhập cho đến khi được mở khóa.` : `Suspend ${user.email}? This user will not be able to log in until unlocked.`),
+      confirmLabel: willActive ? (locale === 'vi' ? 'Mở khóa' : 'Activate') : (locale === 'vi' ? 'Khóa tài khoản' : 'Suspend'),
+      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
+      isDanger: !willActive,
+      onConfirm: async () => {
+        setBusyId(user.id);
+        setMessage(null);
+        setError(null);
+        try {
+          await adminApi.updateUserStatus(user.id, willActive);
+          refreshAccounts(page);
+          refreshOverview();
+          setMessage(
+            willActive
+              ? (locale === 'vi' ? `Đã mở khóa tài khoản ${user.email}.` : `Activated ${user.email}.`)
+              : (locale === 'vi' ? `Đã tạm khóa tài khoản ${user.email}.` : `Suspended ${user.email}.`),
+          );
+        } catch (reason: unknown) {
+          setError(reason instanceof Error ? reason.message : 'Unable to update account status.');
+        } finally {
+          setBusyId(null);
+          setConfirmModal(null);
+        }
+      },
+    });
+  };
+
+  // Change User Role
+  const handleChangeRole = (user: AdminUser, newRole: AdminUser['role']) => {
+    if (newRole === user.role) return;
+    const roleNames: Record<AdminUser['role'], string> = {
+      STUDENT: locale === 'vi' ? 'Sinh viên' : 'Student',
+      LECTURER: locale === 'vi' ? 'Giảng viên' : 'Lecturer',
+      ADMIN: locale === 'vi' ? 'Quản trị viên' : 'Admin',
+    };
+
+    setConfirmModal({
+      open: true,
+      title: locale === 'vi' ? 'Thay đổi vai trò người dùng' : 'Change User Role',
       description: locale === 'vi'
-        ? `Bạn có chắc chắn muốn xóa tài khoản ${user.email}? Hành động này không thể hoàn tác.`
-        : `Are you sure you want to delete ${user.email}? This action cannot be undone.`,
+        ? `Xác nhận chuyển vai trò của ${user.email} từ ${roleNames[user.role]} sang ${roleNames[newRole]}?`
+        : `Change role for ${user.email} from ${user.role} to ${newRole}?`,
+      confirmLabel: locale === 'vi' ? 'Cập nhật' : 'Update',
+      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
+      onConfirm: async () => {
+        setBusyId(user.id);
+        setMessage(null);
+        setError(null);
+        try {
+          await adminApi.updateUserRole(user.id, newRole);
+          refreshAccounts(page);
+          refreshOverview();
+          setMessage(
+            locale === 'vi'
+              ? `Đã chuyển vai trò của ${user.email} thành ${roleNames[newRole]}.`
+              : `Updated role of ${user.email} to ${newRole}.`,
+          );
+        } catch (reason: unknown) {
+          setError(reason instanceof Error ? reason.message : 'Unable to change user role.');
+        } finally {
+          setBusyId(null);
+          setConfirmModal(null);
+        }
+      },
+    });
+  };
+
+  // Delete User
+  const handleDeleteUser = (user: AdminUser) => {
+    setConfirmModal({
+      open: true,
+      title: locale === 'vi' ? 'Xóa người dùng' : 'Delete User',
+      description: locale === 'vi'
+        ? `Xác nhận xóa vĩnh viễn tài khoản ${user.email}? Hành động này không thể hoàn tác.`
+        : `Are you sure you want to permanently delete account ${user.email}? This action cannot be undone.`,
       confirmLabel: locale === 'vi' ? 'Xóa người dùng' : 'Delete User',
       cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
       isDanger: true,
       onConfirm: async () => {
         setBusyId(user.id);
         setMessage(null);
+        setError(null);
         try {
           await adminApi.deleteUser(user.id);
-          setResult((curr) => (curr ? { ...curr, users: curr.users.filter((item) => item.id !== user.id) } : curr));
+          refreshAccounts(page);
           refreshOverview();
-          setMessage(locale === 'vi' ? `Đã xóa ${user.email}.` : `Deleted ${user.email}.`);
+          setMessage(locale === 'vi' ? `Đã xóa tài khoản ${user.email}.` : `Deleted account ${user.email}.`);
         } catch (reason: unknown) {
-          setMessage(reason instanceof Error ? reason.message : 'Unable to delete user.');
+          setError(reason instanceof Error ? reason.message : 'Unable to delete user.');
         } finally {
           setBusyId(null);
           setConfirmModal(null);
         }
-      }
+      },
     });
   };
 
-  // Fetch overview metrics
-  const refreshOverview = () => {
-    adminApi
-      .overview()
-      .then((data) => setOverview(data))
-      .catch(() => { });
-  };
+  // Create User submit
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.email.trim()) return;
 
-  const refreshPending = () => {
-    setLoadingPending(true);
-    adminApi
-      .listPendingUsers({ limit: 50 })
-      .then((next) => setPendingUsers(next.users))
-      .catch(() => setPendingUsers([]))
-      .finally(() => setLoadingPending(false));
-  };
-
-  useEffect(() => {
-    refreshOverview();
-    refreshPending();
-  }, []);
-
-  // Fetch users when tab (role), active status, search or page changes
-  useEffect(() => {
-    if (tab === 'PENDING') {
-      setLoading(false);
-      return;
-    }
-
-    let mounted = true;
-    setLoading(true);
-    setError(null);
-
-    adminApi
-      .listUsers({
-        page,
-        limit: 20,
-        search: search.trim() || undefined,
-        role: tab === 'ALL' ? undefined : (tab as AdminUser['role']),
-        isActive: active === 'ALL' ? undefined : active === 'ACTIVE',
-      })
-      .then((next) => {
-        if (mounted) setResult(next);
-      })
-      .catch((reason: unknown) => {
-        if (mounted) setError(reason instanceof Error ? reason.message : 'Unable to load users.');
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [active, page, search, tab]);
-
-  // Filter pending users locally by search
-  const filteredPendingUsers = useMemo(() => {
-    if (!search.trim()) return pendingUsers;
-    const q = search.toLowerCase().trim();
-    return pendingUsers.filter(
-      (u) =>
-        u.name?.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        u.studentId?.toLowerCase().includes(q) ||
-        u.major?.toLowerCase().includes(q),
-    );
-  }, [pendingUsers, search]);
-
-  const totalUsersCount = overview?.users?.total || result?.pagination?.total || 0;
-  const studentsCount = overview?.users?.students || 0;
-  const lecturersCount = overview?.users?.lecturers || 0;
-  const adminsCount = Math.max(0, totalUsersCount - studentsCount - lecturersCount);
-
-  // Decide pending registration (Approve / Reject)
-  const decidePendingUser = (user: AdminUser, decision: 'approve' | 'reject') => {
-    const isApprove = decision === 'approve';
-    setConfirmModal({
-      open: true,
-      title: isApprove
-        ? (locale === 'vi' ? 'Duyệt đăng ký tài khoản' : 'Approve Registration')
-        : (locale === 'vi' ? 'Từ chối đăng ký tài khoản' : 'Reject Registration'),
-      description: isApprove
-        ? (locale === 'vi' ? `Xác nhận duyệt yêu cầu đăng ký của ${user.email}? Tài khoản sẽ được cấp thông tin đăng nhập tạm thời.` : `Approve registration request for ${user.email}? Temporary credentials will be issued.`)
-        : (locale === 'vi' ? `Xác nhận từ chối yêu cầu đăng ký của ${user.email}?` : `Reject registration request for ${user.email}?`),
-      confirmLabel: isApprove ? (locale === 'vi' ? 'Duyệt' : 'Approve') : (locale === 'vi' ? 'Từ chối' : 'Reject'),
-      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
-      isDanger: !isApprove,
-      onConfirm: async () => {
-        setBusyId(user.id);
-        setMessage(null);
-        try {
-          await (decision === 'approve' ? adminApi.approveUser(user.id) : adminApi.rejectUser(user.id));
-          setPendingUsers((current) => current.filter((item) => item.id !== user.id));
-          refreshOverview();
-          setMessage(
-            decision === 'approve'
-              ? (locale === 'vi' ? `Đã duyệt đăng ký cho ${user.name || user.email}. Thông tin đăng nhập tạm thời đã được cấp.` : `Approved registration for ${user.name || user.email}. Temporary credentials issued.`)
-              : (locale === 'vi' ? `Đã từ chối đăng ký cho ${user.email}.` : `Registration for ${user.email} was rejected.`),
-          );
-        } catch (reason: unknown) {
-          setMessage(reason instanceof Error ? reason.message : 'Unable to process pending registration.');
-        } finally {
-          setBusyId(null);
-          setConfirmModal(null);
-        }
-      }
-    });
-  };
-
-  // Save role change on Confirm button click
-  const handleSaveRole = async (user: AdminUser, newRole: AdminUser['role']) => {
-    if (newRole === user.role) return;
-
-    setBusyId(user.id);
+    setBusyId('create');
     setMessage(null);
     setError(null);
     try {
-      const updated = await adminApi.updateUserRole(user.id, newRole);
-      setResult((curr) =>
-        curr
-          ? {
-            ...curr,
-            users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
-          }
-          : curr,
-      );
-      setRoleDrafts((curr) => {
-        const next = { ...curr };
-        delete next[user.id];
-        return next;
+      await adminApi.createUser({
+        email: createForm.email.trim(),
+        name: createForm.name.trim() || undefined,
+        studentId: createForm.studentId.trim() || undefined,
+        major: createForm.major.trim() || undefined,
+        role: createForm.role,
+        password: createForm.password.trim() || undefined,
       });
+      setIsCreateOpen(false);
+      setCreateForm({ name: '', email: '', studentId: '', major: '', role: 'STUDENT', password: '' });
+      refreshAccounts(1);
       refreshOverview();
-      setMessage(`Role updated to ${newRole} for ${user.name || user.email}.`);
+      setMessage(locale === 'vi' ? `Đã tạo tài khoản mới thành công.` : `Successfully created new account.`);
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : 'Unable to update user role.');
+      setError(reason instanceof Error ? reason.message : 'Unable to create user.');
     } finally {
       setBusyId(null);
     }
   };
 
-  // Toggle active/inactive status
-  const updateActive = (user: AdminUser) => {
-    const nextActive = !user.isActive;
-    setConfirmModal({
-      open: true,
-      title: nextActive
-        ? (locale === 'vi' ? 'Kích hoạt tài khoản' : 'Activate Account')
-        : (locale === 'vi' ? 'Khóa tài khoản' : 'Deactivate Account'),
-      description: nextActive
-        ? (locale === 'vi' ? `Bạn có muốn kích hoạt lại tài khoản cho ${user.name || user.email}?` : `Activate account for ${user.name || user.email}?`)
-        : (locale === 'vi' ? `Bạn có chắc chắn muốn khóa tài khoản của ${user.name || user.email}? Người dùng sẽ không thể đăng nhập.` : `Deactivate account for ${user.name || user.email}? The user will not be able to sign in.`),
-      confirmLabel: nextActive ? (locale === 'vi' ? 'Kích hoạt' : 'Activate') : (locale === 'vi' ? 'Khóa tài khoản' : 'Deactivate'),
-      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
-      isDanger: !nextActive,
-      onConfirm: async () => {
-        setBusyId(user.id);
-        setMessage(null);
-        try {
-          const updated = await adminApi.updateUserStatus(user.id, nextActive);
-          setResult((curr) =>
-            curr
-              ? {
-                ...curr,
-                users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
-              }
-              : curr,
-          );
-          refreshOverview();
-          setMessage(
-            locale === 'vi'
-              ? `${nextActive ? 'Đã kích hoạt' : 'Đã khóa'} tài khoản cho ${user.name || user.email}.`
-              : `${nextActive ? 'Activated' : 'Deactivated'} account for ${user.name || user.email}.`,
-          );
-        } catch (reason: unknown) {
-          setMessage(reason instanceof Error ? reason.message : 'Unable to update user status.');
-        } finally {
-          setBusyId(null);
-          setConfirmModal(null);
-        }
-      }
-    });
+  const renderRoleBadge = (role: AdminUser['role']) => {
+    switch (role) {
+      case 'STUDENT':
+        return (
+          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+            {locale === 'vi' ? 'SINH VIÊN' : 'STUDENT'}
+          </span>
+        );
+      case 'LECTURER':
+        return (
+          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
+            {locale === 'vi' ? 'GIẢNG VIÊN' : 'LECTURER'}
+          </span>
+        );
+      case 'ADMIN':
+        return (
+          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>
+            {locale === 'vi' ? 'QUẢN TRỊ VIÊN' : 'ADMIN'}
+          </span>
+        );
+      default:
+        return <span>{role}</span>;
+    }
   };
 
+  const renderStatusBadge = (isActive: boolean) => {
+    return isActive ? (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, border: '1px solid #a7f3d0' }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+        {locale === 'vi' ? 'Hoạt động' : 'Active'}
+      </span>
+    ) : (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#fef2f2', color: '#b91c1c', padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, border: '1px solid #fecaca' }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} />
+        {locale === 'vi' ? 'Đã khóa' : 'Suspended'}
+      </span>
+    );
+  };
+
+  const totalUsersCount = overview?.users?.total || pagination?.total || 0;
+  const studentsCount = overview?.users?.students || 0;
+  const lecturersCount = overview?.users?.lecturers || 0;
+  const adminsCount = Math.max(0, totalUsersCount - studentsCount - lecturersCount);
+
   return (
-    <AdminShell active="users" title={t('nav.users')} pendingCount={pendingUsers.length}>
+    <AdminShell active="users" title={t('admin.usersTitle')}>
       <AdminPageHeader
         eyebrow={t('admin.usersEyebrow')}
         title={t('admin.usersTitle')}
@@ -324,208 +312,79 @@ export function AdminUsersView() {
       {message && (
         <div
           className="user-notice"
-          style={{
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: '#f0fdf4',
-            borderColor: '#bbf7d0',
-            color: '#15803d',
-          }}
+          style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', borderColor: '#bbf7d0', color: '#15803d' }}
           role="status"
         >
           <span>{message}</span>
-          <button
-            type="button"
-            onClick={() => setMessage(null)}
-            style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: '18px' }}
-            aria-label="Dismiss notification"
-          >
-            ├ù
-          </button>
+          <button type="button" onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: '18px' }}>×</button>
         </div>
       )}
 
       {error && (
         <div
           className="user-notice"
-          style={{
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: '#fef2f2',
-            borderColor: '#fecaca',
-            color: '#b91c1c',
-          }}
+          style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fef2f2', borderColor: '#fecaca', color: '#b91c1c' }}
           role="alert"
         >
           <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '18px' }}
-            aria-label="Dismiss alert"
-          >
-            ├ù
-          </button>
+          <button type="button" onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '18px' }}>×</button>
         </div>
       )}
 
-      {/* 1. Metrics Grid (Clean Default Look) */}
-      <div className="student-metrics-grid" style={{ marginBottom: '24px' }}>
-        <div
-          className={`student-metric-card ${tab === 'ALL' ? 'student-metric-card--active' : ''}`}
-          onClick={() => {
-            setTab('ALL');
-            setPage(1);
-          }}
-          style={{ cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          </div>
-          <div className="student-metric-info">
-            <span className="student-metric-value">{totalUsersCount}</span>
-            <span className="student-metric-label">{t('admin.totalAccounts')}</span>
-          </div>
-        </div>
-
-        <div
-          className={`student-metric-card ${tab === 'STUDENT' ? 'student-metric-card--active' : ''}`}
-          onClick={() => {
-            setTab('STUDENT');
-            setPage(1);
-          }}
-          style={{ cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-            </svg>
-          </div>
-          <div className="student-metric-info">
-            <span className="student-metric-value">{studentsCount}</span>
-            <span className="student-metric-label">{t('admin.students')}</span>
-          </div>
-        </div>
-
-        <div
-          className={`student-metric-card ${tab === 'LECTURER' ? 'student-metric-card--active' : ''}`}
-          onClick={() => {
-            setTab('LECTURER');
-            setPage(1);
-          }}
-          style={{ cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="11" cy="7" r="4" />
-              <line x1="19" y1="8" x2="19" y2="14" />
-              <line x1="22" y1="11" x2="16" y2="11" />
-            </svg>
-          </div>
-          <div className="student-metric-info">
-            <span className="student-metric-value">{lecturersCount}</span>
-            <span className="student-metric-label">{t('admin.lecturers')}</span>
-          </div>
-        </div>
-
-        <div
-          className={`student-metric-card ${tab === 'PENDING' ? 'student-metric-card--active' : ''}`}
-          onClick={() => {
-            setTab('PENDING');
-            setPage(1);
-          }}
-          style={{ cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          </div>
-          <div className="student-metric-info">
-            <span className="student-metric-value" style={{ color: pendingUsers.length > 0 ? '#d97706' : undefined }}>
-              {pendingUsers.length}
-            </span>
-            <span className="student-metric-label">{t('admin.pendingApproval')}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Filter Toolbar */}
+      {/* Filter Toolbar with Navigation Role Tabs */}
       <div className="student-filter-toolbar" style={{ marginBottom: '20px' }}>
-        <div className="student-tabs-pills" role="tablist" aria-label="Filter users by category">
+        <div className="student-tabs-pills" role="tablist">
           <button
             type="button"
-            className={`student-tab-pill ${tab === 'ALL' ? 'student-tab-pill--active' : ''}`}
+            className={`student-tab-pill ${roleTab === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => {
-              setTab('ALL');
+              setRoleTab('ALL');
               setPage(1);
             }}
           >
-            {t('common.all')} <span className="student-tab-pill__count">{totalUsersCount}</span>
+            {locale === 'vi' ? 'Tất cả tài khoản' : 'All Accounts'}{' '}
+            {totalUsersCount > 0 && <span className="student-tab-pill__count">{totalUsersCount}</span>}
           </button>
+
           <button
             type="button"
-            className={`student-tab-pill ${tab === 'STUDENT' ? 'student-tab-pill--active' : ''}`}
+            className={`student-tab-pill ${roleTab === 'STUDENT' ? 'student-tab-pill--active' : ''}`}
             onClick={() => {
-              setTab('STUDENT');
+              setRoleTab('STUDENT');
               setPage(1);
             }}
           >
-            {t('admin.students')} <span className="student-tab-pill__count">{studentsCount}</span>
+            {locale === 'vi' ? 'Sinh viên' : 'Students'}{' '}
+            {studentsCount > 0 && <span className="student-tab-pill__count">{studentsCount}</span>}
           </button>
+
           <button
             type="button"
-            className={`student-tab-pill ${tab === 'LECTURER' ? 'student-tab-pill--active' : ''}`}
+            className={`student-tab-pill ${roleTab === 'LECTURER' ? 'student-tab-pill--active' : ''}`}
             onClick={() => {
-              setTab('LECTURER');
+              setRoleTab('LECTURER');
               setPage(1);
             }}
           >
-            {t('admin.lecturers')} <span className="student-tab-pill__count">{lecturersCount}</span>
+            {locale === 'vi' ? 'Giảng viên' : 'Lecturers'}{' '}
+            {lecturersCount > 0 && <span className="student-tab-pill__count">{lecturersCount}</span>}
           </button>
+
           <button
             type="button"
-            className={`student-tab-pill ${tab === 'ADMIN' ? 'student-tab-pill--active' : ''}`}
+            className={`student-tab-pill ${roleTab === 'ADMIN' ? 'student-tab-pill--active' : ''}`}
             onClick={() => {
-              setTab('ADMIN');
+              setRoleTab('ADMIN');
               setPage(1);
             }}
           >
-            {t('admin.admins')} <span className="student-tab-pill__count">{adminsCount}</span>
-          </button>
-          <button
-            type="button"
-            className={`student-tab-pill ${tab === 'PENDING' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
-            onClick={() => {
-              setTab('PENDING');
-              setPage(1);
-            }}
-          >
-            {t('admin.pendingApproval')} <span className="student-tab-pill__count">{pendingUsers.length}</span>
+            {locale === 'vi' ? 'Quản trị viên' : 'Admins'}{' '}
+            {adminsCount > 0 && <span className="student-tab-pill__count">{adminsCount}</span>}
           </button>
         </div>
 
         <div className="student-search-sort-group">
+          {/* Search Box */}
           <div className="student-search-box">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
@@ -533,22 +392,16 @@ export function AdminUsersView() {
             </svg>
             <input
               type="search"
-              placeholder={tab === 'PENDING' ? t('common.searchUsersPending') : t('common.searchUsersAll')}
+              placeholder={locale === 'vi' ? 'Tìm tài khoản (tên, email, MSSV)...' : 'Search accounts...'}
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               className="student-search-input"
               aria-label="Search users"
             />
             {search && (
               <button
                 type="button"
-                onClick={() => {
-                  setSearch('');
-                  setPage(1);
-                }}
+                onClick={() => setSearch('')}
                 className="student-search-clear"
                 aria-label="Clear search"
               >
@@ -557,256 +410,160 @@ export function AdminUsersView() {
             )}
           </div>
 
-          {tab !== 'PENDING' && (
-            <div className="student-sort-box">
-              <span className="student-sort-label">{t('common.status')}:</span>
-              <SortDropdown
-                value={active}
-                onChange={(val) => {
-                  setActive(val as ActiveFilter);
-                  setPage(1);
-                }}
-                options={[
-                  { value: 'ALL', label: locale === 'vi' ? 'Tất cả trạng thái tài khoản' : 'All account states' },
-                  { value: 'ACTIVE', label: t('admin.active') },
-                  { value: 'INACTIVE', label: t('admin.inactive') },
-                ]}
-              />
-            </div>
-          )}
+          {/* Active status dropdown */}
+          <div className="student-sort-box">
+            <span className="student-sort-label">{locale === 'vi' ? 'Trạng thái:' : 'Status:'}</span>
+            <SortDropdown
+              value={activeFilter}
+              onChange={(val) => {
+                setActiveFilter(val as ActiveFilter);
+                setPage(1);
+              }}
+              options={[
+                { value: 'ALL', label: locale === 'vi' ? 'Tất cả trạng thái' : 'All statuses' },
+                { value: 'ACTIVE', label: locale === 'vi' ? 'Đang hoạt động' : 'Active' },
+                { value: 'INACTIVE', label: locale === 'vi' ? 'Đã khóa' : 'Suspended' },
+              ]}
+            />
+          </div>
 
-          <Button onClick={openCreateDialog}>{locale === 'vi' ? '+ Thêm người dùng' : '+ Create user'}</Button>
+          {/* Add User button */}
+          <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
+            {locale === 'vi' ? '+ Thêm tài khoản' : '+ Add Account'}
+          </Button>
         </div>
       </div>
 
-      {/* 3. Table Card Container */}
+      {/* SYSTEM ACCOUNTS TABLE */}
       <div className="admin-users-card">
-        {tab === 'PENDING' ? (
-          /* PENDING REGISTRATIONS QUEUE */
-          <div className="table-wrap">
-            <table className="data-table admin-users-table">
-              <thead>
-                <tr>
-                  <th>{locale === 'vi' ? 'Người đăng ký' : 'Applicant'}</th>
-                  <th>{locale === 'vi' ? 'Mã sinh viên' : 'Student ID'}</th>
-                  <th>{locale === 'vi' ? 'Ngành học' : 'Major'}</th>
-                  <th>{locale === 'vi' ? 'Ngày đăng ký' : 'Registered'}</th>
-                  <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingPending ? (
-                  <TableSkeleton rows={4} type="users" />
-                ) : filteredPendingUsers.length > 0 ? (
-                  filteredPendingUsers.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <div className="admin-user-cell">
-                          <div className="admin-user-avatar">
-                            {getUserInitials(user.name, user.email)}
+        <div className="table-wrap">
+          <table className="data-table admin-users-table">
+            <thead>
+              <tr>
+                <th>{locale === 'vi' ? 'Tài khoản / Người dùng' : 'Account / User'}</th>
+                <th>{locale === 'vi' ? 'Vai trò' : 'Role'}</th>
+                <th>{locale === 'vi' ? 'MSSV / Khoa ngành' : 'Student ID / Major'}</th>
+                <th>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
+                <th>{locale === 'vi' ? 'Ngày tham gia' : 'Joined'}</th>
+                <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <TableSkeleton rows={4} type="users" />
+              ) : accounts.length > 0 ? (
+                accounts.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <div className="admin-user-cell">
+                        <div className="admin-user-avatar">
+                          {getUserInitials(user.name, user.email)}
+                        </div>
+                        <div className="admin-user-info">
+                          <div className="admin-user-name">
+                            {user.name || (locale === 'vi' ? 'Chưa đặt tên' : 'Unnamed User')}
                           </div>
-                          <div className="admin-user-info">
-                            <div className="admin-user-name">
-                              {user.name || 'Unnamed Applicant'}
-                            </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
                             <span className="admin-user-email">{user.email}</span>
+                            {user.phone && (
+                              <span style={{ fontSize: '11.5px', color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, border: '1px solid #bae6fd' }}>
+                                📞 {user.phone}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </td>
-                      <td>
-                        <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                          {user.studentId || '—'}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{ color: '#475569' }}>
-                          {user.major || '—'}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '12.5px', color: '#64748b' }}>
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="review-actions">
-                          <Button
-                            variant="primary"
-                            disabled={busyId === user.id}
-                            onClick={() => decidePendingUser(user, 'approve')}
-                          >
-                            {locale === 'vi' ? 'Phê duyệt' : 'Approve'}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            disabled={busyId === user.id}
-                            onClick={() => decidePendingUser(user, 'reject')}
-                          >
-                            {locale === 'vi' ? 'Từ chối' : 'Reject'}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
-                        No pending registrations
-                      </div>
-                      <div style={{ fontSize: '12.5px' }}>
-                        All applicant verification requests have been cleared or verified.
                       </div>
                     </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          /* ACTIVE / ALL USERS DIRECTORY */
-          <div className="table-wrap">
-            <table className="data-table admin-users-table">
-              <thead>
-                <tr>
-                  <th>{locale === 'vi' ? 'Người dùng' : 'User'}</th>
-                  <th>{locale === 'vi' ? 'Vai trò' : 'Role'}</th>
-                  <th>{locale === 'vi' ? 'Trạng thái' : 'Account Status'}</th>
-                  <th>{locale === 'vi' ? 'Đăng nhập cuối' : 'Last Login'}</th>
-                  <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <TableSkeleton rows={6} type="users" />
-                ) : result?.users && result.users.length > 0 ? (
-                  result.users.map((user) => {
-                    const draftRole = roleDrafts[user.id] || user.role;
-                    return (
-                      <tr key={user.id}>
-                        {/* USER COLUMN */}
-                        <td>
-                          <div className="admin-user-cell">
-                            <div className="admin-user-avatar">
-                              {getUserInitials(user.name, user.email)}
-                            </div>
-                            <div className="admin-user-info">
-                              <div className="admin-user-name">
-                                <span>{user.name || 'Unnamed User'}</span>
-                                {user.studentId && (
-                                  <span className="admin-user-subtag">
-                                    ID: {user.studentId}
-                                  </span>
-                                )}
-                                {user.major && (
-                                  <span className="admin-user-subtag">
-                                    {user.major}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="admin-user-email">{user.email}</span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* ROLE COLUMN: INLINE CUSTOM DROPDOWN */}
-                        <td style={{ minWidth: '150px' }}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {renderRoleBadge(user.role)}
+                        {/* Role Switcher Dropdown */}
+                        <div style={{ width: '130px' }}>
                           <SortDropdown
-                            value={draftRole}
-                            disabled={busyId === user.id}
-                            size="sm"
+                            value={user.role}
+                            onChange={(val) => handleChangeRole(user, val as AdminUser['role'])}
                             options={[
                               { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
                               { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
                               { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
                             ]}
-                            onChange={(val) =>
-                              setRoleDrafts((curr) => ({
-                                ...curr,
-                                [user.id]: val as AdminUser['role'],
-                              }))
-                            }
-                            ariaLabel={`Role for ${user.email}`}
-                            style={{ width: '135px' }}
+                            disabled={busyId === user.id}
+                            size="sm"
                           />
-                        </td>
-
-                        {/* ACCOUNT STATUS COLUMN */}
-                        <td>
-                          <span
-                            className={`admin-status-pill ${user.isActive ? 'admin-status-pill--active' : 'admin-status-pill--inactive'
-                              }`}
-                          >
-                            <span
-                              className={`admin-status-dot ${user.isActive ? 'admin-status-dot--active' : 'admin-status-dot--inactive'
-                                }`}
-                            />
-                            <span>{user.isActive ? (locale === 'vi' ? 'Hoạt động' : 'Active') : (locale === 'vi' ? 'Vô hiệu' : 'Inactive')}</span>
-                          </span>
-                        </td>
-
-                        {/* LAST LOGIN COLUMN */}
-                        <td>
-                          <span style={{ fontSize: '12.5px', color: user.lastLoginAt ? '#334155' : '#94a3b8' }}>
-                            {user.lastLoginAt
-                              ? new Date(user.lastLoginAt).toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })
-                              : (locale === 'vi' ? 'Chưa từng' : 'Never')}
-                          </span>
-                        </td>
-
-                        {/* ACTIONS COLUMN */}
-                        <td>
-                          <div className="review-actions">
-                            <Button
-                              variant="ghost"
-                              disabled={busyId === user.id || draftRole === user.role}
-                              onClick={() => handleSaveRole(user, draftRole)}
-                            >
-                              {locale === 'vi' ? 'Lưu vai trò' : 'Save role'}
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              disabled={busyId === user.id}
-                              onClick={() => updateActive(user)}
-                            >
-                              {user.isActive ? (locale === 'vi' ? 'Vô hiệu hóa' : 'Deactivate') : (locale === 'vi' ? 'Kích hoạt' : 'Activate')}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              disabled={busyId === user.id}
-                              onClick={() => removeUser(user)}
-                              style={{ color: '#dc2626' }}
-                            >
-                              {locale === 'vi' ? 'Xóa' : 'Delete'}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
-                        No users found
+                        </div>
                       </div>
-                      <div style={{ fontSize: '12.5px' }}>
-                        No accounts match your current filter and search keyword.
+                    </td>
+                    <td>
+                      <div>
+                        {user.studentId && <div style={{ fontWeight: 600, color: '#0f172a' }}>{user.studentId}</div>}
+                        {user.major && <div style={{ fontSize: '12px', color: '#64748b' }}>{user.major}</div>}
+                        {!user.studentId && !user.major && <span style={{ color: '#94a3b8' }}>—</span>}
+                      </div>
+                    </td>
+                    <td>
+                      {renderStatusBadge(user.isActive)}
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                        {user.createdAt
+                          ? new Date(user.createdAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                          : locale === 'vi' ? 'Gần đây' : 'Recently'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="review-actions" style={{ justifyContent: 'flex-end', gap: '6px' }}>
+                        <Button
+                          variant="secondary"
+                          disabled={busyId === user.id}
+                          onClick={() => handleToggleActive(user)}
+                          style={{
+                            fontSize: '12px',
+                            padding: '5px 10px',
+                            color: user.isActive ? '#b91c1c' : '#047857',
+                            borderColor: user.isActive ? '#fecaca' : '#a7f3d0',
+                            background: user.isActive ? '#fef2f2' : '#ecfdf5',
+                          }}
+                        >
+                          {user.isActive ? (locale === 'vi' ? 'Khóa' : 'Suspend') : (locale === 'vi' ? 'Mở khóa' : 'Activate')}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled={busyId === user.id}
+                          onClick={() => handleDeleteUser(user)}
+                          style={{
+                            fontSize: '12px',
+                            padding: '5px 8px',
+                            color: '#64748b',
+                          }}
+                          title={locale === 'vi' ? 'Xóa tài khoản' : 'Delete user'}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </Button>
                       </div>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+                      {locale === 'vi' ? 'Không tìm thấy tài khoản nào' : 'No accounts found'}
+                    </div>
+                    <div style={{ fontSize: '12.5px' }}>
+                      {locale === 'vi' ? 'Không có tài khoản nào phù hợp với bộ lọc hiện tại.' : 'No accounts matched the current criteria.'}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {/* Pagination Footer */}
-        {tab !== 'PENDING' && result && result.pagination.totalPages > 1 && (
+        {pagination && pagination.totalPages > 1 && (
           <div
             style={{
               display: 'flex',
@@ -818,104 +575,178 @@ export function AdminUsersView() {
               flexWrap: 'wrap',
               gap: '12px',
             }}
-            aria-label="User pagination"
+            aria-label="Pagination"
           >
             <span style={{ fontSize: '12.5px', color: '#64748b' }}>
-              Page <strong>{result.pagination.page}</strong> of <strong>{result.pagination.totalPages}</strong> ·{' '}
-              {result.pagination.total} accounts total
+              {locale === 'vi' ? 'Trang' : 'Page'}{' '}
+              <strong>{pagination.page}</strong> / <strong>{pagination.totalPages}</strong>
+              {' · '}
+              {pagination.total} {locale === 'vi' ? 'tài khoản' : 'accounts'}
             </span>
             <div className="review-actions">
               <Button
                 variant="secondary"
                 disabled={page <= 1 || loading}
-                onClick={() => setPage((c) => c - 1)}
+                onClick={() => setPage((c) => Math.max(1, c - 1))}
               >
-                Previous
+                {locale === 'vi' ? 'Trước' : 'Previous'}
               </Button>
               <Button
                 variant="secondary"
-                disabled={page >= result.pagination.totalPages || loading}
+                disabled={page >= pagination.totalPages || loading}
                 onClick={() => setPage((c) => c + 1)}
               >
-                Next
+                {locale === 'vi' ? 'Sau' : 'Next'}
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      <dialog ref={dialogRef} className="users-create-dialog" aria-label="Create user">
-        <h2>{locale === 'vi' ? 'Tạo tài khoản người dùng' : 'Create user account'}</h2>
-        <p className="users-create-hint">
-          {locale === 'vi'
-            ? 'Tạo tài khoản đã được phê duyệt và kích hoạt. Có thể để trống mật khẩu để người dùng tự thiết lập qua liên kết đổi mật khẩu.'
-            : 'Creates an approved, active account. Leave the password blank to let the user set one via reset.'}
-        </p>
-        {createError && <div className="users-create-error" role="alert">{createError}</div>}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            createUser();
-          }}
-          style={{ padding: '0 28px' }}
-        >
-          <Field label={locale === 'vi' ? 'Địa chỉ Email *' : 'Email *'}>
-            <TextInput
-              aria-label="New user email"
-              placeholder="new.user@university.edu"
-              type="email"
-              required
-              value={createEmail}
-              onChange={(event) => setCreateEmail(event.target.value)}
-            />
-          </Field>
-          <div style={{ marginTop: '12px' }}>
-            <Field label={locale === 'vi' ? 'Họ và tên' : 'Full name'}>
-              <TextInput
-                aria-label="New user name"
-                placeholder={locale === 'vi' ? 'Họ và tên' : 'Full name'}
-                value={createName}
-                onChange={(event) => setCreateName(event.target.value)}
-              />
-            </Field>
+      {/* Create User Modal */}
+      {isCreateOpen && (
+        <div className="admin-modal-backdrop" onClick={() => !busyId && setIsCreateOpen(false)}>
+          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" style={{ maxWidth: '520px' }}>
+            <div className="admin-modal-header">
+              <div className="admin-modal-icon admin-modal-icon--primary">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <line x1="20" y1="8" x2="20" y2="14" />
+                  <line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="admin-modal-title">{locale === 'vi' ? 'Thêm tài khoản mới' : 'Add New Account'}</h3>
+                <p className="admin-modal-subtitle">
+                  {locale === 'vi' ? 'Tạo trực tiếp tài khoản người dùng vào hệ thống' : 'Create a new user account directly'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={() => !busyId && setIsCreateOpen(false)}
+                aria-label="Close"
+                disabled={Boolean(busyId)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSubmit}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="admin-modal-field">
+                  <label className="admin-modal-label">
+                    Email <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="user@hyperdata.org"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    className="admin-modal-input"
+                  />
+                </div>
+
+                <div className="admin-modal-field">
+                  <label className="admin-modal-label">
+                    {locale === 'vi' ? 'Họ và tên' : 'Full Name'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={locale === 'vi' ? 'Nguyễn Văn A' : 'John Doe'}
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                    className="admin-modal-input"
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="admin-modal-field">
+                    <label className="admin-modal-label">
+                      {locale === 'vi' ? 'Vai trò' : 'Role'}
+                    </label>
+                    <div className="users-create-role-dropdown">
+                      <SortDropdown
+                        value={createForm.role}
+                        onChange={(val) => setCreateForm({ ...createForm, role: val as AdminUser['role'] })}
+                        options={[
+                          { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
+                          { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
+                          { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
+                        ]}
+                        disabled={Boolean(busyId)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="admin-modal-field">
+                    <label className="admin-modal-label">
+                      {locale === 'vi' ? 'Mã sinh viên (nếu có)' : 'Student ID'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="SE123456"
+                      value={createForm.studentId}
+                      onChange={(e) => setCreateForm({ ...createForm, studentId: e.target.value })}
+                      className="admin-modal-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-modal-field">
+                  <label className="admin-modal-label">
+                    {locale === 'vi' ? 'Ngành / Khoa' : 'Major / Department'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={locale === 'vi' ? 'Kỹ thuật phần mềm' : 'Software Engineering'}
+                    value={createForm.major}
+                    onChange={(e) => setCreateForm({ ...createForm, major: e.target.value })}
+                    className="admin-modal-input"
+                  />
+                </div>
+
+                <div className="admin-modal-field">
+                  <label className="admin-modal-label" style={{ marginBottom: 4 }}>
+                    {locale === 'vi' ? 'Mật khẩu khởi tạo' : 'Initial Password'}
+                  </label>
+                  <input
+                    type="password"
+                    placeholder={locale === 'vi' ? 'Để trống nếu tạo mật khẩu ngẫu nhiên' : 'Leave empty to auto-generate'}
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                    className="admin-modal-input"
+                  />
+                </div>
+              </div>
+
+              <div className="admin-modal-footer">
+                <button
+                  type="button"
+                  className="admin-btn-cancel"
+                  onClick={() => setIsCreateOpen(false)}
+                  disabled={Boolean(busyId)}
+                >
+                  {locale === 'vi' ? 'Hủy' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="admin-btn-confirm admin-btn-confirm--primary"
+                  disabled={Boolean(busyId)}
+                >
+                  {busyId ? (locale === 'vi' ? 'Đang tạo...' : 'Creating...') : (locale === 'vi' ? 'Tạo tài khoản' : 'Create Account')}
+                </button>
+              </div>
+            </form>
           </div>
-          <div style={{ marginTop: '12px' }}>
-            <Field label={locale === 'vi' ? 'Vai trò' : 'Role'}>
-              <SortDropdown
-                value={createRole}
-                onChange={(val) => setCreateRole(val as AdminUser['role'])}
-                options={[
-                  { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
-                  { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
-                  { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
-                ]}
-                ariaLabel={locale === 'vi' ? 'Vai trò' : 'Role'}
-                className="users-create-role-dropdown"
-                style={{ width: '100%' }}
-              />
-            </Field>
-          </div>
-          <div style={{ marginTop: '12px' }}>
-            <Field label={locale === 'vi' ? 'Mật khẩu ban đầu (tùy chọn)' : 'Initial password'} hint={locale === 'vi' ? 'Tùy chọn' : 'Optional'}>
-              <TextInput
-                aria-label="Initial password"
-                placeholder={locale === 'vi' ? 'Mật khẩu (tùy chọn)' : 'Password (optional)'}
-                type="password"
-                value={createPassword}
-                onChange={(event) => setCreatePassword(event.target.value)}
-              />
-            </Field>
-          </div>
-          <div className="review-actions users-create-actions" style={{ marginTop: '20px', padding: '0 0 24px 0' }}>
-            <Button variant="secondary" type="button" disabled={creating} onClick={closeCreateDialog}>
-              {locale === 'vi' ? 'Hủy' : 'Cancel'}
-            </Button>
-            <Button variant="primary" type="submit" disabled={creating || !createEmail.trim()}>
-              {creating ? (locale === 'vi' ? 'Đang tạo...' : 'Creating...') : locale === 'vi' ? 'Tạo người dùng' : 'Create user'}
-            </Button>
-          </div>
-        </form>
-      </dialog>
+        </div>
+      )}
 
       {/* Custom General Confirmation Modal */}
       {confirmModal && confirmModal.open && (

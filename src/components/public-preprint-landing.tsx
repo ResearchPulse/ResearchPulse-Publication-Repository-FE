@@ -347,33 +347,17 @@ function PublishedCatalogue() {
 }
 
 export default function PublicPreprintLanding() {
-  const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [major, setMajor] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<{ username: string; email: string; name: string } | null>(null);
   const [copied, setCopied] = useState(false);
-
-  // Live username calculation: [FirstName][LastInitials][StudentId]
-  const usernamePreview = useMemo(() => {
-    if (!firstName.trim() || !studentId.trim()) return '';
-    const cleanFirst = removeTones(firstName.trim());
-    const cleanLast = removeTones(lastName.trim());
-    const cleanId = studentId.trim().toUpperCase();
-
-    const normalizedFirst = cleanFirst.charAt(0).toUpperCase() + cleanFirst.slice(1).toLowerCase();
-    const initials = cleanLast
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase())
-      .join('');
-
-    return `${normalizedFirst}${initials}${cleanId}`;
-  }, [firstName, lastName, studentId]);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -440,6 +424,7 @@ export default function PublicPreprintLanding() {
           lastName: lastName.trim(),
           studentId: studentId.trim().toUpperCase(),
           email: email.trim(),
+          phone: phone.trim() || undefined,
           major: major.trim(),
         }),
       });
@@ -548,49 +533,11 @@ export default function PublicPreprintLanding() {
                     </div>
 
                     <h2 className="auth-title" style={{ fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>
-                      Đăng ký thành công!
+                      Gửi yêu cầu thành công!
                     </h2>
                     <p className="auth-subtitle" style={{ fontSize: 13, color: '#647381', marginBottom: 18, lineHeight: 1.5 }}>
-                      Chào mừng <strong>{successData.name}</strong>. Tài khoản của bạn đã được khởi tạo:
+                      Cảm ơn <strong>{successData.name}</strong>. Yêu cầu của bạn đã được ghi nhận.
                     </p>
-
-                    <div className="auth-preview-badge" style={{ width: '100%', marginBottom: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box' }}>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Tên đăng nhập (Username)
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0071bc', fontFamily: 'monospace', letterSpacing: '0.05em', marginTop: 2 }}>
-                          {successData.username}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(successData.username);
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        }}
-                        className="auth-copy-btn"
-                        title="Sao chép tên đăng nhập"
-                      >
-                        {copied ? (
-                          <>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <span>Đã sao chép</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                            </svg>
-                            <span>Sao chép</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
 
                     <div className="auth-notice-box" style={{ width: '100%', textAlign: 'left', marginBottom: 20, fontSize: 12.5, boxSizing: 'border-box', lineHeight: 1.5 }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
@@ -599,7 +546,7 @@ export default function PublicPreprintLanding() {
                         <line x1="12" y1="8" x2="12.01" y2="8" />
                       </svg>
                       <div>
-                        Admin sẽ liên hệ để xác nhận thông tin, sau đó cấp mật khẩu tạm thời về <strong>{successData.email}</strong>. Bạn phải đổi mật khẩu ngay lần đăng nhập đầu tiên.
+                        Yêu cầu cấp tài khoản của bạn sẽ được Ban Quản trị xem xét. Chúng tôi sẽ liên hệ qua <strong>{successData.email}</strong> để hướng dẫn các bước tiếp theo.
                       </div>
                     </div>
 
@@ -621,6 +568,7 @@ export default function PublicPreprintLanding() {
                           setFirstName('');
                           setStudentId('');
                           setEmail('');
+                          setPhone('');
                           setMajor('');
                         }}
                         className="auth-btn-success-secondary"
@@ -631,7 +579,7 @@ export default function PublicPreprintLanding() {
                           <line x1="19" y1="8" x2="19" y2="14" />
                           <line x1="22" y1="11" x2="16" y2="11" />
                         </svg>
-                        <span>Đăng ký tài khoản khác</span>
+                        <span>Gửi thêm yêu cầu khác</span>
                       </button>
                     </div>
                   </div>
@@ -640,7 +588,7 @@ export default function PublicPreprintLanding() {
                     <div style={{ marginBottom: 18 }}>
                       <h2 className="auth-title" style={{ fontSize: 20 }}>Đăng ký tài khoản Sinh viên</h2>
                       <p className="auth-subtitle" style={{ fontSize: 13, margin: 0 }}>
-                        Tên đăng nhập sẽ được tự động tạo theo chuẩn MSSV & Họ tên.
+                        Điền thông tin để gửi yêu cầu cấp tài khoản nghiên cứu đến Ban Quản trị.
                       </p>
                     </div>
 
@@ -728,29 +676,40 @@ export default function PublicPreprintLanding() {
                         </div>
                       </div>
 
-                      <div className="auth-field" style={{ gap: 4 }}>
-                        <label className="auth-label" htmlFor="hero-email" style={{ fontSize: 12 }}>
-                          Địa chỉ Email *
-                        </label>
-                        <input
-                          id="hero-email"
-                          type="email"
-                          className="auth-input"
-                          style={{ padding: '9px 12px', fontSize: 13 }}
-                          placeholder="student@fpt.edu.vn"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          disabled={loading}
-                          required
-                        />
-                      </div>
-
-                      {usernamePreview && (
-                        <div className="auth-preview-badge" style={{ padding: '8px 12px', fontSize: 12 }}>
-                          <span className="auth-preview-badge__label">Tên đăng nhập tự động:</span>
-                          <span className="auth-preview-badge__value">{usernamePreview}</span>
+                      <div className="auth-row" style={{ gap: 10 }}>
+                        <div className="auth-field" style={{ gap: 4 }}>
+                          <label className="auth-label" htmlFor="hero-email" style={{ fontSize: 12 }}>
+                            Địa chỉ Email *
+                          </label>
+                          <input
+                            id="hero-email"
+                            type="email"
+                            className="auth-input"
+                            style={{ padding: '9px 12px', fontSize: 13 }}
+                            placeholder="student@fpt.edu.vn"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={loading}
+                            required
+                          />
                         </div>
-                      )}
+
+                        <div className="auth-field" style={{ gap: 4 }}>
+                          <label className="auth-label" htmlFor="hero-phone" style={{ fontSize: 12 }}>
+                            Số điện thoại
+                          </label>
+                          <input
+                            id="hero-phone"
+                            type="tel"
+                            className="auth-input"
+                            style={{ padding: '9px 12px', fontSize: 13 }}
+                            placeholder="0912345678"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            disabled={loading}
+                          />
+                        </div>
+                      </div>
 
                       <button
                         type="submit"
@@ -758,7 +717,7 @@ export default function PublicPreprintLanding() {
                         style={{ padding: '11px 16px', fontSize: 14, marginTop: 4 }}
                         disabled={loading}
                       >
-                        {loading ? 'Đang khởi tạo tài khoản...' : 'Khởi tạo tài khoản sinh viên'}
+                        {loading ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu đăng ký'}
                       </button>
                     </form>
                   </>
