@@ -187,7 +187,7 @@
   "admin": {
     "dashboard": "Bảng điều khiển Quản trị",
     "overview": "Tổng quan hệ thống",
-    "userManagement": "Quản lý tài khoản",
+    "registration_management": "Quản lý đăng ký",
     "submissions": "Danh sách bản thảo",
     "reviews": "Tiến độ thẩm định",
     "pendingUsers": "Tài khoản chờ duyệt",
