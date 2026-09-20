@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
@@ -19,6 +19,33 @@ export interface LecturerShellProps {
 export function LecturerShell({ active, title, pendingCount, children }: LecturerShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setShowNotifications(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showNotifications]);
   const { user, loading: authLoading } = useAuth();
   const displayName = authLoading
     ? 'Loading profile…'
@@ -218,7 +245,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
               <input type="text" placeholder="Search manuscripts, DOIs, reviews..." className="student-topbar__search-input" aria-label="Search manuscripts" />
             </div>
 
-            <div className="student-topbar__notif-wrapper">
+            <div className="student-topbar__notif-wrapper" ref={notifRef}>
               <button
                 type="button"
                 className="student-topbar__notif-btn"

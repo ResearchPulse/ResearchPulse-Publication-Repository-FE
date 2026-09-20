@@ -6,6 +6,7 @@ import { ROUTES } from '@/app/router';
 import { AdminShell } from '../components';
 import { adminApi, type AdminOverview } from '../api';
 import { Skeleton, TableSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 
 type SubmissionStatusFilter = 'ALL' | 'REVIEWING' | 'NEEDS_REVISION' | 'PUBLISHED';
 type SortOption = 'UPDATED' | 'TITLE' | 'STATUS';
@@ -241,15 +242,16 @@ export function AdminDashboardView() {
 
           <div className="student-sort-box">
             <span className="student-sort-label">Sort:</span>
-            <select
+            <SortDropdown
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="TITLE">Title (A-Z)</option>
-              <option value="STATUS">Status</option>
-            </select>
+              onChange={(val) => setSortBy(val as SortOption)}
+              options={[
+                { value: 'UPDATED', label: 'Recently Updated' },
+                { value: 'TITLE', label: 'Title (A-Z)' },
+                { value: 'STATUS', label: 'Status' },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>

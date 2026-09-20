@@ -11,6 +11,18 @@ import { usePreprintDetail } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import { DetailSkeleton } from '@/components/skeleton';
 
+const NativePdfViewer = dynamic(
+  () => import('../components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: '400px' }}>
+        <div className="student-spinner" />
+      </div>
+    ),
+  },
+);
+
 
 interface PreprintDetailViewProps {
   id: string;
@@ -439,30 +451,10 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
           {activeTab === 'PDF_VIEW' && (
             <div className="student-tab-panel" style={{ marginTop: '20px' }}>
               {item.download_url ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                    <a
-                      href={item.download_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="student-btn student-btn--secondary student-btn--sm"
-                      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                      <span>Open in New Tab</span>
-                    </a>
-                  </div>
-                  <iframe
-                    className="lecturer-pdf-viewer"
-                    src={item.download_url}
-                    title={`PDF preview for ${item.title || 'manuscript'}`}
-                    style={{ width: '100%', minHeight: '800px', border: '1px solid #e2e8f0', borderRadius: '12px' }}
-                  />
-                </div>
+                <NativePdfViewer
+                  url={item.download_url}
+                  fileName={item.file_name || `${item.title?.substring(0, 50) || 'manuscript'}.pdf`}
+                />
               ) : (
                 <div className="student-empty-card" style={{ padding: '60px 20px' }}>
                   <div className="student-empty-icon">

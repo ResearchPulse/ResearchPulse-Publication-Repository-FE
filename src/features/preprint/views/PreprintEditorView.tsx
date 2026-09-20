@@ -9,6 +9,7 @@ import { LecturerShell } from '@/features/lecturer/components';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintAnalysis } from '../types';
 import { FormSkeleton } from '@/components/skeleton';
+import { usePreprintDraft } from '@/lib/hooks/use-preprint-draft';
 
 const DISCIPLINES = [
   'Computer Science & Artificial Intelligence',
@@ -260,6 +261,54 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     };
   }, [id]);
 
+  // Preprint Draft (Auto-save in Browser Storage)
+  const { draft, saveDraft, clearDraft, hasSavedDraft } = usePreprintDraft();
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [showDraftNotice, setShowDraftNotice] = useState(false);
+
+  // Restore draft if creating a new preprint and draft exists
+  useEffect(() => {
+    if (id || draftRestored || !draft) return;
+    if (hasSavedDraft()) {
+      if (draft.title && !title) setTitle(draft.title);
+      if (draft.discipline && !discipline) setDiscipline(draft.discipline);
+      if (draft.abstractText && !abstractText) setAbstractText(draft.abstractText);
+      if (draft.keywordsInput && !keywordsInput) setKeywordsInput(draft.keywordsInput);
+      if (draft.isPrivate !== undefined) setIsPrivate(Boolean(draft.isPrivate));
+      if (draft.authors && draft.authors.length > 0 && authors.length === 0) {
+        setAuthors(draft.authors as StudentPreprint['authors']);
+      }
+      setDraftRestored(true);
+      setShowDraftNotice(true);
+    }
+  }, [id, draftRestored, hasSavedDraft, draft, title, discipline, abstractText, keywordsInput, authors.length]);
+
+  // Auto-save draft on form change (debounced 600ms)
+  useEffect(() => {
+    if (id) return;
+    if (!title.trim() && !abstractText.trim() && !discipline && !keywordsInput.trim() && authors.length === 0) return;
+
+    const timer = setTimeout(() => {
+      saveDraft({
+        title,
+        discipline,
+        abstractText,
+        keywordsInput,
+        isPrivate,
+        authors: authors.map((a) => ({
+          name: a.name,
+          email: a.email,
+          studentId: a.studentId,
+          role: a.role as 'STUDENT' | 'LECTURER' | 'ADMIN',
+          institution: a.institution,
+          isPrimary: a.isPrimary,
+        })),
+      });
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [id, title, discipline, abstractText, keywordsInput, isPrivate, authors, saveDraft]);
+
   const handleFile = async (selectedFile: File) => {
     const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
     if (!isPdf) {
@@ -453,6 +502,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         else await studentPreprintApi.submit(publicationId);
       }
 
+      if (!id) clearDraft();
+
       router.push(`${workspacePath}/${publicationId}`);
       router.refresh();
     } catch (error) {
@@ -518,6 +569,69 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         <FormSkeleton />
       ) : (
         <div className="student-editor-container">
+          {showDraftNotice && !id && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              fontSize: '13px',
+              color: '#166534',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>💾</span>
+                <span>Bản nháp soạn thảo đã được tự động khôi phục từ trình duyệt.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearDraft();
+                    setTitle('');
+                    setDiscipline('');
+                    setAbstractText('');
+                    setKeywordsInput('');
+                    setIsPrivate(false);
+                    setAuthors([]);
+                    setShowDraftNotice(false);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    fontWeight: 600,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Xóa bản nháp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDraftNotice(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#166534',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    padding: '0',
+                    lineHeight: 1,
+                  }}
+                  title="Đóng thông báo"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Read-only Alert Banner */}
           {isReadOnly && (
             <div

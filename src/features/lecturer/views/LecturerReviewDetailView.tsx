@@ -11,6 +11,18 @@ import { LecturerShell } from '../components';
 import { DetailSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerRecommendation, type LecturerReviewDetail } from '../api';
 
+const NativePdfViewer = dynamic(
+  () => import('../../preprint/components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: '400px' }}>
+        <div className="student-spinner" />
+      </div>
+    ),
+  },
+);
+
 
 function formatFileSize(bytes?: number | null) {
   if (!bytes || bytes <= 0) return 'Size unavailable';
@@ -268,32 +280,22 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
         title={title}
       />
       <div className="lecturer-detail-grid">
-        <Panel className="lecturer-pdf-panel">
-          <div className="lecturer-panel-heading">
-            <div>
-              <span className="lecturer-panel-eyebrow">Manuscript PDF</span>
-              <h2>{currentVersion?.fileName || 'Current PDF'}</h2>
-            </div>
-            {downloadUrl ? (
-              <a className="ui-button ui-button--secondary" href={downloadUrl} target="_blank" rel="noreferrer">
-                Open PDF
-              </a>
-            ) : null}
-          </div>
+        <div className="lecturer-pdf-container">
           {downloadUrl ? (
-            <iframe
-              className="lecturer-pdf-viewer"
-              src={downloadUrl}
-              title={`PDF preview for ${title}`}
+            <NativePdfViewer
+              url={downloadUrl}
+              fileName={currentVersion?.fileName || 'manuscript.pdf'}
             />
           ) : (
             <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>
           )}
-          <div className="lecturer-file-meta">
+          <div className="lecturer-file-meta" style={{ marginTop: '16px', padding: '16px 24px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12.5px' }}>
             <span>{formatFileSize(currentVersion?.fileSize ?? detail.publication.fileSize)}</span>
-            <span>{currentVersion?.sha256 ? `SHA-256 ${currentVersion.sha256.slice(0, 12)}…` : 'Hash unavailable'}</span>
+            <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
+              {currentVersion?.sha256 ? `SHA-256: ${currentVersion.sha256}` : 'Hash unavailable'}
+            </span>
           </div>
-        </Panel>
+        </div>
         <div className="lecturer-detail-side">
           <Panel className="lecturer-metadata-panel">
             <span className="lecturer-panel-eyebrow">Manuscript information</span>

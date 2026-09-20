@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LecturerShell } from '../components';
 import { usePreprintList } from '@/features/preprint/hooks';
@@ -8,6 +8,7 @@ import type { PreprintStatus } from '@/shared/types';
 import type { StudentPreprint } from '@/features/preprint/types';
 import { ROUTES } from '@/app/router';
 import { TableSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 
 function formatUpdatedDate(value: string) {
   const date = new Date(value);
@@ -20,11 +21,15 @@ function formatUpdatedDate(value: string) {
   }).format(date);
 }
 
+
+
 export function LecturerSubmissionsView() {
   const { items, loading, error, apiPending } = usePreprintList();
   const [selectedTab, setSelectedTab] = useState<'ALL' | 'PRIVATE' | PreprintStatus>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'UPDATED' | 'TITLE' | 'STATUS'>('UPDATED');
+
+  const [sortBy, setSortBy] = useState('UPDATED');
+  const safeSortBy = sortBy;
 
   // Metrics calculation
   const metrics = useMemo(() => {
@@ -66,17 +71,17 @@ export function LecturerSubmissionsView() {
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === 'TITLE') {
-          return a.title.localeCompare(b.title);
+        if (safeSortBy === 'TITLE') {
+          return (a.title || '').localeCompare(b.title || '');
         }
-        if (sortBy === 'STATUS') {
-          return a.status.localeCompare(b.status);
+        if (safeSortBy === 'STATUS') {
+          return (a.status || '').localeCompare(b.status || '');
         }
         const timeA = new Date(a.updated_at || 0).getTime();
         const timeB = new Date(b.updated_at || 0).getTime();
         return timeB - timeA;
       });
-  }, [items, selectedTab, searchQuery, sortBy]);
+  }, [items, selectedTab, searchQuery, safeSortBy]);
 
   const renderStatusBadge = (status: PreprintStatus) => {
     switch (status) {
@@ -296,15 +301,16 @@ export function LecturerSubmissionsView() {
 
           <div className="student-sort-box">
             <span className="student-sort-label">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'UPDATED' | 'TITLE' | 'STATUS')}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="TITLE">Title (A-Z)</option>
-              <option value="STATUS">Status</option>
-            </select>
+            <SortDropdown
+              value={safeSortBy}
+              onChange={(val) => setSortBy(val as 'UPDATED' | 'TITLE' | 'STATUS')}
+              options={[
+                { value: 'UPDATED', label: 'Recently Updated' },
+                { value: 'TITLE', label: 'Title (A-Z)' },
+                { value: 'STATUS', label: 'Status' },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>

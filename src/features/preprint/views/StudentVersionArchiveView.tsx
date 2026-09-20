@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StudentShell } from '../components';
 import { TimelineSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 import { usePreprintList } from '../hooks';
 import { studentPreprintApi } from '../api';
 import type { PreprintVersionInfo } from '../types';
@@ -116,20 +117,19 @@ export function StudentVersionArchiveView() {
           <span className="student-sort-label" style={{ fontWeight: 600, color: '#475569' }}>
             Manuscript:
           </span>
-          <select
+          <SortDropdown
             value={selectedManuscriptId}
-            onChange={(e) => setSelectedManuscriptId(e.target.value)}
-            className="student-sort-select"
-            style={{ maxWidth: '340px' }}
-            aria-label="Filter versions by manuscript"
-          >
-            <option value="ALL">All Manuscripts ({items.length})</option>
-            {items.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title || 'Untitled Manuscript'}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedManuscriptId(val)}
+            options={[
+              { value: 'ALL', label: `All Manuscripts (${items.length})` },
+              ...items.map((m) => ({
+                value: m.id,
+                label: m.title || 'Untitled Manuscript',
+              })),
+            ]}
+            style={{ width: '280px' }}
+            ariaLabel="Filter versions by manuscript"
+          />
         </div>
 
         {/* Right: Search Input & Toggle All Button */}
@@ -215,8 +215,8 @@ export function StudentVersionArchiveView() {
               {/* Manuscript Header */}
               <div className="archive-manuscript-header">
                 <div className="archive-manuscript-meta">
-                  <div>
-                    <span className="dashboard-badge-tag">{manuscript.discipline || 'General'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="archive-discipline-pill">{manuscript.discipline || 'General'}</span>
                   </div>
                   <h3 className="archive-manuscript-title">
                     <Link href={`/student/my-preprints/${manuscript.id}`}>
@@ -227,9 +227,9 @@ export function StudentVersionArchiveView() {
                     <span>
                       <strong>DOI:</strong> {manuscript.doi || 'DOI Pending / Not Assigned'}
                     </span>
-                    <span>&bull;</span>
+                    <span className="archive-subinfo-bullet">&bull;</span>
                     <span>
-                      {manuscript.versions?.length || 0} permanent version(s) recorded
+                      {manuscript.versions?.length || 0} permanent version{manuscript.versions?.length === 1 ? '' : 's'} recorded
                     </span>
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export function StudentVersionArchiveView() {
                                       : 'user-badge--draft'
                                   }`}
                                 >
-                                  {ver.status}
+                                  {ver.status ? ver.status.replace(/_/g, ' ') : 'DRAFT'}
                                 </span>
                               </div>
                             </div>

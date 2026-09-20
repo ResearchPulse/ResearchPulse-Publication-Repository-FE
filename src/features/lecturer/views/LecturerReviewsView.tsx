@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/app/router';
 import { LecturerShell } from '../components';
+import { SortDropdown } from '@/components/sort-dropdown';
 import { TableSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerReviewItem } from '../api';
 
@@ -29,22 +30,28 @@ function displayDate(value?: string) {
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 }
 
+
+
+import { useQuery } from '@tanstack/react-query';
+
 export function LecturerReviewsView() {
-  const [items, setItems] = useState<LecturerReviewItem[]>([]);
   const [filter, setFilter] = useState<QueueFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const [sortBy, setSortBy] = useState('UPDATED');
+  const safeSortBy = sortBy;
 
-  useEffect(() => {
-    let active = true;
-    lecturerReviewApi.list()
-      .then((result) => { if (active) setItems(result.items); })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load the review queue.'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['lecturer', 'reviews'],
+    queryFn: async () => {
+      const result = await lecturerReviewApi.list();
+      return result.items || [];
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
+  const items = data || [];
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Unable to load the review queue.') : null;
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.reviewStatus === 'AWAITING_REVIEW').length,
@@ -82,7 +89,7 @@ export function LecturerReviewsView() {
       }
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [filter, items, searchQuery, sortBy]);
+  }, [filter, items, searchQuery, safeSortBy]);
 
   return (
     <LecturerShell active="reviews" title="Review queue" pendingCount={pendingCount}>
@@ -136,15 +143,16 @@ export function LecturerReviewsView() {
 
           <div className="student-sort-box">
             <span className="student-sort-label">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="TITLE">Title (A-Z)</option>
-              <option value="STATUS">Review Status</option>
-            </select>
+            <SortDropdown
+              value={safeSortBy}
+              onChange={(val) => setSortBy(val as SortOption)}
+              options={[
+                { value: 'UPDATED', label: 'Recently Updated' },
+                { value: 'TITLE', label: 'Title (A-Z)' },
+                { value: 'STATUS', label: 'Review Status' },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>

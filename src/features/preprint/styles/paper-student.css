@@ -907,6 +907,110 @@
   cursor: pointer;
 }
 
+.student-sort-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.student-sort-dropdown__trigger {
+  height: 38px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #dce4e9;
+  border-radius: 8px;
+  background-color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #122331;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.student-sort-dropdown__trigger:hover {
+  border-color: #0071bc;
+}
+
+.student-sort-dropdown__trigger--open,
+.student-sort-dropdown__trigger:focus {
+  outline: none;
+  border-color: #0071bc;
+  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.14);
+}
+
+.student-sort-dropdown__arrow {
+  color: #64748b;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.student-sort-dropdown__arrow--open {
+  transform: rotate(180deg);
+  color: #0071bc;
+}
+
+.student-sort-dropdown__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
+  z-index: 120;
+  background: #ffffff;
+  border: 1px solid #dce4e9;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  padding: 4px;
+  animation: selectDropdownFadeIn 0.15s ease-out;
+}
+
+.student-sort-dropdown__options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.student-sort-dropdown__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.student-sort-dropdown__option:hover {
+  background: #f1f5f9;
+  color: #0071bc;
+}
+
+.student-sort-dropdown__option--selected {
+  background: #e0f2fe;
+  color: #0071bc;
+  font-weight: 600;
+}
+
+.student-sort-dropdown__check {
+  color: #0071bc;
+  flex-shrink: 0;
+}
+
 /* ==========================================================================
    Manuscript Feed & Cards
    ========================================================================== */
@@ -3754,16 +3858,35 @@
 
 .student-topbar__notif-popover {
   position: absolute;
-  top: 46px;
+  top: 48px;
   right: 0;
   width: 320px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.14), 0 8px 16px -4px rgba(15, 23, 42, 0.08);
   z-index: 100;
   overflow: hidden;
-  animation: fadeIn 0.15s ease;
+  transform-origin: top right;
+  animation: notifDropFromTop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes notifDropFromTop {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.95);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.01);
+  }
+  85% {
+    transform: translateY(-1px) scale(0.998);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .student-topbar__notif-header {
@@ -5175,42 +5298,54 @@
 .archive-manuscript-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   transition: all 0.2s ease;
   overflow: hidden;
+  margin-bottom: 16px;
 }
 
 .archive-manuscript-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
 }
 
 .archive-manuscript-header {
-  padding: 20px 24px;
+  padding: 18px 22px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
   background: #ffffff;
-  border-bottom: 1px solid #f1f5f9;
+}
+
+.archive-discipline-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  padding: 2px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
 }
 
 .archive-manuscript-meta {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   flex: 1;
   min-width: 260px;
 }
 
 .archive-manuscript-title {
-  margin: 0;
-  font-size: 17px;
+  margin: 2px 0 4px;
+  font-size: 16.5px;
   font-weight: 700;
   color: #0f172a;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .archive-manuscript-title a {
@@ -5227,16 +5362,21 @@
 .archive-manuscript-subinfo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
   font-size: 12px;
   color: #64748b;
+}
+
+.archive-subinfo-bullet {
+  color: #cbd5e1;
 }
 
 .archive-manuscript-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .archive-timeline-container {
@@ -5800,62 +5940,98 @@
    Native Paper PDF Viewer (Direct On-Page Document Stream)
    ========================================================================== */
 .native-pdf-wrapper {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(18, 35, 49, 0.04);
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .native-pdf-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
   gap: 16px;
-  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  flex-wrap: nowrap;
 }
 
 .native-pdf-toolbar__left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.native-pdf-toolbar__file-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .native-pdf-toolbar__title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #1e293b;
-  max-width: 380px;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .native-pdf-toolbar__pages {
-  font-size: 12px;
-  font-weight: 600;
-  color: #0071bc;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0369a1;
   background: #e0f2fe;
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.native-pdf-toolbar__center {
+.native-pdf-toolbar__right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.native-pdf-toolbar__zoom {
+  display: inline-flex;
+  align-items: center;
   background: #f1f5f9;
-  padding: 4px 8px;
-  border-radius: 8px;
   border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 2px 4px;
+  gap: 2px;
+}
+
+.native-pdf-zoom-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  min-width: 42px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.native-pdf-toolbar__divider {
+  width: 1px;
+  height: 20px;
+  background-color: #e2e8f0;
+  margin: 0 2px;
 }
 
 .native-pdf-btn {
@@ -5863,55 +6039,54 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   font-size: 12.5px;
   font-weight: 600;
   border-radius: 6px;
   border: 1px solid transparent;
-  background: transparent;
-  color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
   text-decoration: none;
+  font-family: inherit;
+  line-height: 1;
+  height: 32px;
 }
 
-.native-pdf-btn:hover:not(:disabled) {
+.native-pdf-btn--icon {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #475569;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.native-pdf-btn--icon:hover:not(:disabled) {
   background: #e2e8f0;
   color: #0f172a;
 }
 
-.native-pdf-btn:disabled {
-  opacity: 0.4;
+.native-pdf-btn--icon:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.native-pdf-btn--text {
-  min-width: 46px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.native-pdf-toolbar__right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .native-pdf-btn--outline {
-  border-color: #cbd5e1;
+  border-color: #dce4e9;
   background: #ffffff;
   color: #334155;
 }
 
 .native-pdf-btn--outline:hover {
   background: #f8fafc;
-  border-color: #94a3b8;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
 
 .native-pdf-btn--primary {
   background: #0071bc;
   color: #ffffff;
+  border-color: #005a96;
 }
 
 .native-pdf-btn--primary:hover {
@@ -5923,19 +6098,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 16px;
-  background: #f1f5f9;
+  padding: 0;
+  background: transparent;
   min-height: 600px;
-  gap: 28px;
+  gap: 32px;
 }
 
 .native-pdf-page-card {
   position: relative;
   background: #ffffff;
   border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   transition: transform 0.2s ease;
 }
 
@@ -6297,18 +6471,20 @@
    ========================================================================== */
 .archive-git-timeline {
   position: relative;
-  padding-left: 28px;
-  margin-top: 14px;
+  padding: 16px 20px 18px 48px;
+  background: #f8fafc;
+  border-top: 1px solid #eef2f6;
 }
 
 .archive-git-timeline::before {
   content: "";
   position: absolute;
-  top: 14px;
-  bottom: 14px;
-  left: 10px;
+  top: 24px;
+  bottom: 24px;
+  left: 28px;
   width: 2px;
-  background-color: #e2e8f0;
+  background-color: #cbd5e1;
+  border-radius: 2px;
 }
 
 .archive-git-entry {
@@ -6322,7 +6498,7 @@
 
 .archive-git-node {
   position: absolute;
-  left: -28px;
+  left: -31px;
   top: 12px;
   width: 22px;
   height: 22px;
@@ -6333,35 +6509,36 @@
   align-items: center;
   justify-content: center;
   font-size: 9.5px;
-  font-weight: 700;
+  font-weight: 800;
   color: #64748b;
   z-index: 2;
   transition: all 0.2s ease;
 }
 
 .archive-git-entry--latest .archive-git-node {
-  background: linear-gradient(135deg, #0071bc 0%, #0284c7 100%);
+  background: #0071bc;
   border-color: #0071bc;
   color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.18);
 }
 
 .archive-git-body {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 12px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   transition: all 0.15s ease;
 }
 
 .archive-git-entry--latest .archive-git-body {
   border-color: #bfdbfe;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: #ffffff;
 }
 
 .archive-git-body:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.05);
 }
 
 .archive-git-header {
@@ -6374,7 +6551,7 @@
 
 .archive-git-summary-line {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   min-width: 0;
   flex: 1;
@@ -6389,7 +6566,7 @@
 
 .archive-git-summary-text {
   font-size: 12.5px;
-  color: #475569;
+  color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -6398,43 +6575,54 @@
 .archive-git-meta-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .archive-git-date {
-  font-size: 11.5px;
-  color: #94a3b8;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
   white-space: nowrap;
 }
 
 .archive-git-files-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-  padding-top: 8px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid #f1f5f9;
   flex-wrap: wrap;
+}
+
+.archive-file-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .archive-sha-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
-  background: #f8fafc;
+  background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 3px 8px;
+  border-radius: 5px;
+  padding: 2.5px 8px;
   color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .archive-sha-pill:hover {
-  background: #f1f5f9;
+  background: #e2e8f0;
   border-color: #cbd5e1;
   color: #0f172a;
 }
@@ -6448,29 +6636,28 @@
 .archive-download-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #0284c7;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0071bc;
   text-decoration: none;
-  margin-left: auto;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
   transition: all 0.15s ease;
 }
 
 .archive-download-btn:hover {
-  background: #f0f9ff;
+  background: #e0f2fe;
   color: #0369a1;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 @media (max-width: 640px) {
   .archive-git-timeline {
-    padding-left: 22px;
+    padding-left: 36px;
   }
   .archive-git-node {
-    left: -22px;
+    left: -26px;
     width: 18px;
     height: 18px;
     font-size: 8.5px;

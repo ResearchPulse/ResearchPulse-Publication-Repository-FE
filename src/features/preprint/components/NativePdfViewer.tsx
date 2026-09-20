@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -45,79 +43,86 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
 
   return (
     <div className="native-pdf-wrapper" ref={containerRef}>
-      {/* Floating / Sticky Document Control Bar */}
+      {/* Clean Single-Row Document Control Bar */}
       <div className="native-pdf-toolbar">
         <div className="native-pdf-toolbar__left">
+          <div className="native-pdf-toolbar__file-badge" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <line x1="10" y1="9" x2="8" y2="9" />
+            </svg>
+          </div>
           <span className="native-pdf-toolbar__title" title={fileName || 'manuscript.pdf'}>
-            📄 {fileName || 'Manuscript Document'}
+            {fileName || 'Manuscript Document'}
           </span>
           {numPages && (
             <span className="native-pdf-toolbar__pages">
-              {numPages} {numPages === 1 ? 'Page' : 'Pages'}
+              {numPages} {numPages === 1 ? 'page' : 'pages'}
             </span>
           )}
         </div>
 
-        <div className="native-pdf-toolbar__center">
-          <button
-            type="button"
-            className="native-pdf-btn"
-            onClick={zoomOut}
-            disabled={scale <= 0.6}
-            title="Zoom Out"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              <line x1="8" y1="11" x2="14" y2="11" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="native-pdf-btn native-pdf-btn--text"
-            onClick={resetZoom}
-            title="Reset Zoom"
-          >
-            {Math.round(scale * 100)}%
-          </button>
-          <button
-            type="button"
-            className="native-pdf-btn"
-            onClick={zoomIn}
-            disabled={scale >= 2.0}
-            title="Zoom In"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              <line x1="11" y1="8" x2="11" y2="14" />
-              <line x1="8" y1="11" x2="14" y2="11" />
-            </svg>
-          </button>
-        </div>
-
         <div className="native-pdf-toolbar__right">
+          {/* Zoom controls */}
+          <div className="native-pdf-toolbar__zoom">
+            <button
+              type="button"
+              className="native-pdf-btn native-pdf-btn--icon"
+              onClick={zoomOut}
+              disabled={scale <= 0.6}
+              title="Zoom Out"
+              aria-label="Zoom Out"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <span className="native-pdf-zoom-val">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              type="button"
+              className="native-pdf-btn native-pdf-btn--icon"
+              onClick={zoomIn}
+              disabled={scale >= 2.0}
+              title="Zoom In"
+              aria-label="Zoom In"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="native-pdf-toolbar__divider" aria-hidden="true" />
+
+          {/* Action buttons */}
           <a
             href={url}
             target="_blank"
             rel="noreferrer"
             className="native-pdf-btn native-pdf-btn--outline"
-            title="Open in new window"
+            title="Open PDF in new browser tab"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
               <line x1="10" y1="14" x2="21" y2="3" />
             </svg>
             <span>Open Tab</span>
           </a>
+
           <a
             href={url}
             download={fileName || 'manuscript.pdf'}
             className="native-pdf-btn native-pdf-btn--primary"
-            title="Download PDF file"
+            title="Download PDF"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />

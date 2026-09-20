@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StudentShell } from '../components';
 import { FeedbackCardSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 import { studentPreprintApi } from '../api';
 import { usePreprintList } from '../hooks';
 import type { StudentPreprint } from '../types';
@@ -199,15 +200,16 @@ export function StudentMentorFeedbackView() {
 
           <div className="student-sort-box">
             <span className="student-sort-label">Sort:</span>
-            <select
+            <SortDropdown
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="TITLE">Title (A-Z)</option>
-              <option value="REVIEWER">Reviewer Name</option>
-            </select>
+              onChange={(val) => setSortBy(val as SortOption)}
+              options={[
+                { value: 'UPDATED', label: 'Recently Updated' },
+                { value: 'TITLE', label: 'Title (A-Z)' },
+                { value: 'REVIEWER', label: 'Reviewer Name' },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>

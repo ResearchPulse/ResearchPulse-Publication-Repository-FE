@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminReview, type AdminPublication } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 import { ROUTES } from '@/app/router';
 
 type ReviewFilterTab = 'ALL' | 'PENDING' | 'NEEDS_REVISION' | 'PUBLISH' | 'REJECT';
@@ -21,6 +22,8 @@ function formatDate(value?: string | null) {
   }).format(date);
 }
 
+
+
 export function AdminReviewsView() {
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,9 @@ export function AdminReviewsView() {
 
   const [activeTab, setActiveTab] = useState<ReviewFilterTab>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
+
+  const [sortBy, setSortBy] = useState('UPDATED');
+  const safeSortBy = sortBy;
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
@@ -127,19 +132,19 @@ export function AdminReviewsView() {
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === 'REVIEWER') {
+        if (safeSortBy === 'REVIEWER') {
           const nameA = a.reviewer?.name || a.reviewer?.email || '';
           const nameB = b.reviewer?.name || b.reviewer?.email || '';
           return nameA.localeCompare(nameB);
         }
-        if (sortBy === 'TITLE') {
+        if (safeSortBy === 'TITLE') {
           const titleA = a.publication?.title || '';
           const titleB = b.publication?.title || '';
           return titleA.localeCompare(titleB);
         }
         return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
       });
-  }, [reviews, activeTab, searchQuery, sortBy]);
+  }, [reviews, activeTab, searchQuery, safeSortBy]);
 
   return (
     <AdminShell active="reviews" title="Reviews">
@@ -273,16 +278,17 @@ export function AdminReviewsView() {
 
           <div className="student-sort-box">
             <label htmlFor="admin-sort-reviews" className="student-sort-label">Sort:</label>
-            <select
+            <SortDropdown
               id="admin-sort-reviews"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="REVIEWER">Lecturer Name</option>
-              <option value="TITLE">Manuscript Title</option>
-            </select>
+              value={safeSortBy}
+              onChange={(val) => setSortBy(val as SortOption)}
+              options={[
+                { value: 'UPDATED', label: 'Recently Updated' },
+                { value: 'REVIEWER', label: 'Lecturer Name' },
+                { value: 'TITLE', label: 'Manuscript Title' },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>

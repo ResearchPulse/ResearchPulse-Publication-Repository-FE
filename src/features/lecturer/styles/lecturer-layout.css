@@ -104,7 +104,44 @@
 .lecturer-table .ui-button { min-height: 36px; padding-inline: 12px; }
 
 .lecturer-detail-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr); gap: 22px; align-items: start; margin-bottom: 48px; }
-.lecturer-detail-side { display: grid; gap: 22px; }
+
+.lecturer-detail-side {
+  display: grid;
+  gap: 22px;
+}
+
+@media (min-width: 1024px) {
+  .lecturer-detail-side {
+    position: sticky;
+    top: 86px;
+    align-self: start;
+    max-height: calc(100vh - 104px);
+    overflow-y: auto;
+    /* Cross-browser ultra-thin scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+    padding-right: 4px;
+  }
+  
+  .lecturer-detail-side::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .lecturer-detail-side::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .lecturer-detail-side::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .lecturer-detail-side::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+  }
+}
+
 .lecturer-pdf-panel, .lecturer-metadata-panel, .lecturer-secondary-panel, .lecturer-review-panel, .lecturer-history-panel { padding: 24px; }
 .lecturer-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .lecturer-panel-heading h2 { color: var(--hd-ink); line-height: 1.35; }

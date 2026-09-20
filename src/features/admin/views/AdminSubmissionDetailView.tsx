@@ -931,51 +931,98 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                   </div>
                   <button
                     type="button"
-                    className="student-btn student-btn--secondary student-btn--sm"
-                    style={{ marginTop: '12px' }}
+                    className="admin-btn-save-audience"
                     disabled={assignmentBusy || secondaryReviewerIds.length !== 2 || !primaryReviewerId}
                     onClick={assignReviewers}
                   >
-                    {assignmentBusy ? 'Assigning…' : 'Save review team'}
+                    {assignmentBusy ? (
+                      <>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                          <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                        </svg>
+                        <span>Assigning...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Save Review Team</span>
+                      </>
+                    )}
                   </button>
                   {assignmentMessage && (
-                    <p className="preview-note" style={{ marginTop: '10px', marginBottom: 0 }} role="status">{assignmentMessage}</p>
+                    <p className="preview-note" style={{ marginTop: '12px', marginBottom: 0 }} role="status">{assignmentMessage}</p>
                   )}
                 </div>
               )}
 
               {!publication.isPrivate && (publication.status === 'REVIEWING' || publication.status === 'PUBLISHED') && (
                 <div className="admin-decision-card" style={{ marginBottom: '18px' }}>
-                  <h4 className="admin-decision-title">Audience visibility</h4>
+                  <div className="admin-decision-card__header">
+                    <h4 className="admin-decision-title">Audience Visibility</h4>
+                    <span className="admin-decision-badge--info">
+                      Access Scope
+                    </span>
+                  </div>
                   <p className="admin-decision-desc">
                     Admin selects multiple audiences. An empty selection means all authenticated Students and Lecturers; GUEST also exposes the published PDF on the landing page.
                   </p>
-                  <div style={{ display: 'grid', gap: '7px' }}>
-                    {(['GUEST', 'STUDENT', 'LECTURER'] as const).map((audience) => (
-                      <label key={audience} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                        <input
-                          type="checkbox"
-                          checked={audiences.includes(audience)}
-                          onChange={() => setAudiences((current) => current.includes(audience)
-                            ? current.filter((item) => item !== audience)
-                            : [...current, audience])}
-                          disabled={visibilityBusy}
-                        />
-                        <span>{audience}</span>
-                      </label>
-                    ))}
+                  <div className="admin-audience-list">
+                    {[
+                      { key: 'GUEST', label: 'Guest & Public', desc: 'Exposed to unauthenticated visitors on Public Portal' },
+                      { key: 'STUDENT', label: 'Students', desc: 'Registered & active university students' },
+                      { key: 'LECTURER', label: 'Faculty & Lecturers', desc: 'Teaching faculty, reviewers & researchers' },
+                    ].map((audience) => {
+                      const isSelected = audiences.includes(audience.key as AdminPublicationAudience);
+                      return (
+                        <label key={audience.key} className={`admin-audience-item ${isSelected ? 'admin-audience-item--selected' : ''}`}>
+                          <input
+                            type="checkbox"
+                            className="admin-audience-checkbox"
+                            checked={isSelected}
+                            onChange={() => setAudiences((current) => current.includes(audience.key as AdminPublicationAudience)
+                              ? current.filter((item) => item !== audience.key)
+                              : [...current, audience.key as AdminPublicationAudience])}
+                            disabled={visibilityBusy}
+                          />
+                          <span className="admin-audience-custom-check" aria-hidden="true">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </span>
+                          <div className="admin-audience-info">
+                            <span className="admin-audience-name">{audience.label}</span>
+                            <span className="admin-audience-desc">{audience.desc}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                   <button
                     type="button"
-                    className="student-btn student-btn--secondary student-btn--sm"
-                    style={{ marginTop: '12px' }}
+                    className="admin-btn-save-audience"
                     disabled={visibilityBusy}
                     onClick={saveVisibility}
                   >
-                    {visibilityBusy ? 'Saving…' : 'Save audience'}
+                    {visibilityBusy ? (
+                      <>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                          <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                        </svg>
+                        <span>Saving Changes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Save Audience Settings</span>
+                      </>
+                    )}
                   </button>
                   {visibilityMessage && (
-                    <p className="preview-note" style={{ marginTop: '10px', marginBottom: 0 }} role="status">{visibilityMessage}</p>
+                    <p className="preview-note" style={{ marginTop: '12px', marginBottom: 0 }} role="status">{visibilityMessage}</p>
                   )}
                 </div>
               )}
@@ -989,10 +1036,13 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
               {/* Administrator Backup Decision Card - Only displayed when actionable (REVIEWING or REJECTED) */}
               {!publication.isPrivate && (publication.status === 'REVIEWING' || publication.status === 'REJECTED') && (
                 <div className="admin-decision-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <h4 className="admin-decision-title" style={{ margin: 0 }}>Admin Backup Decision</h4>
-                    <span className="manuscript-meta-pill" style={{ fontSize: '11px', padding: '2px 8px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
-                      Backup Authority (Quyền dự phòng)
+                  <div className="admin-decision-card__header">
+                    <h4 className="admin-decision-title">Admin Backup Decision</h4>
+                    <span className="admin-backup-pill">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                      <span>Backup Authority (Quyền dự phòng)</span>
                     </span>
                   </div>
                   <p className="admin-decision-desc">
@@ -1006,10 +1056,15 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                         disabled={busy}
                         onClick={() => changeStatus('PUBLISHED')}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>Publish Paper</span>
+                        <div className="admin-btn-decision__icon-wrap">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </div>
+                        <div className="admin-btn-decision__label-group">
+                          <span className="admin-btn-decision__title">Publish Paper</span>
+                          <span className="admin-btn-decision__sub">Approve and release manuscript</span>
+                        </div>
                       </button>
                       <div className="admin-decision-sub-row">
                         <button
@@ -1018,7 +1073,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                           disabled={busy}
                           onClick={() => changeStatus('DRAFTING')}
                         >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
@@ -1030,7 +1085,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                           disabled={busy}
                           onClick={() => changeStatus('REJECTED')}
                         >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
@@ -1047,7 +1102,11 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                         disabled={busy}
                         onClick={() => changeStatus('DRAFTING')}
                       >
-                        Reopen for Revision
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <polyline points="1 4 1 10 7 10" />
+                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                        </svg>
+                        <span>Reopen for Revision</span>
                       </button>
                     </div>
                   )}

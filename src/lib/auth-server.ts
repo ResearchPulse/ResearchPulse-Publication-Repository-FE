@@ -36,25 +36,33 @@ function normalizeUser(payload: AuthPayload): User | null {
 }
 
 export async function getUserFromAccessToken(accessToken: string): Promise<User | null> {
-  const response = await fetch(`${preprintApiBaseUrl()}/api/v1/auth/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: 'no-store',
-  });
-  if (!response.ok) return null;
-  return normalizeUser(await response.json() as AuthPayload);
+  try {
+    const response = await fetch(`${preprintApiBaseUrl()}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    return normalizeUser(await response.json() as AuthPayload);
+  } catch {
+    return null;
+  }
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('app_session')?.value;
-  if (!sessionToken) return null;
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get('app_session')?.value;
+    if (!sessionToken) return null;
 
-  const response = await fetch(`${preprintApiBaseUrl()}/api/v1/auth/me`, {
-    headers: { Authorization: `Bearer ${sessionToken}` },
-    cache: 'no-store',
-  });
-  if (!response.ok) return null;
-  return normalizeUser(await response.json() as AuthPayload);
+    const response = await fetch(`${preprintApiBaseUrl()}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    return normalizeUser(await response.json() as AuthPayload);
+  } catch {
+    return null;
+  }
 }
 
 export function canAccessArea(role: Role | undefined, area: 'admin' | 'lecturer' | 'student') {

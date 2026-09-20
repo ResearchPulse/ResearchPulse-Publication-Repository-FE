@@ -5,6 +5,7 @@ import { Button } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminOverview, type AdminUser } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 
 type ActiveTab = 'ALL' | 'STUDENT' | 'LECTURER' | 'ADMIN' | 'PENDING';
 type ActiveFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
@@ -437,19 +438,20 @@ export function AdminUsersView() {
           {tab !== 'PENDING' && (
             <div className="student-sort-box">
               <span className="student-sort-label">Status:</span>
-              <select
+              <SortDropdown
                 value={active}
-                onChange={(e) => {
-                  setActive(e.target.value as ActiveFilter);
+                onChange={(val) => {
+                  setActive(val as ActiveFilter);
                   setPage(1);
                 }}
-                className="student-sort-select"
-                aria-label="Filter by account status"
-              >
-                <option value="ALL">All account states</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select>
+                options={[
+                  { value: 'ALL', label: 'All account states' },
+                  { value: 'ACTIVE', label: 'Active' },
+                  { value: 'INACTIVE', label: 'Inactive' },
+                ]}
+                ariaLabel="Filter by account status"
+                style={{ width: '160px' }}
+              />
             </div>
           )}
         </div>
