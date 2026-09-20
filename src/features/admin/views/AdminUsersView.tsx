@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Field, SelectInput, TextInput } from '@hyperdata/design-system';
+import { Button, Field, TextInput } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminOverview, type AdminUser } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
@@ -517,7 +517,6 @@ export function AdminUsersView() {
                   { value: 'ACTIVE', label: t('admin.active') },
                   { value: 'INACTIVE', label: t('admin.inactive') },
                 ]}
-                style={{ width: '180px' }}
               />
             </div>
           )}
@@ -830,11 +829,18 @@ export function AdminUsersView() {
           </div>
           <div style={{ marginTop: '12px' }}>
             <Field label={locale === 'vi' ? 'Vai trò' : 'Role'}>
-              <SelectInput aria-label="New user role" value={createRole} onChange={(event) => setCreateRole(event.target.value as AdminUser['role'])}>
-                <option value="STUDENT">{locale === 'vi' ? 'Sinh viên' : 'Student'}</option>
-                <option value="LECTURER">{locale === 'vi' ? 'Giảng viên' : 'Lecturer'}</option>
-                <option value="ADMIN">{locale === 'vi' ? 'Quản trị viên' : 'Admin'}</option>
-              </SelectInput>
+              <SortDropdown
+                value={createRole}
+                onChange={(val) => setCreateRole(val as AdminUser['role'])}
+                options={[
+                  { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
+                  { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
+                  { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
+                ]}
+                ariaLabel={locale === 'vi' ? 'Vai trò' : 'Role'}
+                className="users-create-role-dropdown"
+                style={{ width: '100%' }}
+              />
             </Field>
           </div>
           <div style={{ marginTop: '12px' }}>
