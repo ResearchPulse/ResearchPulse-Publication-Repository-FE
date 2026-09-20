@@ -7,6 +7,7 @@ import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
 import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { NotificationBell } from '@/shared/components/NotificationBell';
 
 export type LecturerNavKey = 'reviews' | 'submissions' | 'profile';
 
@@ -20,34 +21,6 @@ export interface LecturerShellProps {
 export function LecturerShell({ active, title, pendingCount, children }: LecturerShellProps) {
   const { t, locale } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showNotifications) return;
-
-    function handleClickOutside(event: MouseEvent | TouchEvent) {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setShowNotifications(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showNotifications]);
   const { user, loading: authLoading } = useAuth();
   const displayName = authLoading
     ? t('common.loading')
@@ -252,61 +225,7 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
               />
             </div>
 
-            <div className="student-topbar__notif-wrapper" ref={notifRef}>
-              <button
-                type="button"
-                className="student-topbar__notif-btn"
-                onClick={() => setShowNotifications(!showNotifications)}
-                aria-label={`Notifications (${pendingCount || 0} active review alerts)`}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-                {pendingCount !== undefined && pendingCount > 0 && <span className="student-topbar__notif-dot" />}
-              </button>
-
-              {showNotifications && (
-                <div className="student-topbar__notif-popover">
-                  <div className="student-topbar__notif-header">
-                    <strong>{locale === 'vi' ? 'Thông báo thẩm định' : 'Academic Review Alerts'}</strong>
-                    {pendingCount !== undefined && pendingCount > 0 && (
-                      <span className="student-topbar__notif-count">{pendingCount}</span>
-                    )}
-                  </div>
-                  <div className="student-topbar__notif-list">
-                    {pendingCount !== undefined && pendingCount > 0 ? (
-                      <Link href={ROUTES.LECTURER.REVIEWS} className="student-topbar__notif-item" onClick={() => setShowNotifications(false)}>
-                        <div className="student-topbar__notif-item-icon student-topbar__notif-item-icon--amber">!</div>
-                        <div className="student-topbar__notif-item-text">
-                          <p className="student-topbar__notif-item-title">
-                            {locale === 'vi' ? `${pendingCount} bản thảo đang chờ thẩm định` : `${pendingCount} manuscript(s) awaiting review`}
-                          </p>
-                          <p className="student-topbar__notif-item-desc">
-                            {locale === 'vi' ? 'Mở danh sách thẩm định để gửi đánh giá và nhận xét.' : 'Open the Review Queue to submit your evaluation and decisions.'}
-                          </p>
-                        </div>
-                      </Link>
-                    ) : (
-                      <div className="student-topbar__notif-empty">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                        </svg>
-                        <p>
-                          {locale === 'vi' ? 'Không có nhiệm vụ thẩm định nào đang chờ.' : 'No pending review tasks in your queue.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="student-topbar__notif-footer">
-                    <Link href={ROUTES.LECTURER.REVIEWS} onClick={() => setShowNotifications(false)}>
-                      {locale === 'vi' ? 'Xem danh sách chờ duyệt →' : 'View review queue →'}
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+            <NotificationBell />
 
             <LanguageSwitcher variant="toggle" />
 

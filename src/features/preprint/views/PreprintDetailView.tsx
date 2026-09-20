@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreprintDetail } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import { DetailSkeleton } from '@/components/skeleton';
+import { useTranslation } from '@/i18n';
 
 const NativePdfViewer = dynamic(
   () => import('../components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
@@ -44,7 +45,7 @@ function PreprintDetailShell({
       {children}
     </LecturerShell>
   ) : (
-    <StudentShell title="Chi tiết bản thảo" showStandardHeader={false}>
+    <StudentShell title={title} showStandardHeader={false}>
       {children}
     </StudentShell>
   );
@@ -160,9 +161,10 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
     }
   };
 
+  const { t } = useTranslation();
   const shellTitle = item?.title
     ? (item.title.length > 35 ? item.title.substring(0, 35) + '…' : item.title)
-    : 'Chi tiết bản thảo';
+    : t('student.preprints.detailsTitle');
 
   return (
     <PreprintDetailShell isLecturer={isLecturer} title={shellTitle}>

@@ -164,13 +164,6 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
           <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)' }}>
             {/* Badges */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#0071bc', background: '#e0f2fe', padding: '4px 12px', borderRadius: '6px' }}>
-                {paper.discipline || (locale === 'vi' ? 'Khoa học tổng quát' : 'General Science')}
-              </span>
-              <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: '6px', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                {locale === 'vi' ? 'ĐÃ XUẤT BẢN' : 'OFFICIALLY PUBLISHED'}
-              </span>
               <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '4px 10px', borderRadius: '6px' }}>
                 {paper.currentVersion?.versionLabel || 'v1.0'}
               </span>
@@ -227,7 +220,6 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
                     </svg>
                     <span>{locale === 'vi' ? 'Đọc trực tuyến (PDF)' : 'Read Online (PDF)'}</span>
                   </span>
@@ -239,7 +231,7 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
               <>
                 {/* Abstract */}
                 <div style={{ marginBottom: '28px' }}>
-                  <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#0071bc', margin: '0 0 10px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
+                  <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#122331', margin: '0 0 10px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
                     {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
                   </h3>
                   <p style={{ color: '#334155', fontSize: '14.5px', lineHeight: 1.7, margin: 0, background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -270,23 +262,13 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                       <span>{locale === 'vi' ? 'Trích dẫn bài báo khoa học này:' : 'Cite this publication:'}</span>
                     </div>
-                    <div style={{ display: 'inline-flex', gap: '4px', background: '#dcfce7', padding: '3px', borderRadius: '8px' }}>
+                    <div style={{ display: 'inline-flex', gap: '4px' }}>
                       {(['APA', 'IEEE', 'BibTeX'] as const).map((fmt) => (
                         <button
                           key={fmt}
                           type="button"
                           onClick={() => setCitationFormat(fmt)}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            borderRadius: '6px',
-                            border: 'none',
-                            background: citationFormat === fmt ? '#166534' : 'transparent',
-                            color: citationFormat === fmt ? '#ffffff' : '#166534',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
+                          className={`student-citation-fmt-btn ${citationFormat === fmt ? 'student-citation-fmt-btn--active' : ''}`}
                         >
                           {fmt}
                         </button>
@@ -301,22 +283,11 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
                     <button
                       type="button"
                       onClick={copyCitation}
+                      className="student-citation-copy-btn"
                       style={{
                         position: 'absolute',
                         top: '8px',
                         right: '8px',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #86efac',
-                        background: citationCopied ? '#166534' : '#f0fdf4',
-                        color: citationCopied ? '#ffffff' : '#166534',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        transition: 'all 0.15s ease',
                       }}
                       title={locale === 'vi' ? 'Sao chép trích dẫn' : 'Copy citation'}
                     >
@@ -361,22 +332,7 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
                   href={paper.downloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #0071bc 0%, #005a96 100%)',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    fontSize: '14px',
-                    textDecoration: 'none',
-                    boxShadow: '0 4px 12px rgba(0, 113, 188, 0.25)',
-                    transition: 'all 0.15s ease',
-                  }}
+                  className="student-detail-download-btn"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   <span>{locale === 'vi' ? 'Tải bản PDF gốc' : 'Download PDF Document'}</span>

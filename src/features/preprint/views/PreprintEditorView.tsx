@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudentShell } from '../components';
 import { LecturerShell } from '@/features/lecturer/components';
+import { useTranslation } from '@/i18n';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintAnalysis } from '../types';
 import { FormSkeleton } from '@/components/skeleton';
@@ -187,6 +188,7 @@ function PreprintWorkspaceShell({
 }
 
 export function PreprintEditorView({ id }: PreprintEditorViewProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
@@ -670,14 +672,14 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       isLecturer={isLecturer}
       title={
         isReadOnly
-          ? `Bản thảo: ${originalItem?.status === 'UNDER_REVIEW' ? 'Đang xét duyệt' : originalItem?.status}`
+          ? `${t('student.preprints.manuscriptPrefix')}: ${originalItem?.status === 'UNDER_REVIEW' ? t('student.preprints.underReview') : (originalItem?.status || '')}`
           : isRevisionMode
-            ? `Nộp bản sửa đổi: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
+            ? `${t('student.preprints.submitRevision')}: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
             : isEditing
-              ? 'Chỉnh sửa bản nháp'
-              : 'Nộp bản thảo mới'
+              ? t('student.preprints.editDraft')
+              : t('student.topbar.newPreprintButton')
       }
-      kicker={isReadOnly ? 'Bản thảo đã nộp' : isRevisionMode ? 'Nộp bản sửa đổi' : 'Đăng ký bản thảo'}
+      kicker={isReadOnly ? t('student.preprints.submittedManuscript') : isRevisionMode ? t('student.preprints.submitRevision') : t('student.preprints.registerManuscript')}
     >
       {loadingInitial ? (
         <FormSkeleton />

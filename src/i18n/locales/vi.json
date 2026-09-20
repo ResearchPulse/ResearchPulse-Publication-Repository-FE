@@ -299,5 +299,71 @@
     "allFilter": "Tất cả",
     "awaitingReviewFilter": "Chờ thẩm định",
     "completedFilter": "Đã hoàn thành"
+  },
+  "student": {
+    "topbar": {
+      "myPreprintsTitle": "Bản thảo của tôi",
+      "publishedTitle": "Kho bài báo đã xuất bản",
+      "academicDashboard": "Bảng điều khiển học thuật",
+      "preprintsGroup": "Bản thảo",
+      "reviewGroup": "Thẩm định",
+      "personalGroup": "Cá nhân",
+      "newPreprintButton": "Nộp bản thảo mới"
+    },
+    "sidebar": {
+      "myPreprints": "Bản thảo của tôi",
+      "published": "Đã xuất bản",
+      "versions": "Lịch sử phiên bản",
+      "mentorFeedback": "Nhận xét của Giảng viên",
+      "account": "Hồ sơ cá nhân",
+      "signOut": "Đăng xuất"
+    },
+    "preprints": {
+      "totalCount": "Tổng số bản thảo",
+      "underReview": "Đang thẩm định",
+      "needsRevision": "Cần chỉnh sửa",
+      "approved": "Đã duyệt",
+      "published": "Đã xuất bản",
+      "accepted": "Chấp nhận",
+      "draft": "Bản nháp",
+      "rejected": "Bị từ chối",
+      "revisionNeeded": "Cần chỉnh sửa",
+      "filterStatus": "Lọc theo trạng thái",
+      "serverDelay": "Đang tải bản thảo...",
+      "actionRequired": "Hành động khẩn: Cần chỉnh sửa bản thảo",
+      "versionBadge": "Phiên bản {version}",
+      "revisionDesc1": "Giảng viên hướng dẫn",
+      "revisionDesc2": "đã gửi nhận xét và yêu cầu cập nhật bản thảo",
+      "reviewBoard": "Hội đồng thẩm định",
+      "viewFeedback": "Xem nhận xét & Chỉnh sửa →",
+      "tableManuscript": "Bản thảo",
+      "tableDiscipline": "Chuyên ngành",
+      "tableVersion": "Phiên bản",
+      "tableStatus": "Trạng thái",
+      "tableUpdated": "Cập nhật",
+      "emptyTitle": "Chưa có bản thảo nào",
+      "emptyDesc": "Bắt đầu bằng cách nộp bản thảo đầu tiên của bạn vào kho lưu trữ học thuật.",
+      "createNew": "Nộp bản thảo mới",
+      "detailsTitle": "Chi tiết bản thảo",
+      "versionsHistory": "Lịch sử phiên bản",
+      "manuscriptPrefix": "Bản thảo",
+      "submitRevision": "Nộp bản sửa đổi",
+      "editDraft": "Chỉnh sửa bản nháp",
+      "submittedManuscript": "Bản thảo đã nộp",
+      "registerManuscript": "Đăng ký bản thảo"
+    },
+    "account": {
+      "title": "Hồ sơ cá nhân",
+      "active": "Hoạt động",
+      "fullName": "Họ và tên",
+      "studentId": "Mã số sinh viên",
+      "major": "Chuyên ngành",
+      "email": "Địa chỉ Email",
+      "tabProfile": "Thông tin cá nhân",
+      "tabSecurity": "Bảo mật & Mật khẩu",
+      "role": "Vai trò",
+      "status": "Trạng thái",
+      "changePasswordTitle": "Đổi mật khẩu tài khoản"
+    }
   }
 }

@@ -12,7 +12,7 @@ interface StudentDashboardLayoutProps {
 }
 
 export function StudentDashboardLayout({
-  title = 'Không gian học thuật',
+  title,
   children,
   revisionCount = 0,
   totalCount = 0,
