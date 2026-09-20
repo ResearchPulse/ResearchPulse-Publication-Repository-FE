@@ -295,13 +295,13 @@ export function StudentAccountView() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    Lĩnh vực nghiên cứu
+                    Chuyên ngành học
                   </label>
                   <input
                     type="text"
                     value={formData.major}
                     onChange={(e) => setFormData({ ...formData, major: e.target.value })}
-                    placeholder="Ví dụ: Trí tuệ nhân tạo, Xử lý ngôn ngữ tự nhiên"
+                    placeholder="Ví dụ: Kỹ thuật phần mềm, Khoa học dữ liệu"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -417,7 +417,7 @@ export function StudentAccountView() {
 
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Lĩnh vực nghiên cứu
+                Chuyên ngành học
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayMajor}
