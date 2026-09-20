@@ -252,23 +252,28 @@ function LoginForm() {
             <label className="auth-label" htmlFor="password" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
               Mật khẩu *
             </label>
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#0071bc',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                padding: '2px 4px',
-                borderRadius: 4,
-                transition: 'color 0.2s, background 0.2s',
-              }}
-            >
-              {showPassword ? 'Ẩn' : 'Hiện'} mật khẩu
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Link href="/forgot-password" className="auth-forgot-link">
+                Quên mật khẩu?
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#0071bc',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  borderRadius: 4,
+                  transition: 'color 0.2s, background 0.2s',
+                }}
+              >
+                {showPassword ? 'Ẩn' : 'Hiện'}
+              </button>
+            </div>
           </div>
           <input
             id="password"
