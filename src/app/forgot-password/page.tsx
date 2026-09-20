@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Lenis from 'lenis';
 import { HyperdataLogo } from '@/components/hyperdata-logo';
 import { LanguageSwitcher } from '@/i18n';
 import '@/styles/public-landing.css';
@@ -227,7 +228,7 @@ function ForgotPasswordContent() {
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg>
-              1. Yêu cầu mã qua Email
+              1. Nhận mã
             </button>
             <button
               type="button"
@@ -241,7 +242,7 @@ function ForgotPasswordContent() {
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
-              2. Điền mật khẩu mới
+              2. Đổi mật khẩu
             </button>
           </div>
 
@@ -382,30 +383,56 @@ function ForgotPasswordContent() {
               )}
 
               <form onSubmit={handleResetSubmit} className="auth-form" style={{ gap: 16 }}>
-                {/* Token Input */}
+                {/* Token Field */}
                 <div className="auth-field" style={{ gap: 6, textAlign: 'left' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="auth-label" htmlFor="reset-token" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
+                    <label className="auth-label" htmlFor="reset-token" style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
                       Mã xác thực (Reset Token) *
                     </label>
                     {token && (
-                      <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>
-                        ✓ Đã nhận mã
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: 11.5,
+                        color: '#16a34a',
+                        fontWeight: 700,
+                        background: '#f0fdf4',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        border: '1px solid #bbf7d0',
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Đã nhận mã hợp lệ
                       </span>
                     )}
                   </div>
-                  <input
-                    id="reset-token"
-                    type="text"
-                    className="auth-input"
-                    placeholder="Dán mã token từ email hoặc link xác thực"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    disabled={resetLoading}
-                    required
-                  />
+                  
+                  {/* Styled Token Input */}
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="reset-token"
+                      type="text"
+                      className="auth-input"
+                      placeholder="Dán mã token từ email hoặc link xác thực"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      disabled={resetLoading}
+                      required
+                      style={{
+                        fontFamily: token ? 'monospace' : 'inherit',
+                        fontSize: token ? 13 : 14,
+                        letterSpacing: token ? '0.02em' : 'normal',
+                        background: token ? '#f8fafc' : '#ffffff',
+                        borderColor: token ? '#93c5fd' : '#cbd5e1',
+                      }}
+                    />
+                  </div>
+
                   {!token && (
-                    <span style={{ fontSize: 11, color: '#e11d48' }}>
+                    <span style={{ fontSize: 11.5, color: '#e11d48', marginTop: 2 }}>
                       ⚠️ Bạn cần có mã token được gửi qua email để thiết lập mật khẩu mới.
                     </span>
                   )}
@@ -414,7 +441,7 @@ function ForgotPasswordContent() {
                 {/* New Password Input */}
                 <div className="auth-field" style={{ gap: 6, textAlign: 'left' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="auth-label" htmlFor="new-password" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
+                    <label className="auth-label" htmlFor="new-password" style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
                       Mật khẩu mới *
                     </label>
                     <button
@@ -424,10 +451,11 @@ function ForgotPasswordContent() {
                         background: 'none',
                         border: 'none',
                         color: '#0071bc',
-                        fontSize: 12,
+                        fontSize: 12.5,
                         fontWeight: 700,
                         cursor: 'pointer',
-                        padding: '2px 4px',
+                        padding: '2px 6px',
+                        borderRadius: 4,
                       }}
                     >
                       {showNewPassword ? 'Ẩn' : 'Hiện'}
@@ -447,34 +475,60 @@ function ForgotPasswordContent() {
 
                   {/* Password Strength Meter */}
                   {newPassword && (
-                    <div className="password-strength-container">
-                      <div className="password-strength-bar">
+                    <div className="password-strength-container" style={{ marginTop: 2 }}>
+                      <div className="password-strength-bar" style={{ height: 4 }}>
                         <div className={`password-strength-segment ${strengthScore >= 1 ? (strengthScore === 1 ? 'password-strength-segment--weak' : strengthScore === 2 ? 'password-strength-segment--medium' : 'password-strength-segment--strong') : ''}`} />
                         <div className={`password-strength-segment ${strengthScore >= 2 ? (strengthScore === 2 ? 'password-strength-segment--medium' : 'password-strength-segment--strong') : ''}`} />
                         <div className={`password-strength-segment ${strengthScore >= 3 ? 'password-strength-segment--strong' : ''}`} />
                       </div>
-                      <div className="password-strength-text">
-                        <span style={{ color: strengthScore === 1 ? '#ef4444' : strengthScore === 2 ? '#f59e0b' : '#10b981' }}>
-                          {strengthScore === 1 ? 'Mật khẩu yếu' : strengthScore === 2 ? 'Mật khẩu trung bình' : 'Mật khẩu mạnh & an toàn'}
+                      <div className="password-strength-text" style={{ fontSize: 11.5, marginTop: 4 }}>
+                        <span style={{ color: strengthScore === 1 ? '#ef4444' : strengthScore === 2 ? '#f59e0b' : '#16a34a' }}>
+                          {strengthScore === 1 ? 'Độ bảo mật: Yếu' : strengthScore === 2 ? 'Độ bảo mật: Trung bình' : 'Độ bảo mật: Mạnh & An toàn'}
                         </span>
                         <span style={{ color: '#94a3b8' }}>{newPassword.length}/8+ ký tự</span>
                       </div>
                     </div>
                   )}
 
-                  {/* Requirements Checklist */}
-                  <div className="password-req-list">
-                    <div className={`password-req-item ${hasMinLength ? 'password-req-item--valid' : ''}`}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        {hasMinLength ? <polyline points="20 6 9 17 4 12" /> : <circle cx="12" cy="12" r="8" />}
+                  {/* Clean 2-column Requirements Checklist */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 8,
+                    marginTop: 4,
+                    padding: '8px 12px',
+                    background: '#f8fafc',
+                    borderRadius: 8,
+                    border: '1px solid #e2e8f0',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                      color: hasMinLength ? '#16a34a' : '#64748b',
+                      fontWeight: hasMinLength ? 700 : 500,
+                      transition: 'all 0.2s',
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                        {hasMinLength ? <polyline points="20 6 9 17 4 12" /> : <circle cx="12" cy="12" r="7" strokeWidth="2" />}
                       </svg>
                       <span>Tối thiểu 8 ký tự</span>
                     </div>
-                    <div className={`password-req-item ${hasLetter && hasNumber ? 'password-req-item--valid' : ''}`}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        {hasLetter && hasNumber ? <polyline points="20 6 9 17 4 12" /> : <circle cx="12" cy="12" r="8" />}
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                      color: (hasLetter && hasNumber) ? '#16a34a' : '#64748b',
+                      fontWeight: (hasLetter && hasNumber) ? 700 : 500,
+                      transition: 'all 0.2s',
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                        {(hasLetter && hasNumber) ? <polyline points="20 6 9 17 4 12" /> : <circle cx="12" cy="12" r="7" strokeWidth="2" />}
                       </svg>
-                      <span>Bao gồm cả chữ cái và số</span>
+                      <span>Gồm cả chữ & số</span>
                     </div>
                   </div>
                 </div>
@@ -482,7 +536,7 @@ function ForgotPasswordContent() {
                 {/* Confirm Password Input */}
                 <div className="auth-field" style={{ gap: 6, textAlign: 'left' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="auth-label" htmlFor="confirm-password" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
+                    <label className="auth-label" htmlFor="confirm-password" style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
                       Xác nhận mật khẩu mới *
                     </label>
                     <button
@@ -492,10 +546,11 @@ function ForgotPasswordContent() {
                         background: 'none',
                         border: 'none',
                         color: '#0071bc',
-                        fontSize: 12,
+                        fontSize: 12.5,
                         fontWeight: 700,
                         cursor: 'pointer',
-                        padding: '2px 4px',
+                        padding: '2px 6px',
+                        borderRadius: 4,
                       }}
                     >
                       {showConfirmPassword ? 'Ẩn' : 'Hiện'}
@@ -513,7 +568,15 @@ function ForgotPasswordContent() {
                     required
                   />
                   {confirmPassword && (
-                    <div style={{ fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, color: passwordsMatch ? '#10b981' : '#ef4444' }}>
+                    <div style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      marginTop: 2,
+                      color: passwordsMatch ? '#16a34a' : '#ef4444',
+                    }}>
                       {passwordsMatch ? (
                         <>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
@@ -532,7 +595,7 @@ function ForgotPasswordContent() {
                 <button
                   type="submit"
                   className="auth-btn auth-btn--primary"
-                  style={{ padding: '13px 20px', fontSize: 15, fontWeight: 700, marginTop: 4 }}
+                  style={{ padding: '13px 20px', fontSize: 15, fontWeight: 700, marginTop: 6 }}
                   disabled={resetLoading || !token.trim() || !hasMinLength || !passwordsMatch}
                 >
                   {resetLoading ? (
@@ -564,6 +627,30 @@ function ForgotPasswordContent() {
 }
 
 export default function ForgotPasswordPage() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+    });
+
+    let rafId: number;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, []);
+
   return (
     <div className="public-landing pl-page auth-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
       {/* Ambient Orbs */}
@@ -593,20 +680,19 @@ export default function ForgotPasswordPage() {
       </header>
 
       {/* Main Content: 2 Cột chuẩn như Landing Page Hero */}
-      <main className="pl-hero" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '60px 0', position: 'relative', zIndex: 1 }}>
-        <div className="pl-container">
-          <div className="pl-hero__grid" style={{ alignItems: 'center', gap: '48px' }}>
+      <main className="pl-hero" style={{ flex: 1, display: 'flex', padding: '60px 0', position: 'relative', zIndex: 1 }}>
+        <div className="pl-container" style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="pl-hero__grid" style={{ alignItems: 'flex-start', gap: '48px', width: '100%' }}>
             
             {/* Cột trái: Thông tin bảo mật học thuật & hướng dẫn khôi phục */}
-            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left' }}>
-              <div className="pl-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-                <span className="pl-badge__dot" />
-                Cổng Khôi phục Quyền truy cập Nghiên cứu
-              </div>
+            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left', paddingTop: '24px' }}>
+              <span className="pl-badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16, background: '#eef6fc', color: '#0071bc', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
+                🔑 Cổng Khôi phục Quyền truy cập
+              </span>
 
               <h1 className="pl-hero__title" style={{ fontSize: '2.5rem', lineHeight: 1.2, marginBottom: 16 }}>
                 Khôi phục Mật khẩu <br />
-                <span className="pl-gradient-text">Nhanh chóng & An toàn</span>
+                <span className="pl-hero__highlight">Nhanh chóng & An toàn</span>
               </h1>
 
               <p className="pl-hero__desc" style={{ fontSize: '1.05rem', color: '#4b5563', lineHeight: 1.6, marginBottom: 28, maxWidth: 520 }}>

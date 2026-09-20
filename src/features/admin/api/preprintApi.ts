@@ -10,6 +10,7 @@ export type AdminUser = {
   id: string;
   email: string;
   name?: string | null;
+  phone?: string | null;
   studentId?: string | null;
   major?: string | null;
   avatarUrl?: string | null;

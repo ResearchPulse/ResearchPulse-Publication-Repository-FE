@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Lenis from 'lenis';
 import { HyperdataLogo } from '@/components/hyperdata-logo';
 import { LanguageSwitcher } from '@/i18n';
 import '@/styles/public-landing.css';
@@ -323,6 +324,30 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+    });
+
+    let rafId: number;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, []);
+
   return (
     <div className="public-landing pl-page auth-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
       {/* Hiệu ứng Ambient Orbs nền phát sáng mờ ảo */}
@@ -353,20 +378,19 @@ export default function LoginPage() {
 
 
       {/* Body: 2 Cột chuẩn như Landing Page Hero */}
-      <main className="pl-hero" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '60px 0', position: 'relative', zIndex: 1 }}>
-        <div className="pl-container">
-          <div className="pl-hero__grid" style={{ alignItems: 'center', gap: '48px' }}>
+      <main className="pl-hero" style={{ flex: 1, display: 'flex', padding: '60px 0', position: 'relative', zIndex: 1 }}>
+        <div className="pl-container" style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="pl-hero__grid" style={{ alignItems: 'flex-start', gap: '48px', width: '100%' }}>
             
             {/* Cột trái: Giới thiệu & Cổng đăng nhập học thuật */}
-            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left' }}>
-              <div className="pl-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-                <span className="pl-badge__dot" />
-                Cổng Xác thực Nghiên cứu Khoa học
-              </div>
+            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left', paddingTop: '24px' }}>
+              <span className="pl-badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16, background: '#eef6fc', color: '#0071bc', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
+                🎓 Cổng Xác thực Nghiên cứu Khoa học
+              </span>
 
               <h1 className="pl-hero__title" style={{ fontSize: '2.5rem', lineHeight: 1.2, marginBottom: 16 }}>
                 Đăng nhập vào <br />
-                <span className="pl-gradient-text">Không gian Học thuật</span>
+                <span className="pl-hero__highlight">Không gian Học thuật</span>
               </h1>
 
               <p className="pl-hero__desc" style={{ fontSize: '1.05rem', color: '#4b5563', lineHeight: 1.6, marginBottom: 28, maxWidth: 520 }}>
