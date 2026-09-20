@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/app/router';
 import { AdminShell } from '../components';
 import { adminApi, type AdminOverview } from '../api';
+import { Skeleton, TableSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
+import { useTranslation } from '@/i18n';
 
 type SubmissionStatusFilter = 'ALL' | 'REVIEWING' | 'NEEDS_REVISION' | 'PUBLISHED';
 type SortOption = 'UPDATED' | 'TITLE' | 'STATUS';
@@ -14,35 +17,34 @@ function displayDate(value?: string) {
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 }
 
-function renderStatusBadge(status: string) {
-  const normalized = status.toUpperCase();
-  switch (normalized) {
-    case 'PUBLISHED':
-    case 'APPROVED':
-      return <span className="user-badge user-badge--approved">PUBLISHED</span>;
-    case 'NEEDS_REVISION':
-    case 'DRAFTING':
-      return <span className="user-badge user-badge--revision">NEEDS REVISION</span>;
-    case 'UNDER_REVIEW':
-    case 'REVIEWING':
-      return <span className="user-badge user-badge--review">UNDER REVIEW</span>;
-    case 'DRAFT':
-    case 'PROCESSING':
-      return <span className="user-badge user-badge--draft">PROCESSING</span>;
-    case 'REJECTED':
-      return <span className="user-badge user-badge--withdrawn">REJECTED</span>;
-    default:
-      return <span className="user-badge">{status}</span>;
-  }
-}
-
 export function AdminDashboardView() {
+  const { t, locale } = useTranslation();
   const [data, setData] = useState<AdminOverview | null>(null);
   const [filter, setFilter] = useState<SubmissionStatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const renderStatusBadge = (status: string) => {
+    const normalized = status.toUpperCase();
+    switch (normalized) {
+      case 'PUBLISHED':
+      case 'APPROVED':
+        return <span className="user-badge user-badge--approved">{t('admin.published').toUpperCase()}</span>;
+      case 'NEEDS_REVISION':
+      case 'DRAFTING':
+        return <span className="user-badge user-badge--revision">{t('admin.needsRevision').toUpperCase()}</span>;
+      case 'UNDER_REVIEW':
+      case 'REVIEWING':
+        return <span className="user-badge user-badge--review">{t('admin.inReview').toUpperCase()}</span>;
+      case 'REJECTED':
+      case 'WITHDRAWN':
+        return <span className="user-badge user-badge--withdrawn">{t('admin.rejected').toUpperCase()}</span>;
+      default:
+        return <span className="user-badge">{status}</span>;
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -137,7 +139,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.total}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.total}</span>
             <span className="student-metric-label">Total Manuscripts</span>
           </div>
         </div>
@@ -150,7 +152,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.underReview}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.underReview}</span>
             <span className="student-metric-label">In Peer Review</span>
           </div>
         </div>
@@ -164,7 +166,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.needsRevision}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.needsRevision}</span>
             <span className="student-metric-label">Needs Revision</span>
           </div>
         </div>
@@ -177,7 +179,7 @@ export function AdminDashboardView() {
             </svg>
           </div>
           <div className="student-metric-info">
-            <span className="student-metric-value">{metrics.published}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={32} height={24} style={{ display: 'inline-block' }} /> : metrics.published}</span>
             <span className="student-metric-label">Published</span>
           </div>
         </div>
@@ -186,34 +188,34 @@ export function AdminDashboardView() {
       {/* 2. Filter Toolbar with Integrated Status Counts, Search, and Sort */}
       <div className="student-filter-toolbar">
         {/* Status Tab Pills */}
-        <div className="student-tabs-pills" role="tablist" aria-label="Filter submission queue">
+        <div className="student-tabs-pills" role="tablist" aria-label="Filter active submissions">
           <button
             type="button"
             className={`student-tab-pill ${filter === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('ALL')}
           >
-            All <span className="student-tab-pill__count">{queueItems.length}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{queueItems.length}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'REVIEWING' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('REVIEWING')}
           >
-            In Review <span className="student-tab-pill__count">{reviewingCount}</span>
+            {t('admin.inReview')} <span className="student-tab-pill__count">{reviewingCount}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'NEEDS_REVISION' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setFilter('NEEDS_REVISION')}
           >
-            Needs Revision <span className="student-tab-pill__count">{revisionCount}</span>
+            {t('admin.needsRevision')} <span className="student-tab-pill__count">{revisionCount}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'PUBLISHED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('PUBLISHED')}
           >
-            Published <span className="student-tab-pill__count">{publishedCount}</span>
+            {t('admin.published')} <span className="student-tab-pill__count">{publishedCount}</span>
           </button>
         </div>
 
@@ -226,7 +228,7 @@ export function AdminDashboardView() {
             </svg>
             <input
               type="search"
-              placeholder="Search manuscript, author..."
+              placeholder={t('common.searchManuscriptAuthor')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -239,25 +241,38 @@ export function AdminDashboardView() {
           </div>
 
           <div className="student-sort-box">
-            <span className="student-sort-label">Sort:</span>
-            <select
+            <span className="student-sort-label">{t('common.sortBy')}</span>
+            <SortDropdown
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="TITLE">Title (A-Z)</option>
-              <option value="STATUS">Status</option>
-            </select>
+              onChange={(val) => setSortBy(val as SortOption)}
+              options={[
+                { value: 'UPDATED', label: t('common.recentlyUpdated') },
+                { value: 'TITLE', label: t('common.titleAZ') },
+                { value: 'STATUS', label: t('common.byStatus') },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>
 
       {/* 3. Loading, Error, Empty & Table States */}
       {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading submission queue from editorial repository…</p>
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Editorial submissions list">
+            <thead>
+              <tr>
+                <th>Manuscript</th>
+                <th>Author</th>
+                <th>Version</th>
+                <th>Last Updated</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={5} type="submissions" />
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -291,7 +306,7 @@ export function AdminDashboardView() {
           <p>
             {searchQuery
               ? `No submissions match "${searchQuery}". Try searching with a different keyword.`
-              : 'All preprints have been triaged and processed. New student submissions will appear here automatically.'}
+              : 'All preprints have been triaged and processed. New submissions will appear here automatically.'}
           </p>
         </div>
       )}
@@ -302,7 +317,7 @@ export function AdminDashboardView() {
             <thead>
               <tr>
                 <th>Manuscript</th>
-                <th>Student Author</th>
+                <th>Author</th>
                 <th>Version</th>
                 <th>Last Updated</th>
                 <th>Status</th>
@@ -310,11 +325,11 @@ export function AdminDashboardView() {
             </thead>
             <tbody>
               {visibleItems.map((item) => {
-                const authorName = item.uploader?.name || item.uploader?.email?.split('@')[0] || 'Student Researcher';
+                const authorName = item.uploader?.name || item.uploader?.email || 'Author unavailable';
 
                 return (
                   <tr key={item.id}>
-                    {/* Manuscript Title & SHA / Identifier */}
+                    {/* Manuscript Title */}
                     <td className="dashboard-table__title-cell">
                       <Link
                         href={ROUTES.ADMIN.SUBMISSION_DETAIL(item.id)}
@@ -323,16 +338,27 @@ export function AdminDashboardView() {
                       >
                         {item.title}
                       </Link>
-                      <span className="dashboard-table__sha">
-                        {item.uploader?.email || `ID: ${item.id}`}
-                      </span>
                     </td>
 
-                    {/* Student Author */}
+                    {/* Author with Email Subtext */}
                     <td>
-                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
-                        {authorName}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
+                          {authorName}
+                        </span>
+                        {item.uploader?.email ? (
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: '#64748b',
+                              fontWeight: 400,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {item.uploader.email}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     {/* Version */}
@@ -342,8 +368,11 @@ export function AdminDashboardView() {
 
                     {/* Last Updated */}
                     <td className="dashboard-table__date">
-                      {displayDate(item.updatedAt)}
-                    </td>
+                    {(() => {
+                      if (!item.updatedAt) return locale === 'vi' ? 'Không có ngày' : 'Date unavailable';
+                      return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(item.updatedAt));
+                    })()}
+                  </td>
 
                     {/* Status Badge */}
                     <td>

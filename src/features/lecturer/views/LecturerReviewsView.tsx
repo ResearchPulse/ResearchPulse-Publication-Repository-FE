@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/app/router';
 import { LecturerShell } from '../components';
+import { SortDropdown } from '@/components/sort-dropdown';
+import { TableSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerReviewItem } from '../api';
 
 type QueueFilter = 'ALL' | 'AWAITING_REVIEW' | 'COMPLETED';
@@ -28,22 +30,30 @@ function displayDate(value?: string) {
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 }
 
+
+
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from '@/i18n';
+
 export function LecturerReviewsView() {
-  const [items, setItems] = useState<LecturerReviewItem[]>([]);
+  const { t, locale } = useTranslation();
   const [filter, setFilter] = useState<QueueFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const [sortBy, setSortBy] = useState('UPDATED');
+  const safeSortBy = sortBy;
 
-  useEffect(() => {
-    let active = true;
-    lecturerReviewApi.list()
-      .then((result) => { if (active) setItems(result.items); })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load the review queue.'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['lecturer', 'reviews'],
+    queryFn: async () => {
+      const result = await lecturerReviewApi.list();
+      return result.items || [];
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
+  const items = data || [];
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Unable to load the review queue.') : null;
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.reviewStatus === 'AWAITING_REVIEW').length,
@@ -81,7 +91,7 @@ export function LecturerReviewsView() {
       }
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [filter, items, searchQuery, sortBy]);
+  }, [filter, items, searchQuery, safeSortBy]);
 
   return (
     <LecturerShell active="reviews" title="Review queue" pendingCount={pendingCount}>
@@ -94,21 +104,21 @@ export function LecturerReviewsView() {
             className={`student-tab-pill ${filter === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('ALL')}
           >
-            All <span className="student-tab-pill__count">{items.length}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{items.length}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'AWAITING_REVIEW' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setFilter('AWAITING_REVIEW')}
           >
-            Awaiting Review <span className="student-tab-pill__count">{pendingCount}</span>
+            {locale === 'vi' ? 'Chờ thẩm định' : 'Awaiting Review'} <span className="student-tab-pill__count">{pendingCount}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'COMPLETED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('COMPLETED')}
           >
-            Completed <span className="student-tab-pill__count">{completedCount}</span>
+            {locale === 'vi' ? 'Đã hoàn thành' : 'Completed'} <span className="student-tab-pill__count">{completedCount}</span>
           </button>
         </div>
 
@@ -121,7 +131,7 @@ export function LecturerReviewsView() {
             </svg>
             <input
               type="search"
-              placeholder="Search manuscript, author..."
+              placeholder={t('common.searchManuscriptAuthor')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -134,25 +144,38 @@ export function LecturerReviewsView() {
           </div>
 
           <div className="student-sort-box">
-            <span className="student-sort-label">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="TITLE">Title (A-Z)</option>
-              <option value="STATUS">Review Status</option>
-            </select>
+            <span className="student-sort-label">{t('common.sortBy')}</span>
+            <SortDropdown
+              value={safeSortBy}
+              onChange={(val) => setSortBy(val as SortOption)}
+              options={[
+                { value: 'UPDATED', label: t('common.recentlyUpdated') },
+                { value: 'TITLE', label: t('common.titleAZ') },
+                { value: 'STATUS', label: locale === 'vi' ? 'Trạng thái thẩm định' : 'Review Status' },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>
 
       {/* 3. Loading, Error, Empty & Table States */}
       {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading manuscripts from the faculty review queue…</p>
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Available review manuscripts list">
+            <thead>
+              <tr>
+                <th style={{ width: '48%' }}>Manuscript</th>
+                <th>Author</th>
+                <th>Version</th>
+                <th>Review SLA</th>
+                <th style={{ textAlign: 'right' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={5} type="reviews" />
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -195,7 +218,7 @@ export function LecturerReviewsView() {
             <thead>
               <tr>
                 <th style={{ width: '48%' }}>Manuscript</th>
-                <th>Student Author</th>
+                <th>Author</th>
                 <th>Version</th>
                 <th>Review SLA</th>
                 <th style={{ textAlign: 'right' }}>Status</th>
@@ -205,8 +228,7 @@ export function LecturerReviewsView() {
               {visibleItems.map((item) => {
                 const isPending = item.reviewStatus === 'AWAITING_REVIEW';
                 const cleanTitle = displayTitle(item);
-                const authorName = item.uploader?.name || item.authors?.[0]?.name || 'Student Researcher';
-                const authorInitial = (authorName[0] || 'S').toUpperCase();
+                const authorName = item.uploader?.name || 'Anonymous Author';
 
                 return (
                   <tr key={item.id}>
@@ -222,11 +244,41 @@ export function LecturerReviewsView() {
                       </Link>
                     </td>
 
-                    {/* Student Author */}
+                    {/* Author (Student visible, Faculty Double-Blind) */}
                     <td>
-                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
-                        {authorName}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
+                          {authorName}
+                        </span>
+                        {item.uploader?.role === 'LECTURER' ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              background: '#f1f5f9',
+                              color: '#64748b',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            Double-Blind
+                          </span>
+                        ) : item.uploader?.email ? (
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: '#64748b',
+                              fontWeight: 400,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {item.uploader.email}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     {/* Version */}

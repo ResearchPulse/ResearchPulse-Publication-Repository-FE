@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { HyperdataLogo } from '@/components/hyperdata-logo';
+import { LanguageSwitcher } from '@/i18n';
 import '@/styles/public-landing.css';
 import '@/styles/auth-forms.css';
 
@@ -17,6 +18,8 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [quickLoadingRole, setQuickLoadingRole] = useState<'admin' | 'lecturer' | 'student' | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +41,11 @@ function LoginForm() {
       }
 
       if (data.user.role === 'ADMIN') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else if (data.user.role === 'LECTURER') {
-        router.push('/lecturer/reviews');
+        window.location.href = '/lecturer/reviews';
       } else {
-        router.push(nextPath);
+        window.location.href = nextPath;
       }
     } catch {
       setError('Không thể kết nối đến máy chủ xác thực.');
@@ -50,10 +53,11 @@ function LoginForm() {
     }
   };
 
-  const handleQuickLogin = async (email: string) => {
+  const handleQuickLogin = async (email: string, role: 'admin' | 'lecturer' | 'student') => {
     setIdentifier(email);
     setPassword('Password@123');
     setError(null);
+    setQuickLoadingRole(role);
     setLoading(true);
 
     try {
@@ -67,19 +71,21 @@ function LoginForm() {
       if (!res.ok) {
         setError(data.error || 'Đăng nhập không thành công.');
         setLoading(false);
+        setQuickLoadingRole(null);
         return;
       }
 
       if (data.user.role === 'ADMIN') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else if (data.user.role === 'LECTURER') {
-        router.push('/lecturer/reviews');
+        window.location.href = '/lecturer/reviews';
       } else {
-        router.push(nextPath);
+        window.location.href = nextPath;
       }
     } catch {
       setError('Không thể kết nối đến máy chủ xác thực.');
       setLoading(false);
+      setQuickLoadingRole(null);
     }
   };
 
@@ -109,17 +115,17 @@ function LoginForm() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <button
             type="button"
-            onClick={() => handleQuickLogin('admin@researchpulse.com')}
+            onClick={() => handleQuickLogin('admin@hyperdata.org', 'admin')}
             disabled={loading}
             style={{
               padding: '7px 8px',
               fontSize: 12,
               fontWeight: 700,
-              color: '#0f172a',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              color: quickLoadingRole === 'admin' ? '#0071bc' : '#0f172a',
+              background: quickLoadingRole === 'admin' ? '#f0f7fc' : '#ffffff',
+              border: `1px solid ${quickLoadingRole === 'admin' ? '#0071bc' : '#cbd5e1'}`,
               borderRadius: 6,
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -127,24 +133,33 @@ function LoginForm() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
-            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+            onMouseOver={(e) => { if (!loading) e.currentTarget.style.borderColor = '#0071bc'; }}
+            onMouseOut={(e) => { if (!loading && quickLoadingRole !== 'admin') e.currentTarget.style.borderColor = '#cbd5e1'; }}
           >
-            👑 Admin
+            {quickLoadingRole === 'admin' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+                Đang vào...
+              </>
+            ) : (
+              <>👑 Admin</>
+            )}
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('lecturer@researchpulse.com')}
+            onClick={() => handleQuickLogin('lecturer@hyperdata.org', 'lecturer')}
             disabled={loading}
             style={{
               padding: '7px 8px',
               fontSize: 12,
               fontWeight: 700,
-              color: '#0f172a',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              color: quickLoadingRole === 'lecturer' ? '#0071bc' : '#0f172a',
+              background: quickLoadingRole === 'lecturer' ? '#f0f7fc' : '#ffffff',
+              border: `1px solid ${quickLoadingRole === 'lecturer' ? '#0071bc' : '#cbd5e1'}`,
               borderRadius: 6,
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -152,24 +167,33 @@ function LoginForm() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
-            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+            onMouseOver={(e) => { if (!loading) e.currentTarget.style.borderColor = '#0071bc'; }}
+            onMouseOut={(e) => { if (!loading && quickLoadingRole !== 'lecturer') e.currentTarget.style.borderColor = '#cbd5e1'; }}
           >
-            🎓 Lecturer
+            {quickLoadingRole === 'lecturer' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+                Đang vào...
+              </>
+            ) : (
+              <>🎓 Lecturer</>
+            )}
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('student@researchpulse.com')}
+            onClick={() => handleQuickLogin('student@hyperdata.org', 'student')}
             disabled={loading}
             style={{
               padding: '7px 8px',
               fontSize: 12,
               fontWeight: 700,
-              color: '#0f172a',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              color: quickLoadingRole === 'student' ? '#0071bc' : '#0f172a',
+              background: quickLoadingRole === 'student' ? '#f0f7fc' : '#ffffff',
+              border: `1px solid ${quickLoadingRole === 'student' ? '#0071bc' : '#cbd5e1'}`,
               borderRadius: 6,
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -177,10 +201,19 @@ function LoginForm() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
-            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+            onMouseOver={(e) => { if (!loading) e.currentTarget.style.borderColor = '#0071bc'; }}
+            onMouseOut={(e) => { if (!loading && quickLoadingRole !== 'student') e.currentTarget.style.borderColor = '#cbd5e1'; }}
           >
-            📖 Student
+            {quickLoadingRole === 'student' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+                Đang vào...
+              </>
+            ) : (
+              <>📖 Student</>
+            )}
           </button>
         </div>
       </div>
@@ -239,7 +272,7 @@ function LoginForm() {
           </div>
           <input
             id="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             className="auth-input"
             placeholder="Nhập mật khẩu của bạn"
@@ -304,7 +337,8 @@ export default function LoginPage() {
             <Link href="/#faq" className="pl-nav__link">Hỏi đáp</Link>
           </nav>
 
-          <div className="pl-header__actions">
+          <div className="pl-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSwitcher variant="toggle" />
             <Link href="/#register-section" className="pl-header-action pl-header-action--primary">
               Đăng ký sinh viên
             </Link>
@@ -405,7 +439,7 @@ export default function LoginPage() {
         </div>
 
         <div className="pl-container pl-footer__bottom">
-          <p>© {new Date().getFullYear()} ResearchPulse. Tất cả các quyền được bảo lưu.</p>
+          <p>© {new Date().getFullYear()} Hyperdata Lab. Tất cả các quyền được bảo lưu.</p>
           <p className="pl-footer__disclaimer">
             Nền tảng công bố học thuật phi lợi nhuận phục vụ sinh viên và nhà nghiên cứu trẻ.
           </p>

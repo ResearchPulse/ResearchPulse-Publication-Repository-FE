@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
+import { useTranslation } from '@/i18n';
 
 interface StudentSidebarProps {
   revisionCount?: number;
@@ -22,9 +23,10 @@ export function StudentSidebar({
 }: StudentSidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Student';
-  const displayOrg = user?.studentId ? `Student ID: ${user.studentId}` : (user?.role === 'STUDENT' ? 'Student Workspace' : user?.email || 'Workspace');
+  const displayOrg = user?.email || '';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -59,6 +61,9 @@ export function StudentSidebar({
     if (href === '/student/versions') {
       return pathname.startsWith('/student/versions');
     }
+    if (href === '/student/account') {
+      return pathname.startsWith('/student/account');
+    }
     if (href === '/student/my-preprints/new') {
       return pathname === '/student/my-preprints/new';
     }
@@ -79,7 +84,7 @@ export function StudentSidebar({
       <aside className={`student-sidebar ${isOpen ? 'student-sidebar--open' : ''}`}>
         {/* Brand Header */}
         <div className="student-sidebar__brand">
-          <Link href="/" className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
+          <Link href="/student/my-preprints" className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
             <div className="student-sidebar__logo-lockup">
               <Image
                 src="/hyperdata-lab-logo.png"
@@ -98,7 +103,7 @@ export function StudentSidebar({
               type="button"
               className="student-sidebar__close-btn"
               onClick={onClose}
-              aria-label="Close Sidebar"
+              aria-label={t('common.close')}
             >
               ×
             </button>
@@ -106,10 +111,10 @@ export function StudentSidebar({
         </div>
 
         {/* Navigation Section */}
-        <nav className="student-sidebar__nav" aria-label="Scholar Dashboard Navigation">
-          {/* Group: Core Workspace */}
+        <nav className="student-sidebar__nav" aria-label="Sidebar Navigation">
+          {/* Group: Manuscripts */}
           <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">WORKSPACE</span>
+            <span className="student-sidebar__group-title">{t('student.topbar.preprintsGroup').toUpperCase()}</span>
 
             <Link
               href="/student/my-preprints"
@@ -124,47 +129,9 @@ export function StudentSidebar({
                   <line x1="16" y1="17" x2="8" y2="17" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">My Manuscripts</span>
+              <span className="student-sidebar__text">{t('student.sidebar.myPreprints')}</span>
               {totalCount > 0 && (
                 <span className="student-sidebar__badge">{totalCount}</span>
-              )}
-            </Link>
-
-            <Link
-              href="/student/my-preprints/new"
-              className={`student-sidebar__link ${isRouteActive('/student/my-preprints/new') ? 'student-sidebar__link--active' : ''}`}
-              onClick={onClose}
-            >
-              <span className="student-sidebar__icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="16" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
-                </svg>
-              </span>
-              <span className="student-sidebar__text">New Submission</span>
-            </Link>
-          </div>
-
-          {/* Group: Mentorship & Quality */}
-          <div className="student-sidebar__group">
-            <span className="student-sidebar__group-title">ACADEMIC REVIEW</span>
-
-            <Link
-              href="/student/mentor-feedback"
-              className={`student-sidebar__link ${isRouteActive('/student/mentor-feedback') ? 'student-sidebar__link--active' : ''}`}
-              onClick={onClose}
-            >
-              <span className="student-sidebar__icon student-sidebar__icon--amber">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </span>
-              <span className="student-sidebar__text">Mentor Feedback</span>
-              {revisionCount > 0 && (
-                <span className="student-sidebar__badge student-sidebar__badge--alert">
-                  {revisionCount}
-                </span>
               )}
             </Link>
 
@@ -179,7 +146,49 @@ export function StudentSidebar({
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               </span>
-              <span className="student-sidebar__text">Version Archive</span>
+              <span className="student-sidebar__text">{t('student.sidebar.versions')}</span>
+            </Link>
+          </div>
+
+          {/* Group: Review & Mentorship */}
+          <div className="student-sidebar__group">
+            <span className="student-sidebar__group-title">{t('student.topbar.reviewGroup').toUpperCase()}</span>
+
+            <Link
+              href="/student/mentor-feedback"
+              className={`student-sidebar__link ${isRouteActive('/student/mentor-feedback') ? 'student-sidebar__link--active' : ''}`}
+              onClick={onClose}
+            >
+              <span className="student-sidebar__icon student-sidebar__icon--amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </span>
+              <span className="student-sidebar__text">{t('student.sidebar.mentorFeedback')}</span>
+              {revisionCount > 0 && (
+                <span className="student-sidebar__badge student-sidebar__badge--alert">
+                  {revisionCount}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          {/* Group: Account */}
+          <div className="student-sidebar__group">
+            <span className="student-sidebar__group-title">{t('student.topbar.personalGroup').toUpperCase()}</span>
+
+            <Link
+              href="/student/account"
+              className={`student-sidebar__link ${isRouteActive('/student/account') ? 'student-sidebar__link--active' : ''}`}
+              onClick={onClose}
+            >
+              <span className="student-sidebar__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
+              <span className="student-sidebar__text">{t('student.sidebar.account')}</span>
             </Link>
           </div>
         </nav>
@@ -189,24 +198,24 @@ export function StudentSidebar({
           <div className="student-sidebar__profile-card">
             <div className="student-sidebar__avatar">
               <span>{initials}</span>
-              <span className="student-sidebar__status-dot" aria-label="Online" />
+              <span className="student-sidebar__status-dot" aria-label="Active" />
             </div>
             <div className="student-sidebar__profile-info">
-
               <span className="student-sidebar__name" title={displayName}>
                 {displayName}
               </span>
-              <span className="student-sidebar__org" title={displayOrg}>
-                {displayOrg}
-              </span>
-
+              {displayOrg && (
+                <span className="student-sidebar__org" title={displayOrg}>
+                  {displayOrg}
+                </span>
+              )}
             </div>
             <button
               type="button"
               onClick={() => authApi.logout()}
               className="student-sidebar__logout-btn"
-              title="Sign Out"
-              aria-label="Sign Out"
+              title={t('common.logout')}
+              aria-label={t('common.logout')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

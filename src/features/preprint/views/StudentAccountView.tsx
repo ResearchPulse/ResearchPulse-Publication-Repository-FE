@@ -1,0 +1,549 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { authApi } from '@/features/auth/api/authApi';
+import { StudentShell } from '../components';
+import { LanguageSwitcher, useTranslation } from '@/i18n';
+
+export function StudentAccountView() {
+  const { user, refresh, updateUser } = useAuth();
+  const { t, locale } = useTranslation();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    studentId: '',
+    major: '',
+  });
+
+  // Sync form data whenever user changes or edit mode opens
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        studentId: user.studentId || '',
+        major: user.major || '',
+      });
+    }
+  }, [user, isEditing]);
+
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Sinh viên';
+  const displayEmail = user?.email || 'Chưa cập nhật email';
+  const displayRole = user?.role === 'STUDENT' ? 'Sinh viên / Tác giả nghiên cứu' : user?.role || 'Sinh viên';
+  const displayMajor = user?.major || 'Chưa cập nhật';
+  const displayStudentId = user?.studentId || 'Chưa thiết lập';
+
+  const getInitials = (name?: string | null, email?: string | null) => {
+    if (name?.trim()) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.slice(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email.slice(0, 2).toUpperCase();
+    }
+    return 'SV';
+  };
+
+  const initials = getInitials(user?.name, user?.email);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsSaving(true);
+
+    try {
+      const res = await authApi.updateProfile({
+        name: formData.name.trim() || undefined,
+        studentId: formData.studentId.trim() || undefined,
+        major: formData.major.trim() || undefined,
+      });
+
+      if (res.user) {
+        updateUser(res.user);
+      }
+      await refresh();
+
+      setSuccessMessage('Cập nhật hồ sơ tài khoản thành công!');
+      setIsEditing(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu hồ sơ');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <StudentShell title={t('student.account.title')} showStandardHeader={false}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        
+        {/* Success Alert Banner */}
+        {successMessage && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              color: '#166534',
+              fontSize: '13.5px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+              <span>{successMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuccessMessage(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534', fontSize: '16px', lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Profile Header Card */}
+        <div
+          className="student-section-card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '20px',
+            padding: '24px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: '#0071bc',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '22px',
+                fontWeight: 700,
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(0, 113, 188, 0.25)',
+              }}
+            >
+              {initials}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>
+                  {displayName}
+                </h2>
+                <span className="user-badge user-badge--approved">{t('student.account.active').toUpperCase()}</span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '13.5px', color: '#64748b' }}>
+                {displayEmail} · <span style={{ color: '#0071bc', fontWeight: 600 }}>{displayRole}</span>
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(!isEditing);
+                setErrorMessage(null);
+              }}
+              className="student-btn student-btn--secondary student-btn--sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                <path d="m15 5 4 4"/>
+              </svg>
+              <span>{isEditing ? t('common.close') : t('common.edit')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => authApi.logout()}
+              className="student-btn student-btn--secondary student-btn--sm"
+            >
+              {t('common.logout')}
+            </button>
+          </div>
+        </div>
+
+        {/* In-place Profile Edit Form */}
+        {isEditing && (
+          <div
+            className="student-section-card"
+            style={{
+              padding: '24px',
+              border: '1px solid #93c5fd',
+              background: '#f8fafc',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                  Cập nhật thông tin hồ sơ
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+                  Thông tin sẽ được cập nhật trực tiếp vào tài khoản và đồng bộ với các bản thảo nghiên cứu của bạn.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '18px',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {errorMessage && (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  fontSize: '13px',
+                  marginBottom: '16px',
+                }}
+              >
+                {errorMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '16px',
+                  marginBottom: '16px',
+                }}
+              >
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {t('student.account.fullName')} <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Nguyễn Văn A"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '14px',
+                      background: '#ffffff',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {t('student.account.studentId')}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.studentId}
+                    onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                    placeholder="Ví dụ: 2026-STEM-089"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '14px',
+                      background: '#ffffff',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {t('student.account.major')}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.major}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                    placeholder="Ví dụ: Kỹ thuật phần mềm, Khoa học dữ liệu"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '14px',
+                      background: '#ffffff',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {t('student.account.email')}
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={displayEmail}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '14px',
+                      background: '#f1f5f9',
+                      color: '#64748b',
+                      boxSizing: 'border-box',
+                      cursor: 'not-allowed',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  disabled={isSaving}
+                  className="student-btn student-btn--secondary student-btn--sm"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="student-btn student-btn--primary student-btn--sm"
+                  style={{ minWidth: '110px' }}
+                >
+                  {isSaving ? t('common.saving') : t('common.save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Academic Details Card */}
+        <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+              {t('student.account.tabProfile')}
+            </h3>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              {user?.updatedAt ? `Cập nhật: ${new Date(user.updatedAt).toLocaleDateString('vi-VN')}` : 'Đã xác thực hồ sơ'}
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '16px',
+              width: '100%',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                {t('student.account.fullName')}
+              </span>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                {displayName}
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                {t('student.account.email')}
+              </span>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                {displayEmail}
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                {t('student.account.role')}
+              </span>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0071bc', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                {displayRole}
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                {t('student.account.studentId')}
+              </span>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                {displayStudentId}
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                {t('student.account.major')}
+              </span>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                {displayMajor}
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                {t('student.account.status')}
+              </span>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }} />
+                {t('student.account.active')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Security & Access Card */}
+        <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+            {t('student.account.tabSecurity')}
+          </h3>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '16px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 16px',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                gap: '12px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{t('auth.password')}</div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>••••••••••••</div>
+              </div>
+              <a
+                href="/reset-password"
+                className="student-btn student-btn--secondary student-btn--sm"
+              >
+                {t('student.account.changePasswordTitle')}
+              </a>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '14px 16px',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                gap: '12px',
+              }}
+            >
+              <div style={{ color: '#0071bc', flexShrink: 0 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Session Security</div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  Secure HTTP-Only Cookie &amp; Bearer JWT
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Preferences & Language Card */}
+        <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+            {locale === 'vi' ? 'Cài đặt hệ thống & Tùy chọn' : 'System Preferences & Settings'}
+          </h3>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '18px 20px',
+              background: '#f8fafc',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              gap: '16px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                {locale === 'vi' ? 'Ngôn ngữ hiển thị hệ thống' : 'System Display Language'}
+              </div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                {locale === 'vi'
+                  ? 'Cài đặt này sẽ được áp dụng thống nhất cho toàn bộ giao diện và các trang trong hệ thống.'
+                  : 'This preference will be applied across all dashboard views and workspace pages.'}
+              </div>
+            </div>
+            
+            {/* Embedded Language Switcher Dropdown */}
+            <LanguageSwitcher variant="dropdown" />
+          </div>
+        </div>
+      </div>
+    </StudentShell>
+  );
+}
+
+export default StudentAccountView;

@@ -146,7 +146,7 @@ export default function ResetPasswordPage() {
       <header className="auth-header">
         <Link href="/" className="auth-header__logo">
           <HyperdataLogo size={28} />
-          <span>ResearchPulse</span>
+          <span>Hyperdata Lab</span>
         </Link>
         <Link href="/login" className="auth-header__back">
           <span>Về trang đăng nhập</span>

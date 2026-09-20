@@ -3,10 +3,12 @@ export type LecturerRecommendation = 'PUBLISH' | 'NEEDS_REVISION' | 'REJECT';
 export type LecturerReview = {
   id: string;
   reviewerId: string;
+  reviewer?: { id: string; name?: string | null; email: string };
   versionId?: string;
   round: number;
   comment?: string | null;
   recommendation?: LecturerRecommendation | null;
+  assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'LEGACY';
   submittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +32,13 @@ export type LecturerPublication = {
     fileName: string;
     submittedAt?: string | null;
   } | null;
-  uploader?: { id: string; email: string; name?: string | null };
+  uploader?: {
+    id: string;
+    email: string;
+    name?: string | null;
+    role?: 'LECTURER' | 'STUDENT' | 'ADMIN';
+    studentId?: string | null;
+  };
   authors?: Array<{ id?: string; name: string; email?: string | null; affiliation?: string | null }>;
   downloadUrl?: string;
   myReview?: LecturerReview;
@@ -92,16 +100,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 function withReviewStatus(publication: LecturerPublication, review?: LecturerReview): LecturerReviewItem {
+  const isAwaiting = publication.status === 'REVIEWING' && (!review || !review.submittedAt);
   return {
     ...publication,
-    reviewStatus: review?.submittedAt ? 'COMPLETED' : 'AWAITING_REVIEW',
+    reviewStatus: isAwaiting ? 'AWAITING_REVIEW' : 'COMPLETED',
     myReview: review,
   };
 }
 
 export const lecturerReviewApi = {
   async list(): Promise<{ items: LecturerReviewItem[]; total: number }> {
-    const publications = await request<LecturerPublication[]>('/?status=REVIEWING&limit=50');
+    const publications = await request<LecturerPublication[]>('/?assignedToMe=true&limit=50');
     const items = publications.map((publication) => withReviewStatus(publication, publication.myReview));
     return { items, total: items.length };
   },
@@ -121,5 +130,11 @@ export const lecturerReviewApi = {
     request<LecturerReview>(`/${encodeURIComponent(id)}/reviews`, {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+
+  changeStatus: (id: string, status: 'PUBLISHED' | 'DRAFTING' | 'REJECTED', reason?: string) =>
+    request<Pick<LecturerPublication, 'id' | 'title' | 'status' | 'updatedAt'>>(`/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, reason }),
     }),
 };

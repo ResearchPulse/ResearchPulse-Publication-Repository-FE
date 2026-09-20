@@ -3,6 +3,7 @@ import { PaperPortalShowcase } from '../components/PaperPortalShowcase';
 import { PaperDisciplineSpotlight } from '../components/PaperDisciplineSpotlight';
 import { PaperWorkflowSection } from '../components/PaperWorkflowSection';
 import { ScrollRevealObserver } from '../components/ScrollRevealObserver';
+import { LanguageSwitcher } from '@/i18n';
 
 const features = [
   {
@@ -55,9 +56,9 @@ const faqs = [
       'A preprint is an author-owned preliminary manuscript shared publicly before formal peer review. Major academic publishers (including IEEE, Elsevier, Springer Nature, and ACM) explicitly allow preprint sharing prior to journal submission. It establishes your scientific priority without forfeiting publication rights.',
   },
   {
-    question: 'Who can submit a manuscript to ResearchPulse?',
+    question: 'Who can submit a manuscript to Hyperdata Lab?',
     answer:
-      'Undergraduate and graduate students, academic research assistants, and university faculty collaborators can submit work through the ResearchPulse workspace. Authentication is centrally managed through Single Sign-On (SSO).',
+      'Undergraduate and graduate students, academic research assistants, and university faculty collaborators can submit work through the Hyperdata Lab workspace. Authentication is centrally managed through Single Sign-On (SSO).',
   },
   {
     question: 'Can I update my manuscript after receiving reviewer feedback?',
@@ -77,7 +78,7 @@ const faqs = [
   {
     question: 'Is there any fee to submit, read, or download preprints?',
     answer:
-      'No. The ResearchPulse Publication Repository is 100% open-access and free for students, educators, and independent researchers. There are no Article Processing Charges (APCs) or access paywalls.',
+      'No. The Hyperdata Lab Publication Repository is 100% open-access and free for students, educators, and independent researchers. There are no Article Processing Charges (APCs) or access paywalls.',
   },
 ] as const;
 
@@ -92,7 +93,7 @@ export function PaperLandingView() {
       {/* Top Announcement Bar */}
       <div className="paper-announcement">
         <span className="paper-announcement-tag">NEW</span>
-        <span>ResearchPulse Publication Repository • Open Academic Infrastructure for Student Scholars</span>
+        <span>Hyperdata Lab Publication Repository • Open Academic Infrastructure for Student Scholars</span>
         <a href="#how-it-works">Learn how it works →</a>
       </div>
 
@@ -110,7 +111,8 @@ export function PaperLandingView() {
             <a href="#faq">FAQ</a>
           </nav>
 
-          <div className="paper-header-actions">
+          <div className="paper-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSwitcher variant="toggle" />
             <a className="paper-sign-in" href={signInUrl}>
               Sign in
             </a>
@@ -149,7 +151,7 @@ export function PaperLandingView() {
           <div className="paper-hero-copy paper-reveal">
             <div className="paper-hero-badge">
               <span className="paper-hero-badge-dot" />
-              <span>ResearchPulse Academic Gateway • 2026 Edition</span>
+              <span>Hyperdata Lab Academic Gateway • 2026 Edition</span>
             </div>
 
             <h1>
@@ -240,7 +242,7 @@ export function PaperLandingView() {
               <h2>Less Friction. More Signal.</h2>
             </div>
             <p>
-              Academic research involves multiple drafts, mentors, and revisions. ResearchPulse gives every contribution a clear, citable place to land.
+              Academic research involves multiple drafts, mentors, and revisions. Hyperdata Lab gives every contribution a clear, citable place to land.
             </p>
           </div>
 
@@ -272,13 +274,13 @@ export function PaperLandingView() {
             <div className="paper-advisory-copy">
               <p className="paper-eyebrow">Built With The Research Community</p>
               <blockquote>
-                Good research needs room to breathe, and the right people around it. ResearchPulse gives early ideas the care, rigorous faculty review, and momentum they deserve before journal submission.
+                Good research needs room to breathe, and the right people around it. Hyperdata Lab gives early ideas the care, rigorous faculty review, and momentum they deserve before journal submission.
               </blockquote>
               <div className="paper-advisory-author">
                 <span className="paper-avatar paper-avatar-large">LT</span>
                 <span>
                   <strong>Dr. Linh Tran</strong>
-                  <small>Faculty Advisory Board • ResearchPulse &amp; VNU Data Systems</small>
+                  <small>Faculty Advisory Board • Hyperdata Lab &amp; VNU Data Systems</small>
                 </span>
               </div>
             </div>
@@ -335,7 +337,7 @@ export function PaperLandingView() {
             <p className="paper-eyebrow">Ready to Share Your Research?</p>
             <h2>Give Your Findings an Official, Timestamped Record Today</h2>
             <p className="paper-cta-subtitle">
-              Join over 1,400 student researchers and university faculty collaborating openly on ResearchPulse.
+              Join over 1,400 student researchers and university faculty collaborating openly on Hyperdata Lab.
             </p>
             <div className="paper-cta-actions">
               <a className="paper-button paper-button-large" href={submitUrl}>
@@ -360,7 +362,7 @@ export function PaperLandingView() {
           <div className="paper-footer-brand">
             <PaperBrandLockup />
             <p>
-              ResearchPulse Publication Repository is an open academic gateway empowering student researchers with early timestamping, structured faculty mentorship, and scholarly transparency.
+              Hyperdata Lab Publication Repository is an open academic gateway empowering student researchers with early timestamping, structured faculty mentorship, and scholarly transparency.
             </p>
             <div className="paper-footer-social">
               <span className="paper-open-badge">Open Access Initiative</span>
@@ -390,7 +392,7 @@ export function PaperLandingView() {
         </div>
 
         <div className="paper-container paper-footer-bottom">
-          <span>© 2026 ResearchPulse Publication Repository • Hyperdata Lab Infrastructure.</span>
+          <span>© 2026 Hyperdata Lab Publication Repository • Hyperdata Lab Infrastructure.</span>
           <span>Open Academic Research • Preserved with SHA-256 Cryptographic Timestamping.</span>
         </div>
       </footer>

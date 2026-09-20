@@ -13,7 +13,7 @@ export type Author = {
   isCorresponding?: boolean;
 };
 
-export type ReviewDecision = 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';
+export type ReviewDecision = 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';
 
 export type ReviewNote = {
   id: string;
@@ -23,6 +23,8 @@ export type ReviewNote = {
   comments: string;
   recommendations?: string[];
   created_at: string;
+  round?: number;
+  assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'LEGACY';
 };
 
 export type TimelineEvent = {
@@ -58,6 +60,8 @@ export type StudentPreprint = {
   discipline: string;
   keywords: string[];
   status: PreprintStatus;
+  audiences?: Array<'GUEST' | 'STUDENT' | 'LECTURER'>;
+  is_private?: boolean;
   current_version: number;
   revision_required?: boolean;
   authors: Author[];

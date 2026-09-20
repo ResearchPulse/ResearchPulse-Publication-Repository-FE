@@ -1,8 +1,22 @@
-/* Public landing page styles. Scoped to .public-landing. */
-/* ==========================================================================
-   Public Academic Gateway Landing (Scoped under .public-landing)
-   Strictly aligned with Hyperdata Lab FE Design System
-   ========================================================================== */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
 
 .public-landing {
   /* 2.1 Primitive tokens */
@@ -148,6 +162,15 @@ body:has(.public-landing) {
 
 .public-landing #main-content {
   scroll-margin-top: 88px;
+}
+
+#register-section,
+#portal,
+#features,
+#workflow,
+#advisory,
+#faq {
+  scroll-margin-top: 96px;
 }
 
 .pl-container {
@@ -649,7 +672,7 @@ body:has(.public-landing) {
 }
 
 /* ==========================================================================
-   Centered Hero & Pill Badge (ResearchPulse Style)
+   Centered Hero & Pill Badge (Hyperdata Lab Style)
    ========================================================================== */
 .pl-hero--centered {
   text-align: center;
@@ -1162,7 +1185,7 @@ body:has(.public-landing) {
 }
 
 /* ==========================================================================
-   3 Bento Cards Section (ResearchPulse Style)
+   3 Bento Cards Section (Hyperdata Lab Style)
    ========================================================================== */
 .pl-bento-grid {
   display: grid;
@@ -2183,7 +2206,7 @@ body:has(.public-landing) {
     padding: var(--ds-space-8) var(--ds-space-6);
   }
 
-  /* ResearchPulse Showcase & Floating adjustments */
+  /* Hyperdata Lab Showcase & Floating adjustments */
   .pl-showcase-wrapper {
     padding: 24px 12px;
   }
@@ -2282,7 +2305,7 @@ body:has(.public-landing) {
     padding: var(--ds-space-12) var(--ds-space-4);
   }
 
-  /* ResearchPulse Mobile Adaptations */
+  /* Hyperdata Lab Mobile Adaptations */
   .pl-hero--centered {
     padding-top: var(--ds-space-8);
     padding-bottom: var(--ds-space-12);
@@ -2576,3 +2599,749 @@ body:has(.public-landing) {
     transform: translateY(0);
   }
 }
+
+/* ==========================================================================
+   Published Preprints Repository Section (.pl-published-*)
+   Strictly aligned with Hyperdata Design System
+   ========================================================================== */
+
+.pl-published-section {
+  margin-top: 88px;
+  margin-bottom: 88px;
+  position: relative;
+}
+
+.pl-published-head {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.pl-published-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #f0f7fc;
+  color: #0071bc;
+  border: 1px solid #cbe4f7;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 113, 188, 0.05);
+}
+
+.pl-published-title {
+  font-size: clamp(26px, 3.8vw, 38px);
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  margin: 14px 0 10px 0;
+  line-height: 1.22;
+}
+
+.pl-published-desc {
+  font-size: 16px;
+  color: #64748b;
+  max-width: 660px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Discovery Toolbar: 2-Tier Balanced Layout */
+.pl-published-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 36px;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pl-published-search-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+}
+
+.pl-published-search-input {
+  width: 100%;
+  height: 48px;
+  padding: 10px 44px 10px 46px;
+  border: 1.5px solid #dce4e9;
+  border-radius: 9999px;
+  font-size: 14.5px;
+  color: #0f172a;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 75, 125, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.22s ease;
+  outline: none;
+}
+
+.pl-published-search-input:focus {
+  border-color: #0071bc;
+  box-shadow: 0 0 0 4px rgba(0, 113, 188, 0.12), 0 6px 20px rgba(0, 113, 188, 0.08);
+}
+
+.pl-published-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.pl-published-search-clear {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.pl-published-search-clear:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.pl-published-category-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.pl-published-tab-btn {
+  padding: 7px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pl-published-tab-btn:hover {
+  background: #f8fafc;
+  color: #0071bc;
+  border-color: #cbd5e1;
+}
+
+.pl-published-tab-btn--active {
+  background: #0071bc;
+  color: #ffffff;
+  border-color: #0071bc;
+  box-shadow: 0 4px 12px rgba(0, 113, 188, 0.22);
+}
+
+.pl-published-tab-btn--active:hover {
+  background: #005f9e;
+  color: #ffffff;
+}
+
+.pl-published-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #0071bc;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 22px;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 113, 188, 0.25);
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.pl-published-btn-primary:hover {
+  background: #005f9e;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 113, 188, 0.32);
+  color: #ffffff;
+}
+
+.pl-published-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1.5px solid #dce4e9;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.pl-published-btn-secondary:hover {
+  background: #f8fafc;
+  color: #0071bc;
+  border-color: #0071bc;
+}
+
+/* Results Grid (When real papers exist) */
+.pl-published-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .pl-published-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .pl-published-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.pl-published-card {
+  background: #ffffff;
+  border: 1px solid #dce4e9;
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pl-published-card:hover {
+  border-color: #0071bc;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -6px rgba(0, 113, 188, 0.12);
+}
+
+.pl-published-card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pl-published-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: #eef6fc;
+  color: #0071bc;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pl-published-version-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pl-published-card-title {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+  margin: 0 0 8px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pl-published-card-abstract {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.55;
+  margin: 0 0 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pl-published-card-authors {
+  font-size: 12.5px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.pl-published-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* Quick View Modal */
+.pl-published-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.pl-published-modal-panel {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 680px;
+  width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 32px;
+  position: relative;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+  animation: plModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes plModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Publishing Workflow Journey & Continuous Roadmap
+   ========================================================================== */
+.pl-journey-section {
+  margin-top: 68px;
+  margin-bottom: 68px;
+  position: relative;
+}
+
+.pl-workflow-head {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 44px;
+}
+
+.pl-workflow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #eef6fc;
+  color: #0071bc;
+  border: 1px solid #d0e7f9;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 6px rgba(0, 113, 188, 0.06);
+}
+
+.pl-workflow-title {
+  font-size: 30px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  margin: 0 0 12px 0;
+}
+
+.pl-workflow-desc {
+  font-size: 15.5px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Streamlined Publication Workflow Section */
+.pl-workflow-section-wrap {
+  margin-top: 64px;
+  margin-bottom: 72px;
+  position: relative;
+}
+
+.pl-workflow-timeline-wrapper {
+  max-width: 1140px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.pl-workflow-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+}
+
+/* Card Styling: Clean, Floating, Premium */
+.pl-workflow-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  padding: 24px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.pl-workflow-card:hover {
+  transform: translateY(-4px);
+  border-color: #93c5fd;
+  box-shadow: 0 16px 32px -6px rgba(0, 113, 188, 0.12), 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+.pl-workflow-card--final {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fdf9 100%);
+  border-color: rgba(187, 247, 208, 0.85);
+}
+
+.pl-workflow-card--final:hover {
+  border-color: #86efac;
+  box-shadow: 0 16px 32px -6px rgba(22, 163, 74, 0.12), 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+/* Card Header: Step Badge & Icon */
+.pl-workflow-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pl-workflow-step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f0f7ff;
+  border: 1px solid #dbeafe;
+  padding: 4px 11px 4px 6px;
+  border-radius: 20px;
+}
+
+.pl-workflow-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0071bc;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.02em;
+}
+
+.pl-workflow-step-name {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #0071bc;
+}
+
+.pl-workflow-step-badge--final {
+  background: #f0fdf4;
+  border-color: #dcfce7;
+}
+
+.pl-workflow-step-badge--final .pl-workflow-step-num {
+  background: #16a34a;
+}
+
+.pl-workflow-step-badge--final .pl-workflow-step-name {
+  color: #15803d;
+}
+
+.pl-workflow-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0071bc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #f1f5f9;
+  transition: all 0.25s ease;
+}
+
+.pl-workflow-card:hover .pl-workflow-icon-box {
+  background: #e0f2fe;
+  color: #0071bc;
+  transform: scale(1.06);
+}
+
+.pl-workflow-icon-box--final {
+  color: #16a34a;
+  background: #f0fdf4;
+  border-color: #dcfce7;
+}
+
+.pl-workflow-card--final:hover .pl-workflow-icon-box--final {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* Card Content Typography */
+.pl-workflow-card-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  line-height: 1.35;
+}
+
+.pl-workflow-card-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.pl-workflow-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0071bc;
+  transition: color 0.2s ease, gap 0.2s ease;
+}
+
+.pl-workflow-card:hover .pl-workflow-card-action {
+  color: #0284c7;
+  gap: 8px;
+}
+
+.pl-workflow-card-action--final {
+  color: #16a34a;
+  border-top-color: #f0fdf4;
+}
+
+.pl-workflow-card--final:hover .pl-workflow-card-action--final {
+  color: #15803d;
+}
+
+/* Inline Connectors Between Cards */
+.pl-workflow-connector-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  position: relative;
+  min-width: 44px;
+}
+
+.pl-workflow-connector-line {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, #93c5fd 0%, #38bdf8 100%);
+  border-radius: 2px;
+  position: relative;
+}
+
+.pl-workflow-connector-arrow {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 113, 188, 0.08);
+}
+
+.pl-workflow-connector-line--success {
+  background: linear-gradient(90deg, #38bdf8 0%, #86efac 100%);
+}
+
+.pl-workflow-connector-arrow--success {
+  border-color: #bbf7d0;
+  color: #16a34a;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.08);
+}
+
+/* Transition Divider between Row 1 and Row 2 */
+.pl-workflow-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.pl-workflow-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #cbd5e1 50%, transparent 100%);
+}
+
+.pl-workflow-divider-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  color: #0369a1;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(0, 113, 188, 0.06);
+}
+
+.pl-workflow-divider-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0284c7;
+}
+
+/* Bottom CTA Banner */
+.pl-workflow-banner {
+  margin-top: 48px;
+  background: linear-gradient(135deg, #0071bc 0%, #005b96 100%);
+  border-radius: 22px;
+  padding: 28px 36px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  box-shadow: 0 16px 36px -10px rgba(0, 113, 188, 0.35);
+  position: relative;
+  z-index: 2;
+}
+
+.pl-workflow-banner-content h4 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+}
+
+.pl-workflow-banner-content p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.pl-workflow-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #0071bc;
+  font-weight: 800;
+  font-size: 14.5px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.pl-workflow-banner-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  color: #005b96;
+}
+
+/* Mobile & Tablet Responsiveness (< 992px) */
+@media (max-width: 991px) {
+  .pl-workflow-row {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .pl-workflow-connector-inline {
+    padding: 8px 0;
+    min-width: auto;
+    height: 32px;
+  }
+  .pl-workflow-connector-line {
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, #93c5fd 0%, #38bdf8 100%);
+  }
+  .pl-workflow-connector-arrow svg {
+    transform: rotate(90deg);
+  }
+  .pl-workflow-divider {
+    margin: 8px 0;
+  }
+  .pl-workflow-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
+

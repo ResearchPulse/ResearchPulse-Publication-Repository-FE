@@ -30,7 +30,7 @@ function isAllowedAdminPath(path: string[], method: string) {
   if (root === 'publications') {
     if (path.length === 1) return method === 'GET';
     if (path.length === 2) return method === 'GET';
-    if (path.length === 3 && resource === 'status') return method === 'PATCH';
+    if (path.length === 3 && (resource === 'status' || resource === 'visibility')) return method === 'PATCH';
     if (path.length === 3 && (resource === 'reviews' || resource === 'versions' || resource === 'timeline')) {
       return method === 'GET';
     }

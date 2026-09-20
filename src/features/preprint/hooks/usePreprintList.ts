@@ -1,24 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { studentPreprintApi, ApiUnavailableError } from '../api';
 import type { StudentPreprint } from '../types';
 
+const EMPTY_ITEMS: StudentPreprint[] = [];
+
 export function usePreprintList() {
-  const [items, setItems] = useState<StudentPreprint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data, isLoading, error, refetch } = useQuery<StudentPreprint[], Error>({
+    queryKey: ['preprints', 'mine'],
+    queryFn: async () => {
+      const result = await studentPreprintApi.listMine();
+      return result.items || [];
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes fresh cache
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+  });
 
-  useEffect(() => {
-    let active = true;
-    studentPreprintApi.listMine()
-      .then((result) => { if (active) setItems(result.items || []); })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason : new Error('Unable to load preprints.')); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
-
-  return { items, loading, error, apiPending: error instanceof ApiUnavailableError };
+  return {
+    items: data ?? EMPTY_ITEMS,
+    loading: isLoading,
+    error: error ?? null,
+    apiPending: error instanceof ApiUnavailableError,
+    refetch,
+  };
 }
 
 export default usePreprintList;

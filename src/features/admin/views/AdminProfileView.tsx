@@ -2,8 +2,10 @@
 
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { AdminShell } from '../components/AdminShell';
+import { LanguageSwitcher, useTranslation } from '@/i18n';
 
 export function AdminProfileView() {
+  const { t, locale } = useTranslation();
   const { user } = useAuth();
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Administrator';
   const displayEmail = user?.email || 'admin@hyperdata.org';
@@ -145,6 +147,51 @@ export function AdminProfileView() {
                 {user?.id ? user.id.slice(0, 16) + '…' : 'N/A'}
               </code>
             </div>
+          </div>
+        </div>
+
+        {/* System Preferences & Language Setting Card */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+            {locale === 'vi' ? 'Cài đặt hệ thống & Tùy chọn' : 'System Preferences & Settings'}
+          </h2>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '18px 20px',
+            background: '#f8fafc',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            gap: '16px',
+            flexWrap: 'wrap',
+          }}>
+            <div>
+              <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                {locale === 'vi' ? 'Ngôn ngữ hiển thị hệ thống' : 'System Display Language'}
+              </div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                {locale === 'vi'
+                  ? 'Cài đặt này sẽ được áp dụng thống nhất cho toàn bộ giao diện và các trang quản trị.'
+                  : 'This preference will be applied across all dashboard views and management pages.'}
+              </div>
+            </div>
+            
+            {/* Embedded Language Switcher Dropdown */}
+            <LanguageSwitcher variant="dropdown" />
           </div>
         </div>
       </div>

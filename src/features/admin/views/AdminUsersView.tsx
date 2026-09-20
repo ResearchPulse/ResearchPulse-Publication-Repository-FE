@@ -3,18 +3,39 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Field, Panel, SelectInput, TextInput } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
-import { adminApi, type AdminUser } from '../api';
+import { adminApi, type AdminOverview, type AdminUser } from '../api';
+import { TableSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
+import { useTranslation } from '@/i18n';
 
-type RoleFilter = 'ALL' | AdminUser['role'];
+type ActiveTab = 'ALL' | 'STUDENT' | 'LECTURER' | 'ADMIN' | 'PENDING';
 type ActiveFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
 
+function getUserInitials(name?: string | null, email?: string): string {
+  if (name?.trim()) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+  if (email) {
+    return email.slice(0, 2).toUpperCase();
+  }
+  return 'U';
+}
+
 export function AdminUsersView() {
+  const { t, locale } = useTranslation();
+  const [tab, setTab] = useState<ActiveTab>('ALL');
   const [search, setSearch] = useState('');
-  const [role, setRole] = useState<RoleFilter>('ALL');
   const [active, setActive] = useState<ActiveFilter>('ALL');
   const [page, setPage] = useState(1);
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [result, setResult] = useState<Awaited<ReturnType<typeof adminApi.listUsers>> | null>(null);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, AdminUser['role']>>({});
+  const [pendingUsers, setPendingUsers] = useState<AdminUser[]>([]);
+  const [loadingPending, setLoadingPending] = useState(true);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,17 +51,23 @@ export function AdminUsersView() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (tab === 'PENDING') {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
     setLoading(true);
     setError(null);
 
-    adminApi.listUsers({
-      page,
-      limit: 20,
-      search: search.trim() || undefined,
-      role: role === 'ALL' ? undefined : role,
-      isActive: active === 'ALL' ? undefined : active === 'ACTIVE',
-    })
+    adminApi
+      .listUsers({
+        page,
+        limit: 20,
+        search: search.trim() || undefined,
+        role: tab === 'ALL' ? undefined : (tab as AdminUser['role']),
+        isActive: active === 'ALL' ? undefined : active === 'ACTIVE',
+      })
       .then((next) => {
         if (mounted) setResult(next);
       })
@@ -90,34 +117,82 @@ export function AdminUsersView() {
     }
   };
 
-  const updateRole = async (user: AdminUser) => {
-    const nextRole = roleDrafts[user.id] || user.role;
-    if (nextRole === user.role) return;
-    if (!window.confirm(`Change ${user.email} role to ${nextRole}?`)) return;
+  const totalUsersCount = overview?.users?.total || result?.pagination?.total || 0;
+  const studentsCount = overview?.users?.students || 0;
+  const lecturersCount = overview?.users?.lecturers || 0;
+  const adminsCount = Math.max(0, totalUsersCount - studentsCount - lecturersCount);
 
+  // Decide pending registration (Approve / Reject)
+  const decidePendingUser = async (user: AdminUser, decision: 'approve' | 'reject') => {
+    if (!window.confirm(`${decision === 'approve' ? 'Approve' : 'Reject'} registration for ${user.email}?`)) return;
     setBusyId(user.id);
     setMessage(null);
     try {
-      const updated = await adminApi.updateUserRole(user.id, nextRole);
-      setResult((current) => current ? { ...current, users: current.users.map((item) => item.id === updated.id ? updated : item) } : current);
-      setMessage('User role updated successfully.');
+      const updated =
+        decision === 'approve' ? await adminApi.approveUser(user.id) : await adminApi.rejectUser(user.id);
+      setPendingUsers((current) => current.filter((item) => item.id !== user.id));
+      refreshOverview();
+      setMessage(
+        decision === 'approve'
+          ? `Approved registration for ${user.name || user.email}. Temporary credentials issued.`
+          : `Registration for ${user.email} was rejected.`,
+      );
     } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to update user role.');
+      setMessage(reason instanceof Error ? reason.message : 'Unable to process pending registration.');
     } finally {
       setBusyId(null);
     }
   };
 
+  // Save role change on Confirm button click
+  const handleSaveRole = async (user: AdminUser, newRole: AdminUser['role']) => {
+    if (newRole === user.role) return;
+
+    setBusyId(user.id);
+    setMessage(null);
+    setError(null);
+    try {
+      const updated = await adminApi.updateUserRole(user.id, newRole);
+      setResult((curr) =>
+        curr
+          ? {
+              ...curr,
+              users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : curr,
+      );
+      setRoleDrafts((curr) => {
+        const next = { ...curr };
+        delete next[user.id];
+        return next;
+      });
+      refreshOverview();
+      setMessage(`Role updated to ${newRole} for ${user.name || user.email}.`);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : 'Unable to update user role.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // Toggle active/inactive status
   const updateActive = async (user: AdminUser) => {
     const nextActive = !user.isActive;
-    if (!window.confirm(`${nextActive ? 'Activate' : 'Deactivate'} ${user.email}?`)) return;
+    if (!window.confirm(`${nextActive ? 'Activate' : 'Deactivate'} account for ${user.name || user.email}?`)) return;
 
     setBusyId(user.id);
     setMessage(null);
     try {
       const updated = await adminApi.updateUserStatus(user.id, nextActive);
-      setResult((current) => current ? { ...current, users: current.users.map((item) => item.id === updated.id ? updated : item) } : current);
-      setMessage('User account status updated successfully.');
+      setResult((curr) =>
+        curr
+          ? {
+              ...curr,
+              users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
+            }
+          : curr,
+      );
+      setMessage(`Account for ${user.email} is now ${nextActive ? 'Active' : 'Inactive'}.`);
     } catch (reason: unknown) {
       setMessage(reason instanceof Error ? reason.message : 'Unable to update user status.');
     } finally {
@@ -142,14 +217,161 @@ export function AdminUsersView() {
   };
 
   return (
-    <AdminShell active="users" title="Users">
+    <AdminShell active="users" title={t('nav.users')} pendingCount={pendingUsers.length}>
       <AdminPageHeader
-        eyebrow="Access administration"
-        title="User management"
-        description="Manage roles and account access without exposing passwords or session data."
+        eyebrow={t('admin.usersEyebrow')}
+        title={t('admin.usersTitle')}
+        description={t('admin.usersDesc')}
       />
-      <div className="preview-note" role={error ? 'alert' : 'status'}>
-        {loading ? 'Loading users...' : error || message || 'Live user data.'}
+
+      {/* Dismissible Feedback Message */}
+      {message && (
+        <div
+          className="user-notice"
+          style={{
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#f0fdf4',
+            borderColor: '#bbf7d0',
+            color: '#15803d',
+          }}
+          role="status"
+        >
+          <span>{message}</span>
+          <button
+            type="button"
+            onClick={() => setMessage(null)}
+            style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: '18px' }}
+            aria-label="Dismiss notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div
+          className="user-notice"
+          style={{
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#fef2f2',
+            borderColor: '#fecaca',
+            color: '#b91c1c',
+          }}
+          role="alert"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '18px' }}
+            aria-label="Dismiss alert"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* 1. Metrics Grid (Clean Default Look) */}
+      <div className="student-metrics-grid" style={{ marginBottom: '24px' }}>
+        <div
+          className={`student-metric-card ${tab === 'ALL' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setTab('ALL');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value">{totalUsersCount}</span>
+            <span className="student-metric-label">{t('admin.totalAccounts')}</span>
+          </div>
+        </div>
+
+        <div
+          className={`student-metric-card ${tab === 'STUDENT' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setTab('STUDENT');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value">{studentsCount}</span>
+            <span className="student-metric-label">{t('admin.students')}</span>
+          </div>
+        </div>
+
+        <div
+          className={`student-metric-card ${tab === 'LECTURER' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setTab('LECTURER');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="11" cy="7" r="4" />
+              <line x1="19" y1="8" x2="19" y2="14" />
+              <line x1="22" y1="11" x2="16" y2="11" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value">{lecturersCount}</span>
+            <span className="student-metric-label">{t('admin.lecturers')}</span>
+          </div>
+        </div>
+
+        <div
+          className={`student-metric-card ${tab === 'PENDING' ? 'student-metric-card--active' : ''}`}
+          onClick={() => {
+            setTab('PENDING');
+            setPage(1);
+          }}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="student-metric-icon" style={{ background: '#f0f7fc', color: '#0071bc' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className="student-metric-info">
+            <span className="student-metric-value" style={{ color: pendingUsers.length > 0 ? '#d97706' : undefined }}>
+              {pendingUsers.length}
+            </span>
+            <span className="student-metric-label">{t('admin.pendingApproval')}</span>
+          </div>
+        </div>
       </div>
       <Panel className="table-shell">
         <div className="table-toolbar users-filter-bar">
@@ -214,18 +436,46 @@ export function AdminUsersView() {
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-              {!loading && !error && !result?.users.length && <tr><td colSpan={5}>No users match the current filters.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        {result && result.pagination.totalPages > 1 && (
-          <div className="table-toolbar" aria-label="User pagination">
-            <span>Page {result.pagination.page} of {result.pagination.totalPages} · {result.pagination.total} total</span>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        {tab !== 'PENDING' && result && result.pagination.totalPages > 1 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 20px',
+              borderTop: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+            aria-label="User pagination"
+          >
+            <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+              Page <strong>{result.pagination.page}</strong> of <strong>{result.pagination.totalPages}</strong> ·{' '}
+              {result.pagination.total} accounts total
+            </span>
             <div className="review-actions">
-              <Button variant="secondary" disabled={page <= 1 || loading} onClick={() => setPage((current) => current - 1)}>Previous</Button>
-              <Button variant="secondary" disabled={page >= result.pagination.totalPages || loading} onClick={() => setPage((current) => current + 1)}>Next</Button>
+              <Button
+                variant="secondary"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((c) => c - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={page >= result.pagination.totalPages || loading}
+                onClick={() => setPage((c) => c + 1)}
+              >
+                Next
+              </Button>
             </div>
           </div>
         )}

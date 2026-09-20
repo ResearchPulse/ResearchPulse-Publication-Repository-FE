@@ -1,5 +1,19 @@
 export type Role = 'ADMIN' | 'LECTURER' | 'STUDENT';
 export type PreprintStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'NEEDS_REVISION' | 'APPROVED' | 'PUBLISHED' | 'REJECTED' | 'WITHDRAWN' | 'ARCHIVED';
-export type User = { id: string; email: string; name?: string; studentId?: string; role?: Role };
+export type User = {
+  id: string;
+  email: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  studentId?: string;
+  major?: string;
+  avatarUrl?: string;
+  role?: Role;
+  status?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
 export type Preprint = { id: string; title: string; abstract?: string; status: PreprintStatus; owner_user_id: string; owner_name?: string; supervisor_name?: string; current_version: number; updated_at: string; submitted_at?: string };
 export type ApiEnvelope<T> = { success: boolean; data: T; message?: string; code?: string };

@@ -66,7 +66,7 @@ export function PaperWorkflowSection() {
       <div className="paper-section-heading paper-reveal">
         <div>
           <p className="paper-eyebrow">Clear, Traceable Progression</p>
-          <h2>How Your Research Moves Through ResearchPulse</h2>
+          <h2>How Your Research Moves Through Hyperdata Lab</h2>
         </div>
         <p>
           A structured 4-stage pipeline that bridges student initiative with institutional review and open scientific dissemination.
