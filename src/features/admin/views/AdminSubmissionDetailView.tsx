@@ -537,6 +537,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
   const [lecturers, setLecturers] = useState<AdminUser[]>([]);
   const [primaryReviewerId, setPrimaryReviewerId] = useState('');
   const [secondaryReviewerIds, setSecondaryReviewerIds] = useState<string[]>([]);
+  const [secondarySearchQuery, setSecondarySearchQuery] = useState('');
   const [audiences, setAudiences] = useState<AdminPublicationAudience[]>([]);
   const [assignmentBusy, setAssignmentBusy] = useState(false);
   const [visibilityBusy, setVisibilityBusy] = useState(false);
@@ -599,17 +600,47 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
       .catch(() => setLecturers([]));
   }, []);
 
-  const authorUserIds = new Set<string>();
-  if (publication?.uploader?.id) {
-    authorUserIds.add(publication.uploader.id);
-  }
-  publication?.authors?.forEach((author) => {
-    if (author.email) {
-      const match = lecturers.find((l) => l.email?.toLowerCase() === author.email?.toLowerCase());
-      if (match) authorUserIds.add(match.id);
+  const authorUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (publication?.uploader?.id) ids.add(publication.uploader.id);
+    publication?.authors?.forEach((author) => {
+      if (author.email) {
+        const match = lecturers.find((l) => l.email?.toLowerCase() === author.email?.toLowerCase());
+        if (match) ids.add(match.id);
+      }
+    });
+    return ids;
+  }, [publication, lecturers]);
+
+  const uniqueLecturers = useMemo(() => {
+    const seenEmails = new Set<string>();
+    const seenIds = new Set<string>();
+    const result: AdminUser[] = [];
+    for (const l of lecturers) {
+      const emailKey = (l.email || '').toLowerCase().trim();
+      if (seenIds.has(l.id) || (emailKey && seenEmails.has(emailKey))) continue;
+      if (l.id) seenIds.add(l.id);
+      if (emailKey) seenEmails.add(emailKey);
+      result.push(l);
     }
-  });
-  const eligibleLecturers = lecturers.filter((lecturer) => !authorUserIds.has(lecturer.id));
+    return result;
+  }, [lecturers]);
+
+  const eligibleLecturers = useMemo(() => {
+    return uniqueLecturers.filter((lecturer) => !authorUserIds.has(lecturer.id));
+  }, [uniqueLecturers, authorUserIds]);
+
+  const toggleSecondaryLecturer = (lecturerId: string) => {
+    if (secondaryReviewerIds.includes(lecturerId)) {
+      setSecondaryReviewerIds((prev) => prev.filter((id) => id !== lecturerId));
+    } else {
+      if (secondaryReviewerIds.length >= 2) return;
+      if (primaryReviewerId === lecturerId) {
+        setPrimaryReviewerId('');
+      }
+      setSecondaryReviewerIds((prev) => [...prev, lecturerId]);
+    }
+  };
 
   const changeStatus = async (status: 'PUBLISHED' | 'REJECTED' | 'DRAFTING') => {
     const actionLabel = status === 'PUBLISHED' ? 'publish' : status === 'DRAFTING' ? 'request revision for' : 'reject';
@@ -893,7 +924,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
 
               {publication.status === 'REVIEWING' && !publication.isPrivate && reviews.length === 0 && (
                 <div className="admin-decision-card" style={{ marginBottom: '18px' }}>
-                  <h4 className="admin-decision-title">Assign review team</h4>
+                  <h4 className="admin-decision-title">ASSIGN REVIEW TEAM</h4>
                   <p className="admin-decision-desc">
                     Select one primary lecturer and exactly two secondary lecturers. The primary lecturer can decide the publication status.
                   </p>
@@ -902,32 +933,119 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                       Live assignment requires 3 active Lecturer accounts; only {eligibleLecturers.length} eligible lecturers are available{authorUserIds.size > 0 ? ' (author and co-authors excluded to prevent conflict of interest)' : ''}.
                     </div>
                   )}
-                  <label className="student-field__label" htmlFor="primary-reviewer">Primary lecturer</label>
+                  <label className="student-field__label" htmlFor="primary-reviewer" style={{ display: 'block', marginBottom: '6px' }}>
+                    Primary lecturer
+                  </label>
                   <select
                     id="primary-reviewer"
                     className="student-select"
                     value={primaryReviewerId}
-                    onChange={(event) => setPrimaryReviewerId(event.target.value)}
+                    onChange={(event) => {
+                      const val = event.target.value;
+                      setPrimaryReviewerId(val);
+                      setSecondaryReviewerIds((prev) => prev.filter((id) => id !== val));
+                    }}
                     disabled={assignmentBusy}
+                    style={{ marginBottom: '14px' }}
                   >
                     <option value="">Select primary lecturer</option>
                     {eligibleLecturers.map((lecturer) => (
-                      <option key={lecturer.id} value={lecturer.id}>{lecturer.name || lecturer.email}</option>
+                      <option key={lecturer.id} value={lecturer.id}>
+                        {lecturer.name || lecturer.email}
+                      </option>
                     ))}
                   </select>
-                  <p className="student-field__label" style={{ marginTop: '12px', marginBottom: '6px' }}>Secondary lecturers (choose 2)</p>
-                  <div style={{ display: 'grid', gap: '6px' }}>
-                    {eligibleLecturers.filter((lecturer) => lecturer.id !== primaryReviewerId).map((lecturer) => (
-                      <label key={lecturer.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                        <input
-                          type="checkbox"
-                          checked={secondaryReviewerIds.includes(lecturer.id)}
-                          onChange={() => toggleSecondaryReviewer(lecturer.id)}
-                          disabled={assignmentBusy}
-                        />
-                        <span>{lecturer.name || lecturer.email}</span>
-                      </label>
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', marginTop: '0' }}>
+                    <p className="student-field__label" style={{ margin: 0 }}>
+                      Secondary lecturers (choose 2)
+                    </p>
+                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: secondaryReviewerIds.length === 2 ? '#059669' : '#d97706' }}>
+                      {secondaryReviewerIds.length}/2 selected
+                    </span>
+                  </div>
+                  
+                  <div style={{ position: 'relative', marginBottom: '10px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                      <circle cx="11" cy="11" r="8"/>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      type="text"
+                      className="student-input"
+                      placeholder="Tìm kiếm theo tên hoặc email..."
+                      value={secondarySearchQuery}
+                      onChange={(e) => setSecondarySearchQuery(e.target.value)}
+                      style={{ paddingLeft: 30, paddingRight: 30, height: 36, fontSize: '12.5px' }}
+                    />
+                    {secondarySearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSecondarySearchQuery('')}
+                        style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 14, padding: 4 }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="admin-audience-list" style={{ maxHeight: '220px', overflowY: 'auto', paddingRight: '4px', marginBottom: '16px' }}>
+                    {eligibleLecturers
+                      .filter((lecturer) => lecturer.id !== primaryReviewerId)
+                      .filter((lecturer) => {
+                        const q = secondarySearchQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          (lecturer.name && lecturer.name.toLowerCase().includes(q)) ||
+                          (lecturer.email && lecturer.email.toLowerCase().includes(q))
+                        );
+                      })
+                      .map((lecturer) => {
+                      const isChecked = secondaryReviewerIds.includes(lecturer.id);
+                      const isMaxReached = !isChecked && secondaryReviewerIds.length >= 2;
+                      return (
+                        <label
+                          key={lecturer.id}
+                          className={`admin-audience-item ${isChecked ? 'admin-audience-item--selected' : ''}`}
+                          style={isMaxReached ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+                        >
+                          <input
+                            type="checkbox"
+                            className="admin-audience-checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleSecondaryLecturer(lecturer.id)}
+                            disabled={assignmentBusy || isMaxReached}
+                          />
+                          <span className="admin-audience-custom-check" aria-hidden="true">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </span>
+                          <div className="admin-audience-info" style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                            <span className="admin-audience-name" style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                              {lecturer.name || lecturer.email}
+                            </span>
+                            {lecturer.name && lecturer.email && (
+                              <span className="admin-audience-desc" style={{ fontSize: '11.5px', color: '#64748b' }}>
+                                {lecturer.email}
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                    
+                    {eligibleLecturers.filter((lecturer) => lecturer.id !== primaryReviewerId).filter((lecturer) => {
+                      const q = secondarySearchQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return (
+                        (lecturer.name && lecturer.name.toLowerCase().includes(q)) ||
+                        (lecturer.email && lecturer.email.toLowerCase().includes(q))
+                      );
+                    }).length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '16px 0', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
+                        Không tìm thấy giảng viên phù hợp với từ khóa tìm kiếm.
+                      </div>
+                    )}
                   </div>
                   <button
                     type="button"
