@@ -4,7 +4,7 @@ import { preprintApiBaseUrl } from '../../../../lib/oidc';
 
 export const runtime = 'nodejs';
 
-const allowedRoots = new Set(['users', 'overview', 'publications', 'reviews']);
+const allowedRoots = new Set(['users', 'overview', 'publications', 'reviews', 'pending-users', 'registrations']);
 const allowedMethods = new Set(['GET', 'POST', 'PATCH', 'PUT', 'DELETE']);
 
 type RouteContext = {
@@ -20,10 +20,13 @@ function isAllowedAdminPath(path: string[], method: string) {
 
   if (root === 'overview') return method === 'GET' && path.length === 1;
   if (root === 'reviews') return method === 'GET' && path.length === 1;
+  if (root === 'pending-users') return method === 'GET' && path.length === 1;
+  if (root === 'registrations') return method === 'GET' && path.length === 2 && path[1] === 'stream';
 
   if (root === 'users') {
     if (path.length === 1) return method === 'GET' || method === 'POST';
     if (path.length === 2) return ['GET', 'PATCH', 'DELETE'].includes(method);
+    if (path.length === 3 && (resource === 'approve' || resource === 'reject')) return method === 'POST';
     return method === 'PATCH' && path.length === 3 && (resource === 'role' || resource === 'status');
   }
 
@@ -86,19 +89,32 @@ async function proxy(request: Request, context: RouteContext) {
     Authorization: 'Bearer ' + sessionToken,
   });
   const contentType = request.headers.get('content-type');
-  if (contentType) headers.set('Content-Type', contentType);
-
   const init: RequestInit = {
     method,
     headers,
     cache: 'no-store',
   };
-  if (method !== 'GET' && method !== 'HEAD') {
-    init.body = await request.text();
+  const body = method !== 'GET' && method !== 'HEAD' ? await request.text() : null;
+  if (body) {
+    init.body = body;
+    if (contentType) headers.set('Content-Type', contentType);
   }
 
   try {
     const upstream = await fetch(upstreamUrl, init);
+
+    // SSE: stream through instead of buffering
+    if (upstream.body && upstream.headers.get('content-type')?.includes('text/event-stream')) {
+      return new NextResponse(upstream.body, {
+        status: upstream.status,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+        },
+      });
+    }
+
     const responseHeaders = new Headers();
     const upstreamContentType = upstream.headers.get('content-type');
     if (upstreamContentType) responseHeaders.set('Content-Type', upstreamContentType);

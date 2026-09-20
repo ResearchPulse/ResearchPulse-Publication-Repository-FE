@@ -20,6 +20,15 @@ export type AdminUser = {
   lastLoginAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  attemptNumber?: number;
+  rejectionHistory?: Array<{
+    id: string;
+    studentId?: string | null;
+    name?: string | null;
+    major?: string | null;
+    attemptNumber: number;
+    rejectedAt: string;
+  }>;
 };
 
 export type AdminPublication = {

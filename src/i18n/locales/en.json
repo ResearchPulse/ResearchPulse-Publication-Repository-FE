@@ -185,7 +185,7 @@
   "admin": {
     "dashboard": "Admin Dashboard",
     "overview": "System Overview",
-    "userManagement": "User Management",
+    "registration_management": "Registration Management",
     "submissions": "All Submissions",
     "reviews": "Review Progress",
     "pendingUsers": "Pending Approvals",
