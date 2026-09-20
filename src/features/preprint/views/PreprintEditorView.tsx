@@ -210,7 +210,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [newAuthorName, setNewAuthorName] = useState('');
   const [newAuthorEmail, setNewAuthorEmail] = useState('');
   const [newAuthorStudentId, setNewAuthorStudentId] = useState('');
-  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER' | 'ADMIN'>('STUDENT');
+  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
   const [newAuthorInst, setNewAuthorInst] = useState('');
   const [showAddAuthor, setShowAddAuthor] = useState(false);
 
@@ -219,7 +219,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editStudentId, setEditStudentId] = useState('');
-  const [editRole, setEditRole] = useState<'STUDENT' | 'LECTURER' | 'ADMIN'>('STUDENT');
+  const [editRole, setEditRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
   const [editInstitution, setEditInstitution] = useState('');
   const [editIsPrimary, setEditIsPrimary] = useState(false);
 
@@ -429,7 +429,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setEditName(author.name || '');
     setEditEmail(author.email || '');
     setEditStudentId(author.studentId || '');
-    setEditRole((author.role as 'STUDENT' | 'LECTURER' | 'ADMIN') || (author.studentId ? 'STUDENT' : 'LECTURER'));
+    setEditRole(author.role === 'LECTURER' ? 'LECTURER' : (author.studentId ? 'STUDENT' : (author.role === 'STUDENT' ? 'STUDENT' : 'LECTURER')));
     setEditInstitution(author.institution || '');
     setEditIsPrimary(Boolean(author.isPrimary || index === 0));
   };
@@ -439,7 +439,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setEditName(user.name || '');
     setEditEmail(user.email || '');
     if (user.studentId) setEditStudentId(user.studentId);
-    setEditRole((user.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN');
+    setEditRole(user.role === 'LECTURER' ? 'LECTURER' : 'STUDENT');
   };
 
   const saveEditedAuthor = () => {
@@ -1080,11 +1080,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <select
                       className="student-select"
                       value={newAuthorRole}
-                      onChange={(e) => setNewAuthorRole(e.target.value as 'STUDENT' | 'LECTURER' | 'ADMIN')}
+                      onChange={(e) => setNewAuthorRole(e.target.value as 'STUDENT' | 'LECTURER')}
                     >
-                      <option value="STUDENT">Tác giả sinh viên</option>
-                      <option value="LECTURER">Tác giả giảng viên</option>
-                      <option value="ADMIN">Cán bộ / Quản trị</option>
+                      <option value="STUDENT">Sinh viên</option>
+                      <option value="LECTURER">Giảng viên</option>
                     </select>
                     <input
                       type="text"
@@ -1404,11 +1403,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <select
                     className="student-select"
                     value={editRole}
-                    onChange={(e) => setEditRole(e.target.value as 'STUDENT' | 'LECTURER' | 'ADMIN')}
+                    onChange={(e) => setEditRole(e.target.value as 'STUDENT' | 'LECTURER')}
                   >
-                    <option value="STUDENT">Sinh viên (Student)</option>
-                    <option value="LECTURER">Giảng viên (Lecturer)</option>
-                    <option value="ADMIN">Quản trị viên (Admin)</option>
+                    <option value="STUDENT">Sinh viên</option>
+                    <option value="LECTURER">Giảng viên</option>
                   </select>
                 </div>
 

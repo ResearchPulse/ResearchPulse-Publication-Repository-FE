@@ -17,9 +17,6 @@
     border-color var(--ds-duration-state, 240ms) var(--ds-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
     background-color var(--ds-duration-quick, 160ms) ease;
 }
-.ui-input:hover, .ui-textarea:hover, .ui-select:hover {
-  border-color: #94a3b8;
-}
 .ui-textarea {
   min-height: 140px;
   resize: vertical;
