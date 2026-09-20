@@ -50,6 +50,7 @@ export function AdminUsersView() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Create user via dialog
   const openCreateDialog = () => {
     setCreateError(null);
     dialogRef.current?.showModal();
@@ -70,12 +71,15 @@ export function AdminUsersView() {
         role: createRole,
         password: createPassword || undefined,
       });
-      setResult((current) => current ? { ...current, users: [created, ...current.users] } : current);
+      if (tab !== 'PENDING') {
+        setResult((curr) => (curr ? { ...curr, users: [created, ...curr.users] } : curr));
+      }
       setCreateEmail('');
       setCreateName('');
       setCreateRole('STUDENT');
       setCreatePassword('');
       setMessage(`Created account for ${created.email}.`);
+      refreshOverview();
       dialogRef.current?.close();
     } catch (reason: unknown) {
       setCreateError(reason instanceof Error ? reason.message : 'Unable to create user.');
@@ -84,6 +88,7 @@ export function AdminUsersView() {
     }
   };
 
+  // Delete user
   const removeUser = async (user: AdminUser) => {
     if (!window.confirm(`Delete ${user.email}? This cannot be undone.`)) return;
 
@@ -91,7 +96,8 @@ export function AdminUsersView() {
     setMessage(null);
     try {
       await adminApi.deleteUser(user.id);
-      setResult((current) => current ? { ...current, users: current.users.filter((item) => item.id !== user.id) } : current);
+      setResult((curr) => (curr ? { ...curr, users: curr.users.filter((item) => item.id !== user.id) } : curr));
+      refreshOverview();
       setMessage(`Deleted ${user.email}.`);
     } catch (reason: unknown) {
       setMessage(reason instanceof Error ? reason.message : 'Unable to delete user.');
@@ -282,7 +288,7 @@ export function AdminUsersView() {
             style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: '18px' }}
             aria-label="Dismiss notification"
           >
-            ×
+            ├ù
           </button>
         </div>
       )}
@@ -308,7 +314,7 @@ export function AdminUsersView() {
             style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '18px' }}
             aria-label="Dismiss alert"
           >
-            ×
+            ├ù
           </button>
         </div>
       )}
@@ -516,15 +522,7 @@ export function AdminUsersView() {
             </div>
           )}
 
-          {tab !== 'PENDING' && (
-            <Button
-              variant="primary"
-              onClick={openCreateDialog}
-              style={{ padding: '0 16px', height: '38px', fontSize: '13px', whiteSpace: 'nowrap' }}
-            >
-              {locale === 'vi' ? '+ Thêm người dùng' : '+ Create user'}
-            </Button>
-          )}
+          <Button onClick={openCreateDialog}>{locale === 'vi' ? '+ Thêm người dùng' : '+ Create user'}</Button>
         </div>
       </div>
 
@@ -796,17 +794,13 @@ export function AdminUsersView() {
       </div>
 
       <dialog ref={dialogRef} className="users-create-dialog" aria-label="Create user">
-        <h2>{locale === 'vi' ? 'Tạo tài khoản người dùng mới' : 'Create user account'}</h2>
+        <h2>{locale === 'vi' ? 'Tạo tài khoản người dùng' : 'Create user account'}</h2>
         <p className="users-create-hint">
           {locale === 'vi'
             ? 'Tạo tài khoản đã được phê duyệt và kích hoạt. Có thể để trống mật khẩu để người dùng tự thiết lập qua liên kết đổi mật khẩu.'
             : 'Creates an approved, active account. Leave the password blank to let the user set one via reset.'}
         </p>
-        {createError && (
-          <div className="users-create-error" role="alert">
-            {createError}
-          </div>
-        )}
+        {createError && <div className="users-create-error" role="alert">{createError}</div>}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -828,7 +822,7 @@ export function AdminUsersView() {
             <Field label={locale === 'vi' ? 'Họ và tên' : 'Full name'}>
               <TextInput
                 aria-label="New user name"
-                placeholder="Full name"
+                placeholder={locale === 'vi' ? 'Họ và tên' : 'Full name'}
                 value={createName}
                 onChange={(event) => setCreateName(event.target.value)}
               />
@@ -836,11 +830,7 @@ export function AdminUsersView() {
           </div>
           <div style={{ marginTop: '12px' }}>
             <Field label={locale === 'vi' ? 'Vai trò' : 'Role'}>
-              <SelectInput
-                aria-label="New user role"
-                value={createRole}
-                onChange={(event) => setCreateRole(event.target.value as AdminUser['role'])}
-              >
+              <SelectInput aria-label="New user role" value={createRole} onChange={(event) => setCreateRole(event.target.value as AdminUser['role'])}>
                 <option value="STUDENT">{locale === 'vi' ? 'Sinh viên' : 'Student'}</option>
                 <option value="LECTURER">{locale === 'vi' ? 'Giảng viên' : 'Lecturer'}</option>
                 <option value="ADMIN">{locale === 'vi' ? 'Quản trị viên' : 'Admin'}</option>
@@ -863,7 +853,7 @@ export function AdminUsersView() {
               {locale === 'vi' ? 'Hủy' : 'Cancel'}
             </Button>
             <Button variant="primary" type="submit" disabled={creating || !createEmail.trim()}>
-              {creating ? (locale === 'vi' ? 'Đang tạo...' : 'Creating...') : (locale === 'vi' ? 'Tạo tài khoản' : 'Create user')}
+              {creating ? (locale === 'vi' ? 'Đang tạo...' : 'Creating...') : locale === 'vi' ? 'Tạo người dùng' : 'Create user'}
             </Button>
           </div>
         </form>
