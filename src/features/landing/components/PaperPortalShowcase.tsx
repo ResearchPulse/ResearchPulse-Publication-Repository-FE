@@ -71,7 +71,7 @@ export function PaperPortalShowcase() {
         <div className="paper-portal-topbar">
           <strong>
             <span>RP</span>
-            ResearchPulse Workspace
+            Hyperdata Lab Workspace
           </strong>
           <div className="paper-portal-nav-pills" role="tablist" aria-label="Portal views">
             <button

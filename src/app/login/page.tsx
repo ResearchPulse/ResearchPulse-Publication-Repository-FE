@@ -114,7 +114,7 @@ function LoginForm() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <button
             type="button"
-            onClick={() => handleQuickLogin('admin@researchpulse.com', 'admin')}
+            onClick={() => handleQuickLogin('admin@hyperdata.org', 'admin')}
             disabled={loading}
             style={{
               padding: '7px 8px',
@@ -148,7 +148,7 @@ function LoginForm() {
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('lecturer@researchpulse.com', 'lecturer')}
+            onClick={() => handleQuickLogin('lecturer@hyperdata.org', 'lecturer')}
             disabled={loading}
             style={{
               padding: '7px 8px',
@@ -182,7 +182,7 @@ function LoginForm() {
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('student@researchpulse.com', 'student')}
+            onClick={() => handleQuickLogin('student@hyperdata.org', 'student')}
             disabled={loading}
             style={{
               padding: '7px 8px',
@@ -437,7 +437,7 @@ export default function LoginPage() {
         </div>
 
         <div className="pl-container pl-footer__bottom">
-          <p>© {new Date().getFullYear()} ResearchPulse. Tất cả các quyền được bảo lưu.</p>
+          <p>© {new Date().getFullYear()} Hyperdata Lab. Tất cả các quyền được bảo lưu.</p>
           <p className="pl-footer__disclaimer">
             Nền tảng công bố học thuật phi lợi nhuận phục vụ sinh viên và nhà nghiên cứu trẻ.
           </p>

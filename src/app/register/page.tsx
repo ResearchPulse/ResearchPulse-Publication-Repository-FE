@@ -102,7 +102,7 @@ export default function RegisterPage() {
       <header className="auth-header">
         <Link href="/" className="auth-header__logo" aria-label="Hyperdata Lab Home">
           <HyperdataLogo size={28} />
-          <span>ResearchPulse</span>
+          <span>Hyperdata Lab</span>
         </Link>
         <Link href="/login" className="auth-header__back">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
