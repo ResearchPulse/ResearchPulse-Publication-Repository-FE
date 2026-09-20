@@ -691,6 +691,40 @@
 }
 
 /* ==========================================================================
+   Smooth Animations & Keyframes (SaaS Premium)
+   ========================================================================== */
+@keyframes studentCardFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes studentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes studentEmptyFloating {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* ==========================================================================
    Metrics Summary Strip
    ========================================================================== */
 .student-metrics-grid {
@@ -709,12 +743,27 @@
   align-items: center;
   gap: 14px;
   box-shadow: 0 2px 6px rgba(18, 35, 49, 0.02);
-  transition: all 0.2s ease;
+  animation: studentCardFadeInUp 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: 
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms ease;
+  will-change: transform, box-shadow;
 }
 
+.student-metrics-grid .student-metric-card:nth-child(1) { animation-delay: 0ms; }
+.student-metrics-grid .student-metric-card:nth-child(2) { animation-delay: 60ms; }
+.student-metrics-grid .student-metric-card:nth-child(3) { animation-delay: 120ms; }
+.student-metrics-grid .student-metric-card:nth-child(4) { animation-delay: 180ms; }
+
 .student-metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(18, 35, 49, 0.06);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px -4px rgba(18, 35, 49, 0.08), 0 4px 8px -2px rgba(18, 35, 49, 0.03);
+}
+
+.student-metric-card:active {
+  transform: translateY(-1px) scale(0.995);
+  transition-duration: 100ms;
 }
 
 .student-metric-card--alert {
@@ -730,6 +779,11 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.student-metric-card:hover .student-metric-icon {
+  transform: scale(1.08);
 }
 
 .student-metric-icon--blue {
@@ -804,12 +858,21 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: 
+    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
   font-family: inherit;
+  will-change: transform;
 }
 
 .student-tab-pill:hover {
   color: #122331;
+}
+
+.student-tab-pill:active {
+  transform: scale(0.96);
 }
 
 .student-tab-pill--active {
@@ -828,6 +891,7 @@
   background-color: rgba(18, 35, 49, 0.06);
   font-size: 10px;
   font-weight: 800;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 .student-tab-pill--active .student-tab-pill__count {
@@ -854,6 +918,11 @@
   left: 12px;
   color: #8b9aa4;
   pointer-events: none;
+  transition: color 200ms ease;
+}
+
+.student-search-box:focus-within svg {
+  color: #0071bc;
 }
 
 .student-search-input {
@@ -866,13 +935,16 @@
   font-size: 13px;
   color: #122331;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: 
+    border-color 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 280ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .student-search-input:focus {
   outline: none;
   border-color: #0071bc;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.12);
+  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.12), 0 2px 8px rgba(0, 113, 188, 0.04);
   width: 280px;
 }
 
@@ -2904,6 +2976,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  animation: studentFadeIn 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .student-empty-icon {
@@ -2914,6 +2987,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: studentEmptyFloating 3.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 .student-empty-card h3 {
@@ -4408,7 +4483,9 @@
 }
 
 /* Table */
+.dashboard-table-card,
 .dashboard-table-wrapper {
+  animation: studentFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -4438,8 +4515,12 @@
   vertical-align: middle;
 }
 
+.dashboard-table tbody tr {
+  transition: background-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .dashboard-table tr:hover {
-  background: #fafbfc;
+  background: #f8fafc;
 }
 
 .dashboard-table__title-cell {
@@ -6676,5 +6757,20 @@
   }
   .archive-download-btn {
     margin-left: 0;
+  }
+}
+
+/* Accessibility: Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .student-metric-card,
+  .student-empty-card,
+  .student-empty-icon,
+  .student-tab-pill,
+  .student-search-input,
+  .dashboard-table-card,
+  .dashboard-table-wrapper,
+  .dashboard-table tbody tr {
+    animation: none !important;
+    transition: none !important;
   }
 }

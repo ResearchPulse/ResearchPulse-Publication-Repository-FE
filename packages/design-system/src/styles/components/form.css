@@ -14,7 +14,10 @@
   font-size: 14px;
   line-height: 1.6;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s ease;
+  transition: 
+    border-color var(--ds-duration-state, 240ms) var(--ds-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow var(--ds-duration-state, 240ms) var(--ds-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+    background-color var(--ds-duration-quick, 160ms) ease;
 }
 .ui-input:hover, .ui-textarea:hover, .ui-select:hover {
   border-color: #94a3b8;
@@ -26,6 +29,7 @@
 .ui-input::placeholder, .ui-textarea::placeholder, .ui-select::placeholder {
   color: #94a3b8;
   font-size: 13.5px;
+  transition: color var(--ds-duration-quick, 160ms) ease;
 }
 .ui-input:focus, .ui-textarea:focus, .ui-select:focus {
   border-color: #0071bc;

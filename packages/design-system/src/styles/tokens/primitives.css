@@ -56,5 +56,7 @@
   --ds-size-2xl: 32px;
   --ds-duration-quick: 160ms;
   --ds-duration-state: 240ms;
+  --ds-duration-smooth: 280ms;
   --ds-ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ds-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
