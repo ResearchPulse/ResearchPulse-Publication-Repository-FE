@@ -40,6 +40,9 @@ export type LecturerPublication = {
     studentId?: string | null;
   };
   authors?: Array<{ id?: string; name: string; email?: string | null; affiliation?: string | null }>;
+  discipline?: string | null;
+  isPrivate?: boolean;
+  audiences?: Array<'GUEST' | 'STUDENT' | 'LECTURER'>;
   downloadUrl?: string;
   myReview?: LecturerReview;
 };
@@ -149,3 +152,36 @@ export const lecturerReviewApi = {
       body: JSON.stringify({ status, reason }),
     }),
 };
+
+export type LecturerPublicationScope = 'ALL' | 'PUBLIC' | 'FACULTY_ONLY' | 'CAMPUS' | 'ASSIGNED' | 'MINE';
+
+export interface ListPublicationsParams {
+  scope?: LecturerPublicationScope | string;
+  discipline?: string;
+  search?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export const lecturerPublicationApi = {
+  async list(params?: ListPublicationsParams): Promise<{ items: LecturerPublication[]; total: number }> {
+    const query = new URLSearchParams();
+    if (params?.scope && params.scope !== 'ALL') query.set('scope', params.scope);
+    if (params?.discipline && params.discipline !== 'ALL') query.set('discipline', params.discipline);
+    if (params?.search) query.set('search', params.search);
+    if (params?.status) query.set('status', params.status);
+    if (params?.page) query.set('page', String(params.page));
+    query.set('limit', String(params?.limit || 100));
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const publications = await request<LecturerPublication[]>(`/${queryString}`);
+    return { items: publications, total: publications.length };
+  },
+
+  async get(id: string): Promise<LecturerPublication> {
+    const encodedId = encodeURIComponent(id);
+    return request<LecturerPublication>(`/${encodedId}`);
+  },
+};
+

@@ -27,6 +27,8 @@ export const ROUTES = {
     SUBMISSIONS: '/lecturer/submissions',
     SUBMISSION_DETAIL: (id: string | number) => `/lecturer/submissions/${id}`,
     NEW_SUBMISSION: '/lecturer/submissions/new',
+    PUBLICATIONS: '/lecturer/publications',
+    PUBLICATION_DETAIL: (id: string | number) => `/lecturer/publications/${id}`,
     PROFILE: '/lecturer/profile',
   },
   STUDENT: {
