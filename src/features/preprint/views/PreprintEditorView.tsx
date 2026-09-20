@@ -214,6 +214,15 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [newAuthorInst, setNewAuthorInst] = useState('');
   const [showAddAuthor, setShowAddAuthor] = useState(false);
 
+  // Edit Author Modal State
+  const [editingAuthorIndex, setEditingAuthorIndex] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editStudentId, setEditStudentId] = useState('');
+  const [editRole, setEditRole] = useState<'STUDENT' | 'LECTURER' | 'ADMIN'>('STUDENT');
+  const [editInstitution, setEditInstitution] = useState('');
+  const [editIsPrimary, setEditIsPrimary] = useState(false);
+
   // File Upload State
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -341,7 +350,30 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       setAbstractText(result.abstract || '');
       setKeywordsInput('');
       setDiscipline(isEditing ? discipline : '');
-      setAuthors(result.authors);
+
+      // Smart populate: automatically link uploader student profile to primary author
+      const rawAuthors = result.authors || [];
+      const updatedAuthors = rawAuthors.map((author, index) => {
+        const isSelf = user && (
+          (user.studentId && author.studentId && user.studentId.toUpperCase() === author.studentId.toUpperCase()) ||
+          (user.email && author.email && user.email.toLowerCase() === author.email.toLowerCase()) ||
+          (index === 0 && user.role === 'STUDENT')
+        );
+        if (isSelf && user) {
+          return {
+            ...author,
+            name: author.name || user.name || '',
+            email: author.email || user.email || '',
+            studentId: author.studentId || user.studentId || undefined,
+            role: (author.role || user.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN',
+            userId: user.id,
+            verificationStatus: 'VERIFIED' as const,
+          };
+        }
+        return author;
+      });
+
+      setAuthors(updatedAuthors);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to analyze the selected PDF.');
     } finally {
@@ -380,6 +412,88 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
   const removeCoAuthor = (index: number) => {
     setAuthors(authors.filter((_, authorIndex) => authorIndex !== index + 1));
+  };
+
+  const openEditAuthorModal = (index: number) => {
+    const author = authors[index] || (index === 0 ? {
+      name: primaryAuthorName,
+      email: primaryAuthorEmail,
+      studentId: primaryAuthorStudentId,
+      role: isLecturer ? ('LECTURER' as const) : ('STUDENT' as const),
+      institution: primaryAuthorInst,
+      isPrimary: true,
+    } : null);
+
+    if (!author) return;
+    setEditingAuthorIndex(index);
+    setEditName(author.name || '');
+    setEditEmail(author.email || '');
+    setEditStudentId(author.studentId || '');
+    setEditRole((author.role as 'STUDENT' | 'LECTURER' | 'ADMIN') || (author.studentId ? 'STUDENT' : 'LECTURER'));
+    setEditInstitution(author.institution || '');
+    setEditIsPrimary(Boolean(author.isPrimary || index === 0));
+  };
+
+  const handleUseMyInfo = () => {
+    if (!user) return;
+    setEditName(user.name || '');
+    setEditEmail(user.email || '');
+    if (user.studentId) setEditStudentId(user.studentId);
+    setEditRole((user.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN');
+  };
+
+  const saveEditedAuthor = () => {
+    if (!editName.trim()) {
+      showError('Vui lòng nhập họ và tên tác giả.');
+      return;
+    }
+    if (editingAuthorIndex === null) return;
+
+    const currentList = authors.length > 0 ? [...authors] : [{
+      name: primaryAuthorName,
+      email: primaryAuthorEmail,
+      studentId: primaryAuthorStudentId,
+      role: isLecturer ? ('LECTURER' as const) : ('STUDENT' as const),
+      institution: primaryAuthorInst,
+      isPrimary: true,
+      isCorresponding: true,
+    }];
+
+    const targetAuthor = currentList[editingAuthorIndex] || {
+      name: editName.trim(),
+      email: editEmail.trim(),
+      institution: editInstitution.trim() || 'Institution unavailable',
+    };
+
+    const isMatchUser = user && (
+      (editStudentId && user.studentId && editStudentId.toUpperCase() === user.studentId.toUpperCase()) ||
+      (editEmail && user.email && editEmail.toLowerCase() === user.email.toLowerCase())
+    );
+
+    const updatedAuthor: StudentPreprint['authors'][number] = {
+      ...targetAuthor,
+      name: editName.trim(),
+      email: editEmail.trim(),
+      studentId: editStudentId.trim() || undefined,
+      role: editRole,
+      institution: editInstitution.trim() || 'Institution unavailable',
+      isPrimary: editIsPrimary,
+      userId: isMatchUser ? user.id : targetAuthor.userId,
+      verificationStatus: isMatchUser || editStudentId.trim() || editEmail.trim() ? 'VERIFIED' : 'MISSING_IDENTIFIER',
+    };
+
+    currentList[editingAuthorIndex] = updatedAuthor;
+
+    // If marked as primary author and wasn't at index 0, move to top
+    if (editIsPrimary && editingAuthorIndex > 0) {
+      const [promoted] = currentList.splice(editingAuthorIndex, 1);
+      currentList.forEach((a) => { a.isPrimary = false; });
+      promoted.isPrimary = true;
+      currentList.unshift(promoted);
+    }
+
+    setAuthors(currentList);
+    setEditingAuthorIndex(null);
   };
 
   const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
@@ -865,7 +979,12 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </div>
 
               {/* Primary Author */}
-              <div className="student-author-card student-author-card--primary">
+              <div
+                className="student-author-card student-author-card--primary"
+                style={{ cursor: !isReadOnly ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative' }}
+                onClick={!isReadOnly ? () => openEditAuthorModal(0) : undefined}
+                title={!isReadOnly ? 'Bấm để chỉnh sửa thông tin tác giả chính' : undefined}
+              >
                 <div className="student-author-avatar">{primaryInitials}</div>
                 <div className="student-author-info">
                   <div className="student-author-name-row">
@@ -880,11 +999,31 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     {authors[0]?.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
                   </span>
                 </div>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    className="student-btn student-btn--sm student-btn--secondary"
+                    style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, zIndex: 2 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditAuthorModal(0);
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <span>Chỉnh sửa</span>
+                  </button>
+                )}
               </div>
 
               {/* Co-authors list */}
               {authors.slice(1).map((ca, idx) => (
-                <div key={idx} className="student-author-card">
+                <div
+                  key={idx}
+                  className="student-author-card"
+                  style={{ cursor: !isReadOnly ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative' }}
+                  onClick={!isReadOnly ? () => openEditAuthorModal(idx + 1) : undefined}
+                  title={!isReadOnly ? 'Bấm để chỉnh sửa thông tin đồng tác giả' : undefined}
+                >
                   <div className="student-author-avatar student-author-avatar--co">CA</div>
                   <div className="student-author-info">
                     <div className="student-author-name-row">
@@ -899,14 +1038,31 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     </span>
                   </div>
                   {!isReadOnly && (
-                    <button
-                      type="button"
-                      onClick={() => removeCoAuthor(idx)}
-                      className="student-author-remove"
-                      title="Remove author"
-                    >
-                      ×
-                    </button>
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, zIndex: 2 }}>
+                      <button
+                        type="button"
+                        className="student-btn student-btn--sm student-btn--secondary"
+                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditAuthorModal(idx + 1);
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span>Chỉnh sửa</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeCoAuthor(idx);
+                        }}
+                        className="student-author-remove"
+                        title="Remove author"
+                      >
+                        ×
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1197,8 +1353,156 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
           </form>
         </div>
       )}
+
+      {/* Edit Author Modal */}
+      {editingAuthorIndex !== null && (
+        <div
+          className="author-modal-backdrop"
+          onClick={() => setEditingAuthorIndex(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="author-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="author-modal-header">
+              <div>
+                <h3 className="author-modal-title">
+                  {editingAuthorIndex === 0 ? 'Chỉnh sửa tác giả chính' : `Chỉnh sửa đồng tác giả #${editingAuthorIndex}`}
+                </h3>
+                <p className="author-modal-subtitle">
+                  Cập nhật thông tin tác giả để hệ thống liên kết tài khoản và tự động xác minh.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="author-modal-close"
+                onClick={() => setEditingAuthorIndex(null)}
+                aria-label="Đóng"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="author-modal-body">
+              {user && (
+                <div className="author-modal-quickfill">
+                  <div className="author-modal-quickfill-text">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span>Bạn là tác giả này? Dùng hồ sơ tài khoản hiện tại</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="student-btn student-btn--sm student-btn--secondary"
+                    onClick={handleUseMyInfo}
+                  >
+                    Điền nhanh
+                  </button>
+                </div>
+              )}
+
+              <div className="student-field">
+                <label className="student-field__label">Họ và tên tác giả *</label>
+                <input
+                  type="text"
+                  className="student-input"
+                  placeholder="Ví dụ: Lê Hữu Duy"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="student-field">
+                  <label className="student-field__label">Vai trò</label>
+                  <select
+                    className="student-select"
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as 'STUDENT' | 'LECTURER' | 'ADMIN')}
+                  >
+                    <option value="STUDENT">Sinh viên (Student)</option>
+                    <option value="LECTURER">Giảng viên (Lecturer)</option>
+                    <option value="ADMIN">Quản trị viên (Admin)</option>
+                  </select>
+                </div>
+
+                <div className="student-field">
+                  <label className="student-field__label">Mã số sinh viên (MSSV)</label>
+                  <input
+                    type="text"
+                    className="student-input"
+                    placeholder="Ví dụ: SE170123"
+                    value={editStudentId}
+                    onChange={(e) => setEditStudentId(e.target.value)}
+                  />
+                  <span className="student-field__hint">Dùng để tự động match tài khoản sinh viên</span>
+                </div>
+              </div>
+
+              <div className="student-field">
+                <label className="student-field__label">Email trường / tổ chức</label>
+                <input
+                  type="email"
+                  className="student-input"
+                  placeholder="Ví dụ: student@hyperdata.org"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="student-field">
+                <label className="student-field__label">Đơn vị / Trường đại học (Institution)</label>
+                <input
+                  type="text"
+                  className="student-input"
+                  placeholder="Ví dụ: Đại học FPT TP.HCM"
+                  value={editInstitution}
+                  onChange={(e) => setEditInstitution(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  id="modal-is-primary"
+                  checked={editIsPrimary}
+                  onChange={(e) => setEditIsPrimary(e.target.checked)}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor="modal-is-primary" style={{ fontSize: 13.5, color: '#334155', cursor: 'pointer' }}>
+                  Đặt làm tác giả chính (Primary Author / Corresponding)
+                </label>
+              </div>
+            </div>
+
+            <div className="author-modal-footer">
+              <button
+                type="button"
+                className="student-btn student-btn--secondary"
+                onClick={() => setEditingAuthorIndex(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="student-btn student-btn--primary"
+                onClick={saveEditedAuthor}
+                disabled={!editName.trim()}
+              >
+                Lưu thay đổi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PreprintWorkspaceShell>
   );
 }
 
 export default PreprintEditorView;
+
