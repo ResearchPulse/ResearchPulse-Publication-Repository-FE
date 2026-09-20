@@ -301,7 +301,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
           studentId: a.studentId,
           role: a.role as 'STUDENT' | 'LECTURER' | 'ADMIN',
           institution: a.institution,
-          isPrimary: a.isPrimary,
+          isPrimary: a.isPrimary ?? false,
         })),
       });
     }, 600);
