@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminShell, AdminPageHeader } from '../components';
 import {
@@ -452,6 +452,222 @@ function TimelineList({ events }: { events: AdminTimelineEvent[] }) {
   );
 }
 
+interface LecturerSearchableSelectProps {
+  lecturers: AdminUser[];
+  value: string;
+  onChange: (id: string) => void;
+  disabled?: boolean;
+}
+
+function LecturerSearchableSelect({
+  lecturers,
+  value,
+  onChange,
+  disabled,
+}: LecturerSearchableSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedLecturer = useMemo(
+    () => lecturers.find((l) => l.id === value),
+    [lecturers, value]
+  );
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return lecturers;
+    return lecturers.filter(
+      (l) =>
+        (l.name && l.name.toLowerCase().includes(q)) ||
+        (l.email && l.email.toLowerCase().includes(q))
+    );
+  }, [lecturers, searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    const next = !isOpen;
+    setIsOpen(next);
+    if (next) {
+      setSearchQuery('');
+      setTimeout(() => searchInputRef.current?.focus(), 60);
+    }
+  };
+
+  const handleSelect = (id: string) => {
+    onChange(id);
+    setIsOpen(false);
+  };
+
+  const getInitials = (name?: string | null, email?: string) => {
+    if (name) {
+      const parts = name.split(' ').filter(Boolean);
+      if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      return name.slice(0, 2).toUpperCase();
+    }
+    return (email?.slice(0, 2) || 'LE').toUpperCase();
+  };
+
+  return (
+    <div className="admin-searchable-select" ref={containerRef}>
+      <button
+        type="button"
+        id="primary-reviewer"
+        className={`admin-searchable-select__trigger ${isOpen ? 'admin-searchable-select__trigger--open' : ''} ${disabled ? 'admin-searchable-select__trigger--disabled' : ''}`}
+        onClick={handleToggle}
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <div className="admin-searchable-select__trigger-content">
+          {selectedLecturer ? (
+            <div className="admin-searchable-select__selected-item">
+              <span className="admin-searchable-select__avatar">
+                {getInitials(selectedLecturer.name, selectedLecturer.email)}
+              </span>
+              <div className="admin-searchable-select__selected-text">
+                <span className="admin-searchable-select__selected-name">
+                  {selectedLecturer.name || selectedLecturer.email.split('@')[0]}
+                </span>
+                <span className="admin-searchable-select__selected-email">
+                  {selectedLecturer.email}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <span className="admin-searchable-select__placeholder">
+              Select primary lecturer...
+            </span>
+          )}
+        </div>
+        <svg
+          className={`admin-searchable-select__arrow ${isOpen ? 'admin-searchable-select__arrow--open' : ''}`}
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="admin-searchable-select__dropdown" role="listbox">
+          <div className="admin-searchable-select__search-wrapper">
+            <svg
+              className="admin-searchable-select__search-icon"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="admin-searchable-select__search-input"
+              placeholder="Search lecturer by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="admin-searchable-select__search-clear"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSearchQuery('');
+                  searchInputRef.current?.focus();
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <ul className="admin-searchable-select__options">
+            {filtered.length > 0 ? (
+              filtered.map((lecturer) => {
+                const isSelected = lecturer.id === value;
+                return (
+                  <li
+                    key={lecturer.id}
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`admin-searchable-select__option ${
+                      isSelected ? 'admin-searchable-select__option--selected' : ''
+                    }`}
+                    onClick={() => handleSelect(lecturer.id)}
+                  >
+                    <div className="admin-searchable-select__option-left">
+                      <span className="admin-searchable-select__avatar admin-searchable-select__avatar--small">
+                        {getInitials(lecturer.name, lecturer.email)}
+                      </span>
+                      <div className="admin-searchable-select__option-info">
+                        <span className="admin-searchable-select__option-name">
+                          {lecturer.name || lecturer.email.split('@')[0]}
+                        </span>
+                        <span className="admin-searchable-select__option-email">
+                          {lecturer.email}
+                        </span>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <svg
+                        className="admin-searchable-select__check"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </li>
+                );
+              })
+            ) : (
+              <li className="admin-searchable-select__option--empty">
+                No lecturers found matching &ldquo;{searchQuery}&rdquo;
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps) {
   const [publication, setPublication] = useState<AdminPublication | null>(null);
   const [reviews, setReviews] = useState<AdminReview[]>([]);
@@ -836,37 +1052,45 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                       Live assignment requires 3 active Lecturer accounts; only {lecturers.length} are available.
                     </div>
                   )}
-                  <label className="student-field__label" htmlFor="primary-reviewer">Primary lecturer</label>
-                  <select
-                    id="primary-reviewer"
-                    className="student-select"
+                  <label className="student-field__label" htmlFor="primary-reviewer" style={{ marginBottom: '6px', display: 'block' }}>Primary lecturer</label>
+                  <LecturerSearchableSelect
+                    lecturers={lecturers}
                     value={primaryReviewerId}
-                    onChange={(event) => setPrimaryReviewerId(event.target.value)}
+                    onChange={(id) => setPrimaryReviewerId(id)}
                     disabled={assignmentBusy}
-                  >
-                    <option value="">Select primary lecturer</option>
-                    {lecturers.map((lecturer) => (
-                      <option key={lecturer.id} value={lecturer.id}>{lecturer.name || lecturer.email}</option>
-                    ))}
-                  </select>
-                  <p className="student-field__label" style={{ marginTop: '12px', marginBottom: '6px' }}>Secondary lecturers (choose 2)</p>
-                  <div style={{ display: 'grid', gap: '6px' }}>
-                    {lecturers.filter((lecturer) => lecturer.id !== primaryReviewerId).map((lecturer) => (
-                      <label key={lecturer.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                        <input
-                          type="checkbox"
-                          checked={secondaryReviewerIds.includes(lecturer.id)}
-                          onChange={() => toggleSecondaryReviewer(lecturer.id)}
-                          disabled={assignmentBusy}
-                        />
-                        <span>{lecturer.name || lecturer.email}</span>
-                      </label>
-                    ))}
+                  />
+                  <p className="student-field__label" style={{ marginTop: '14px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Secondary lecturers</span>
+                    <span style={{ fontSize: '11.5px', color: secondaryReviewerIds.length === 2 ? '#059669' : '#64748b', fontWeight: 600 }}>
+                      Selected ({secondaryReviewerIds.length}/2)
+                    </span>
+                  </p>
+                  <div className="lecturer-select-list" style={{ gap: '8px', marginBottom: '14px' }}>
+                    {lecturers.filter((lecturer) => lecturer.id !== primaryReviewerId).map((lecturer) => {
+                      const isSelected = secondaryReviewerIds.includes(lecturer.id);
+                      return (
+                        <label
+                          key={lecturer.id}
+                          className={`lecturer-select-item ${isSelected ? 'lecturer-select-item--active' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="lecturer-select-checkbox admin-checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSecondaryReviewer(lecturer.id)}
+                            disabled={assignmentBusy}
+                          />
+                          <div className="lecturer-select-info">
+                            <span className="lecturer-select-name">{lecturer.name || lecturer.email.split('@')[0]}</span>
+                            <span className="lecturer-select-email">{lecturer.email}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                   <button
                     type="button"
                     className="student-btn student-btn--secondary student-btn--sm"
-                    style={{ marginTop: '12px' }}
                     disabled={assignmentBusy || secondaryReviewerIds.length !== 2 || !primaryReviewerId}
                     onClick={assignReviewers}
                   >
@@ -877,29 +1101,74 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
 
               {!publication.isPrivate && (
                 <div className="admin-decision-card" style={{ marginBottom: '18px' }}>
-                  <h4 className="admin-decision-title">Audience visibility</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <h4 className="admin-decision-title" style={{ margin: 0 }}>Audience visibility</h4>
+                    {audiences.length === 0 && (
+                      <span className="admin-audience-badge" style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                        Default (All Auth)
+                      </span>
+                    )}
+                  </div>
                   <p className="admin-decision-desc">
-                    Admin selects multiple audiences. An empty selection means all authenticated Students and Lecturers; GUEST also exposes the published PDF on the landing page.
+                    Admin selects multiple audiences. An empty selection defaults to all authenticated Students and Lecturers; GUEST exposes the paper on the public landing page.
                   </p>
-                  <div style={{ display: 'grid', gap: '7px' }}>
-                    {(['GUEST', 'STUDENT', 'LECTURER'] as const).map((audience) => (
-                      <label key={audience} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                        <input
-                          type="checkbox"
-                          checked={audiences.includes(audience)}
-                          onChange={() => setAudiences((current) => current.includes(audience)
-                            ? current.filter((item) => item !== audience)
-                            : [...current, audience])}
-                          disabled={visibilityBusy}
-                        />
-                        <span>{audience}</span>
-                      </label>
-                    ))}
+                  <div className="admin-audience-list">
+                    {([
+                      {
+                        key: 'GUEST',
+                        title: 'Guest & Public',
+                        desc: 'Public landing page, unauthenticated visitors',
+                        badge: 'Public',
+                        badgeClass: 'admin-audience-badge--guest',
+                      },
+                      {
+                        key: 'STUDENT',
+                        title: 'Student Audience',
+                        desc: 'Visible in Student Preprints workspace',
+                        badge: 'Student Portal',
+                        badgeClass: 'admin-audience-badge--student',
+                      },
+                      {
+                        key: 'LECTURER',
+                        title: 'Lecturer Audience',
+                        desc: 'Visible in Faculty Repository & Review Portal',
+                        badge: 'Faculty Portal',
+                        badgeClass: 'admin-audience-badge--lecturer',
+                      },
+                    ] as const).map((item) => {
+                      const isSelected = audiences.includes(item.key);
+                      return (
+                        <label
+                          key={item.key}
+                          className={`admin-audience-item ${isSelected ? 'admin-audience-item--active' : ''}`}
+                        >
+                          <div className="admin-audience-item__left">
+                            <input
+                              type="checkbox"
+                              className="admin-checkbox"
+                              checked={isSelected}
+                              onChange={() =>
+                                setAudiences((current) =>
+                                  current.includes(item.key)
+                                    ? current.filter((audience) => audience !== item.key)
+                                    : [...current, item.key]
+                                )
+                              }
+                              disabled={visibilityBusy}
+                            />
+                            <div className="admin-audience-item__info">
+                              <span className="admin-audience-item__title">{item.title}</span>
+                              <span className="admin-audience-item__desc">{item.desc}</span>
+                            </div>
+                          </div>
+                          <span className={`admin-audience-badge ${item.badgeClass}`}>{item.badge}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                   <button
                     type="button"
                     className="student-btn student-btn--secondary student-btn--sm"
-                    style={{ marginTop: '12px' }}
                     disabled={visibilityBusy}
                     onClick={saveVisibility}
                   >
@@ -926,55 +1195,95 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                   Under SRS v0.8, the Primary Lecturer holds direct authority to decide publication status. Admin backup intervention is reserved for escalation, unresponsiveness, or administrative overrides (mandatory reason recorded in audit timeline).
                 </p>
                 {!publication.isPrivate && publication.status === 'REVIEWING' && (
-                  <div className="admin-decision-buttons">
+                  <div className="admin-decision-action-group">
                     <button
                       type="button"
-                      className="admin-btn-decision admin-btn-decision--publish"
+                      className="admin-decision-btn admin-decision-btn--publish"
                       disabled={busy}
                       onClick={() => changeStatus('PUBLISHED')}
                     >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>Publish Paper</span>
+                      <div className="admin-decision-btn__left">
+                        <span className="admin-decision-btn__icon-circle admin-decision-btn__icon-circle--publish">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        <div className="admin-decision-btn__text">
+                          <span className="admin-decision-btn__title">Publish Manuscript</span>
+                          <span className="admin-decision-btn__subtitle">Approve &amp; release to public repository</span>
+                        </div>
+                      </div>
+                      <span className="admin-decision-btn__badge admin-decision-btn__badge--publish">
+                        Approve
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </span>
                     </button>
+
                     <div className="admin-decision-sub-row">
                       <button
                         type="button"
-                        className="admin-btn-decision admin-btn-decision--revision"
+                        className="admin-decision-btn admin-decision-btn--revision"
                         disabled={busy}
                         onClick={() => changeStatus('DRAFTING')}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                        <span>Request Revision</span>
+                        <div className="admin-decision-btn__left">
+                          <span className="admin-decision-btn__icon-circle admin-decision-btn__icon-circle--revision">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </span>
+                          <div className="admin-decision-btn__text">
+                            <span className="admin-decision-btn__title">Request Revision</span>
+                            <span className="admin-decision-btn__subtitle">Return to student</span>
+                          </div>
+                        </div>
                       </button>
+
                       <button
                         type="button"
-                        className="admin-btn-decision admin-btn-decision--reject"
+                        className="admin-decision-btn admin-decision-btn--reject"
                         disabled={busy}
                         onClick={() => changeStatus('REJECTED')}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                        <span>Reject Paper</span>
+                        <div className="admin-decision-btn__left">
+                          <span className="admin-decision-btn__icon-circle admin-decision-btn__icon-circle--reject">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </span>
+                          <div className="admin-decision-btn__text">
+                            <span className="admin-decision-btn__title">Reject Paper</span>
+                            <span className="admin-decision-btn__subtitle">Decline submission</span>
+                          </div>
+                        </div>
                       </button>
                     </div>
                   </div>
                 )}
                 {!publication.isPrivate && publication.status === 'REJECTED' && (
-                  <div className="admin-decision-buttons">
+                  <div className="admin-decision-action-group">
                     <button
                       type="button"
-                      className="admin-btn-decision admin-btn-decision--reopen"
+                      className="admin-decision-btn admin-decision-btn--reopen"
                       disabled={busy}
                       onClick={() => changeStatus('DRAFTING')}
                     >
-                      Reopen for Revision
+                      <div className="admin-decision-btn__left">
+                        <span className="admin-decision-btn__icon-circle admin-decision-btn__icon-circle--reopen">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <polyline points="1 4 1 10 7 10" />
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                          </svg>
+                        </span>
+                        <div className="admin-decision-btn__text">
+                          <span className="admin-decision-btn__title">Reopen for Revision</span>
+                          <span className="admin-decision-btn__subtitle">Allow author to submit revisions</span>
+                        </div>
+                      </div>
                     </button>
                   </div>
                 )}

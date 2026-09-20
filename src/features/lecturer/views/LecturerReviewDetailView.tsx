@@ -222,26 +222,53 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
           {/* Secondary Reviewers Feedback (visible only to Primary Lecturer) */}
           {isPrimary && (
             <Panel className="lecturer-secondary-panel">
-              <div className="lecturer-panel-heading">
+              <div className="lecturer-panel-heading" style={{ marginBottom: '14px' }}>
                 <div>
                   <span className="lecturer-panel-eyebrow">Peer Review Evidence</span>
-                  <h2>Secondary Reviewers ({secondaryReviews.length}/2 submitted)</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--hd-ink)' }}>Secondary Reviewers</h2>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '5px',
+                        background: secondaryReviews.length > 0 ? '#ecfdf5' : '#f1f5f9',
+                        color: secondaryReviews.length > 0 ? '#059669' : '#64748b',
+                        border: `1px solid ${secondaryReviews.length > 0 ? '#a7f3d0' : '#e2e8f0'}`,
+                      }}
+                    >
+                      {secondaryReviews.length}/2 submitted
+                    </span>
+                  </div>
                 </div>
               </div>
               {secondaryReviews.length === 0 ? (
-                <p className="lecturer-muted" style={{ fontStyle: 'italic', margin: 0 }}>
-                  Secondary reviewers have not submitted their evaluations yet. You may still proceed with your workflow decision at any time.
-                </p>
+                <div className="lecturer-secondary-empty">
+                  <div className="lecturer-secondary-empty__icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  </div>
+                  <div className="lecturer-secondary-empty__content">
+                    <span className="lecturer-secondary-empty__title">No evaluations submitted yet</span>
+                    <p className="lecturer-secondary-empty__desc">
+                      Secondary reviewers have not submitted their evaluations for this round. As Primary Lecturer, you may still proceed with your workflow decision at any time.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {secondaryReviews.map((rev) => (
                     <div
                       key={rev.id}
                       style={{
-                        padding: '12px 14px',
+                        padding: '14px 16px',
                         border: '1px solid var(--hd-line)',
-                        borderRadius: '8px',
-                        background: '#f8fafc',
+                        borderRadius: '9px',
+                        background: '#ffffff',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
@@ -262,7 +289,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                         </div>
                       </div>
                       {rev.comment ? (
-                        <div style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--hd-ink)', whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>
+                        <div style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--hd-ink)', whiteSpace: 'pre-wrap', fontStyle: 'italic', background: '#f8fafc', padding: '10px 12px', borderRadius: '6px', borderLeft: '3px solid var(--hd-blue)' }}>
                           &ldquo;{rev.comment}&rdquo;
                         </div>
                       ) : (

@@ -848,9 +848,17 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </div>
 
               {isLecturer && (
-                <label className="student-field" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} />
-                  <span className="student-field__label" style={{ margin: 0 }}>Keep this Lecturer manuscript Private while drafting</span>
+                <label className="student-checkbox-label" style={{ margin: '14px 0', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    className="student-checkbox"
+                    style={{ width: '17px', height: '17px', accentColor: '#0071bc', cursor: 'pointer', margin: 0 }}
+                    checked={isPrivate}
+                    onChange={(event) => setIsPrivate(event.target.checked)}
+                  />
+                  <span className="student-field__label" style={{ margin: 0, cursor: 'pointer', fontSize: '13px', color: '#1e293b' }}>
+                    Keep this Lecturer manuscript Private while drafting
+                  </span>
                 </label>
               )}
 

@@ -1422,18 +1422,18 @@
 .lecturer-select-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .lecturer-select-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 7px 11px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 7px;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
@@ -1450,8 +1450,8 @@
 }
 
 .lecturer-select-checkbox {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   accent-color: #0071bc;
   cursor: pointer;
 }
@@ -1462,14 +1462,110 @@
 }
 
 .lecturer-select-name {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #0f172a;
+  line-height: 1.25;
 }
 
 .lecturer-select-email {
-  font-size: 11.5px;
+  font-size: 11px;
   color: #64748b;
+  line-height: 1.2;
+}
+
+/* Audience Visibility Selectable Cards */
+.admin-audience-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 14px;
+}
+
+.admin-audience-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.admin-audience-item:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.admin-audience-item--active {
+  border-color: #0071bc;
+  background: #f0f7ff;
+  box-shadow: 0 1px 3px rgba(0, 113, 188, 0.06);
+}
+
+.admin-audience-item__left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.admin-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #0071bc;
+  cursor: pointer;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.admin-audience-item__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-audience-item__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.admin-audience-item__desc {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+  line-height: 1.2;
+}
+
+.admin-audience-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.admin-audience-badge--guest {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.admin-audience-badge--student {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.admin-audience-badge--lecturer {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
 }
 
 /* Administrator Decision Card */
@@ -1497,16 +1593,15 @@
   margin: 0 0 16px;
 }
 
-.admin-decision-buttons {
+/* ==========================================================================
+   Admin Backup Decision Buttons (Redesigned Theme-Aligned UI)
+   ========================================================================== */
+
+.admin-decision-action-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.admin-decision-buttons .admin-btn-decision--publish {
-  width: 100%;
-  padding: 11px 18px;
-  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.2);
+  margin-top: 4px;
 }
 
 .admin-decision-sub-row {
@@ -1515,64 +1610,216 @@
   gap: 10px;
 }
 
-.admin-btn-decision {
-  display: inline-flex;
+.admin-decision-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  user-select: none;
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-decision-btn__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-decision-btn__icon-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 13.5px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.admin-decision-btn__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-decision-btn__title {
+  font-size: 13px;
   font-weight: 700;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
-  font-family: inherit;
+  line-height: 1.25;
 }
 
-.admin-btn-decision--publish {
-  background: #059669;
-  color: #ffffff;
-  border-color: #059669;
+.admin-decision-btn__subtitle {
+  font-size: 11px;
+  line-height: 1.2;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.admin-btn-decision--publish:hover:not(:disabled) {
-  background: #047857;
-}
-
-.admin-btn-decision--revision {
-  background: #d97706;
-  color: #ffffff;
-  border-color: #d97706;
-}
-
-.admin-btn-decision--revision:hover:not(:disabled) {
-  background: #b45309;
-}
-
-.admin-btn-decision--reject {
-  background: #ffffff;
-  color: #dc2626;
-  border-color: #fca5a5;
-}
-
-.admin-btn-decision--reject:hover:not(:disabled) {
-  background: #fef2f2;
-}
-
-.admin-btn-decision--reopen {
-  background: #0071bc;
-  color: #ffffff;
+/* 1. Primary Publish Button (Website Theme Royal Blue) */
+.admin-decision-btn--publish {
+  background: linear-gradient(135deg, #0071bc 0%, #005f9e 100%);
   border-color: #0071bc;
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(0, 113, 188, 0.24);
 }
 
-.admin-btn-decision--reopen:hover:not(:disabled) {
-  background: #005a96;
+.admin-decision-btn--publish .admin-decision-btn__icon-circle--publish {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
-.admin-btn-decision:disabled {
-  opacity: 0.6;
+.admin-decision-btn--publish .admin-decision-btn__title {
+  color: #ffffff;
+}
+
+.admin-decision-btn--publish .admin-decision-btn__subtitle {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.admin-decision-btn__badge--publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.admin-decision-btn--publish:hover:not(:disabled) {
+  background: linear-gradient(135deg, #005f9e 0%, #004d80 100%);
+  transform: translateY(-1.5px);
+  box-shadow: 0 5px 16px rgba(0, 113, 188, 0.35);
+}
+
+.admin-decision-btn--publish:hover:not(:disabled) .admin-decision-btn__badge--publish {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateX(2px);
+}
+
+.admin-decision-btn--publish:hover:not(:disabled) .admin-decision-btn__icon-circle--publish {
+  transform: scale(1.08);
+}
+
+/* 2. Request Revision Button (Warm Amber / Slate Card) */
+.admin-decision-btn--revision {
+  border-color: #fde68a;
+  background: #ffffff;
+}
+
+.admin-decision-btn--revision .admin-decision-btn__icon-circle--revision {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.admin-decision-btn--revision .admin-decision-btn__title {
+  color: #0f172a;
+}
+
+.admin-decision-btn--revision .admin-decision-btn__subtitle {
+  color: #64748b;
+}
+
+.admin-decision-btn--revision:hover:not(:disabled) {
+  background: #fffdf5;
+  border-color: #f59e0b;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.14);
+}
+
+.admin-decision-btn--revision:hover:not(:disabled) .admin-decision-btn__title {
+  color: #b45309;
+}
+
+.admin-decision-btn--revision:hover:not(:disabled) .admin-decision-btn__icon-circle--revision {
+  background: #fde68a;
+  transform: scale(1.08);
+}
+
+/* 3. Reject Button (Refined Danger Card) */
+.admin-decision-btn--reject {
+  border-color: #fecaca;
+  background: #ffffff;
+}
+
+.admin-decision-btn--reject .admin-decision-btn__icon-circle--reject {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.admin-decision-btn--reject .admin-decision-btn__title {
+  color: #0f172a;
+}
+
+.admin-decision-btn--reject .admin-decision-btn__subtitle {
+  color: #64748b;
+}
+
+.admin-decision-btn--reject:hover:not(:disabled) {
+  background: #fffbfa;
+  border-color: #f87171;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);
+}
+
+.admin-decision-btn--reject:hover:not(:disabled) .admin-decision-btn__title {
+  color: #dc2626;
+}
+
+.admin-decision-btn--reject:hover:not(:disabled) .admin-decision-btn__icon-circle--reject {
+  background: #fecaca;
+  transform: scale(1.08);
+}
+
+/* 4. Reopen Button */
+.admin-decision-btn--reopen {
+  background: #ffffff;
+  border-color: #bae6fd;
+}
+
+.admin-decision-btn--reopen .admin-decision-btn__icon-circle--reopen {
+  background: #e0f2fe;
+  color: #0071bc;
+}
+
+.admin-decision-btn--reopen:hover:not(:disabled) {
+  background: #f0f9ff;
+  border-color: #0071bc;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(0, 113, 188, 0.15);
+}
+
+.admin-decision-btn--reopen:hover:not(:disabled) .admin-decision-btn__title {
+  color: #0071bc;
+}
+
+/* Disabled State */
+.admin-decision-btn:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.admin-decision-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 /* ==========================================================================
@@ -1659,4 +1906,270 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
+
+/* ==========================================================================
+   Admin Searchable Select (Primary Lecturer Dropdown)
+   ========================================================================== */
+
+.admin-searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.admin-searchable-select__trigger {
+  width: 100%;
+  min-height: 42px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.admin-searchable-select__trigger:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.admin-searchable-select__trigger--open,
+.admin-searchable-select__trigger:focus {
+  border-color: #0071bc;
+  box-shadow: 0 0 0 3.5px rgba(0, 113, 188, 0.12);
+  background: #ffffff;
+}
+
+.admin-searchable-select__trigger--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f1f5f9;
+}
+
+.admin-searchable-select__trigger-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-searchable-select__placeholder {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-searchable-select__selected-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.admin-searchable-select__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0071bc 0%, #0284c7 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.admin-searchable-select__avatar--small {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+
+.admin-searchable-select__selected-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-searchable-select__selected-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-searchable-select__selected-email {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.15;
+}
+
+.admin-searchable-select__arrow {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.admin-searchable-select__arrow--open {
+  transform: rotate(180deg);
+  color: #0071bc;
+}
+
+/* Dropdown Menu */
+.admin-searchable-select__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+  padding: 6px;
+  animation: adminSelectFadeIn 0.15s ease-out;
+}
+
+@keyframes adminSelectFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-searchable-select__search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 2px 4px 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-searchable-select__search-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.admin-searchable-select__search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 26px 0 30px;
+  font-size: 12px;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.admin-searchable-select__search-input:focus {
+  border-color: #0071bc;
+  background: #ffffff;
+}
+
+.admin-searchable-select__search-clear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.admin-searchable-select__search-clear:hover {
+  color: #334155;
+}
+
+.admin-searchable-select__options {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.admin-searchable-select__options::-webkit-scrollbar {
+  width: 5px;
+}
+
+.admin-searchable-select__options::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.admin-searchable-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.admin-searchable-select__option:hover {
+  background: #f1f5f9;
+}
+
+.admin-searchable-select__option--selected {
+  background: #f0f7ff;
+  font-weight: 700;
+}
+
+.admin-searchable-select__option-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.admin-searchable-select__option-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-searchable-select__option-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.admin-searchable-select__option-email {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.admin-searchable-select__check {
+  color: #0071bc;
+  flex-shrink: 0;
+}
+
+.admin-searchable-select__option--empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  font-style: italic;
 }
