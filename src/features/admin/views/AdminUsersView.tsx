@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Button, Field, Panel, SelectInput, TextInput } from '@hyperdata/design-system';
+import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminOverview, type AdminUser } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
@@ -41,15 +41,29 @@ export function AdminUsersView() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Create-user dialog state
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const [createEmail, setCreateEmail] = useState('');
-  const [createName, setCreateName] = useState('');
-  const [createRole, setCreateRole] = useState<AdminUser['role']>('STUDENT');
-  const [createPassword, setCreatePassword] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  // Fetch overview metrics
+  const refreshOverview = () => {
+    adminApi
+      .overview()
+      .then((data) => setOverview(data))
+      .catch(() => {});
+  };
 
+  const refreshPending = () => {
+    setLoadingPending(true);
+    adminApi
+      .listPendingUsers({ limit: 50 })
+      .then((next) => setPendingUsers(next.users))
+      .catch(() => setPendingUsers([]))
+      .finally(() => setLoadingPending(false));
+  };
+
+  useEffect(() => {
+    refreshOverview();
+    refreshPending();
+  }, []);
+
+  // Fetch users when tab (role), active status, search or page changes
   useEffect(() => {
     if (tab === 'PENDING') {
       setLoading(false);
@@ -81,41 +95,20 @@ export function AdminUsersView() {
     return () => {
       mounted = false;
     };
-  }, [active, page, role, search]);
+  }, [active, page, search, tab]);
 
-  const openCreateDialog = () => {
-    setCreateError(null);
-    dialogRef.current?.showModal();
-  };
-
-  const closeCreateDialog = () => {
-    if (!creating) dialogRef.current?.close();
-  };
-
-  const createUser = async () => {
-    if (!createEmail.trim()) return;
-    setCreating(true);
-    setCreateError(null);
-    try {
-      const created = await adminApi.createUser({
-        email: createEmail.trim(),
-        name: createName.trim() || null,
-        role: createRole,
-        password: createPassword || undefined,
-      });
-      setResult((current) => current ? { ...current, users: [created, ...current.users] } : current);
-      setCreateEmail('');
-      setCreateName('');
-      setCreateRole('STUDENT');
-      setCreatePassword('');
-      setMessage(`Created account for ${created.email}.`);
-      dialogRef.current?.close();
-    } catch (reason: unknown) {
-      setCreateError(reason instanceof Error ? reason.message : 'Unable to create user.');
-    } finally {
-      setCreating(false);
-    }
-  };
+  // Filter pending users locally by search
+  const filteredPendingUsers = useMemo(() => {
+    if (!search.trim()) return pendingUsers;
+    const q = search.toLowerCase().trim();
+    return pendingUsers.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.studentId?.toLowerCase().includes(q) ||
+        u.major?.toLowerCase().includes(q),
+    );
+  }, [pendingUsers, search]);
 
   const totalUsersCount = overview?.users?.total || result?.pagination?.total || 0;
   const studentsCount = overview?.users?.students || 0;
@@ -195,22 +188,6 @@ export function AdminUsersView() {
       setMessage(`Account for ${user.email} is now ${nextActive ? 'Active' : 'Inactive'}.`);
     } catch (reason: unknown) {
       setMessage(reason instanceof Error ? reason.message : 'Unable to update user status.');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const removeUser = async (user: AdminUser) => {
-    if (!window.confirm(`Delete ${user.email}? This cannot be undone.`)) return;
-
-    setBusyId(user.id);
-    setMessage(null);
-    try {
-      await adminApi.deleteUser(user.id);
-      setResult((current) => current ? { ...current, users: current.users.filter((item) => item.id !== user.id) } : current);
-      setMessage(`Deleted ${user.email}.`);
-    } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to delete user.');
     } finally {
       setBusyId(null);
     }
@@ -373,66 +350,326 @@ export function AdminUsersView() {
           </div>
         </div>
       </div>
-      <Panel className="table-shell">
-        <div className="table-toolbar users-filter-bar">
-          <div className="users-filter-controls">
-            <SelectInput aria-label="Filter by role" value={role} onChange={(event) => { setRole(event.target.value as RoleFilter); setPage(1); }}>
-              <option value="ALL">All roles</option>
-              <option value="STUDENT">Student</option>
-              <option value="LECTURER">Lecturer</option>
-              <option value="ADMIN">Admin</option>
-            </SelectInput>
-            <SelectInput aria-label="Filter by account status" value={active} onChange={(event) => { setActive(event.target.value as ActiveFilter); setPage(1); }}>
-              <option value="ALL">All account states</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </SelectInput>
-          </div>
-          <div className="users-filter-search">
-            <TextInput
-              className="search-input"
-              aria-label="Search users"
-              placeholder="Search name, email, username or student ID"
+
+      {/* 2. Filter Toolbar */}
+      <div className="student-filter-toolbar" style={{ marginBottom: '20px' }}>
+        <div className="student-tabs-pills" role="tablist" aria-label="Filter users by category">
+          <button
+            type="button"
+            className={`student-tab-pill ${tab === 'ALL' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => {
+              setTab('ALL');
+              setPage(1);
+            }}
+          >
+            {t('common.all')} <span className="student-tab-pill__count">{totalUsersCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`student-tab-pill ${tab === 'STUDENT' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => {
+              setTab('STUDENT');
+              setPage(1);
+            }}
+          >
+            {t('admin.students')} <span className="student-tab-pill__count">{studentsCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`student-tab-pill ${tab === 'LECTURER' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => {
+              setTab('LECTURER');
+              setPage(1);
+            }}
+          >
+            {t('admin.lecturers')} <span className="student-tab-pill__count">{lecturersCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`student-tab-pill ${tab === 'ADMIN' ? 'student-tab-pill--active' : ''}`}
+            onClick={() => {
+              setTab('ADMIN');
+              setPage(1);
+            }}
+          >
+            {t('admin.admins')} <span className="student-tab-pill__count">{adminsCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`student-tab-pill ${tab === 'PENDING' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
+            onClick={() => {
+              setTab('PENDING');
+              setPage(1);
+            }}
+          >
+            {t('admin.pendingApproval')} <span className="student-tab-pill__count">{pendingUsers.length}</span>
+          </button>
+        </div>
+
+        <div className="student-search-sort-group">
+          <div className="student-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="search"
+              placeholder={tab === 'PENDING' ? t('common.searchUsersPending') : t('common.searchUsersAll')}
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
+              onChange={(e) => {
+                setSearch(e.target.value);
                 setPage(1);
               }}
+              className="student-search-input"
+              aria-label="Search users"
             />
-            <Button onClick={openCreateDialog}>Create user</Button>
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setPage(1);
+                }}
+                className="student-search-clear"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
           </div>
+
+          {tab !== 'PENDING' && (
+            <div className="student-sort-box">
+              <span className="student-sort-label">{t('common.status')}:</span>
+              <SortDropdown
+                value={active}
+                onChange={(val) => {
+                  setActive(val as ActiveFilter);
+                  setPage(1);
+                }}
+                options={[
+                  { value: 'ALL', label: locale === 'vi' ? 'Tất cả trạng thái tài khoản' : 'All account states' },
+                  { value: 'ACTIVE', label: t('admin.active') },
+                  { value: 'INACTIVE', label: t('admin.inactive') },
+                ]}
+                style={{ width: '180px' }}
+              />
+            </div>
+          )}
         </div>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Account</th>
-                <th>Last login</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {result?.users.map((user) => {
-                const draftRole = roleDrafts[user.id] || user.role;
-                return (
-                  <tr key={user.id}>
-                    <td className="title-cell"><strong>{user.name || 'Unnamed user'}</strong><span>{user.email}</span></td>
-                    <td>
-                      <SelectInput aria-label={`Role for ${user.email}`} value={draftRole} onChange={(event) => setRoleDrafts((current) => ({ ...current, [user.id]: event.target.value as AdminUser['role'] }))}>
-                        <option value="STUDENT">Student</option>
-                        <option value="LECTURER">Lecturer</option>
-                        <option value="ADMIN">Admin</option>
-                      </SelectInput>
+      </div>
+
+      {/* 3. Table Card Container */}
+      <div className="admin-users-card">
+        {tab === 'PENDING' ? (
+          /* PENDING REGISTRATIONS QUEUE */
+          <div className="table-wrap">
+            <table className="data-table admin-users-table">
+              <thead>
+                <tr>
+                  <th>{locale === 'vi' ? 'Người đăng ký' : 'Applicant'}</th>
+                  <th>{locale === 'vi' ? 'Mã sinh viên' : 'Student ID'}</th>
+                  <th>{locale === 'vi' ? 'Ngành học' : 'Major'}</th>
+                  <th>{locale === 'vi' ? 'Ngày đăng ký' : 'Registered'}</th>
+                  <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingPending ? (
+                  <TableSkeleton rows={4} type="users" />
+                ) : filteredPendingUsers.length > 0 ? (
+                  filteredPendingUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>
+                        <div className="admin-user-cell">
+                          <div className="admin-user-avatar">
+                            {getUserInitials(user.name, user.email)}
+                          </div>
+                          <div className="admin-user-info">
+                            <div className="admin-user-name">
+                              {user.name || 'Unnamed Applicant'}
+                            </div>
+                            <span className="admin-user-email">{user.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                          {user.studentId || '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ color: '#475569' }}>
+                          {user.major || '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="review-actions">
+                          <Button
+                            variant="primary"
+                            disabled={busyId === user.id}
+                            onClick={() => decidePendingUser(user, 'approve')}
+                          >
+                            {locale === 'vi' ? 'Phê duyệt' : 'Approve'}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            disabled={busyId === user.id}
+                            onClick={() => decidePendingUser(user, 'reject')}
+                          >
+                            {locale === 'vi' ? 'Từ chối' : 'Reject'}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+                        No pending registrations
+                      </div>
+                      <div style={{ fontSize: '12.5px' }}>
+                        All applicant verification requests have been cleared or verified.
+                      </div>
                     </td>
-                    <td>{user.isActive ? 'Active' : 'Inactive'}</td>
-                    <td>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}</td>
-                    <td>
-                      <div className="review-actions">
-                        <Button variant="ghost" disabled={busyId === user.id || draftRole === user.role} onClick={() => updateRole(user)}>Save role</Button>
-                        <Button variant="secondary" disabled={busyId === user.id} onClick={() => updateActive(user)}>{user.isActive ? 'Deactivate' : 'Activate'}</Button>
-                        <Button variant="ghost" disabled={busyId === user.id} onClick={() => removeUser(user)}>Delete</Button>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* ACTIVE / ALL USERS DIRECTORY */
+          <div className="table-wrap">
+            <table className="data-table admin-users-table">
+              <thead>
+                <tr>
+                  <th>{locale === 'vi' ? 'Người dùng' : 'User'}</th>
+                  <th>{locale === 'vi' ? 'Vai trò' : 'Role'}</th>
+                  <th>{locale === 'vi' ? 'Trạng thái' : 'Account Status'}</th>
+                  <th>{locale === 'vi' ? 'Đăng nhập cuối' : 'Last Login'}</th>
+                  <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <TableSkeleton rows={6} type="users" />
+                ) : result?.users && result.users.length > 0 ? (
+                  result.users.map((user) => {
+                    const draftRole = roleDrafts[user.id] || user.role;
+                    return (
+                      <tr key={user.id}>
+                      {/* USER COLUMN */}
+                      <td>
+                        <div className="admin-user-cell">
+                          <div className="admin-user-avatar">
+                            {getUserInitials(user.name, user.email)}
+                          </div>
+                          <div className="admin-user-info">
+                            <div className="admin-user-name">
+                              <span>{user.name || 'Unnamed User'}</span>
+                              {user.studentId && (
+                                <span className="admin-user-subtag">
+                                  ID: {user.studentId}
+                                </span>
+                              )}
+                              {user.major && (
+                                <span className="admin-user-subtag">
+                                  {user.major}
+                                </span>
+                              )}
+                            </div>
+                            <span className="admin-user-email">{user.email}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* ROLE COLUMN: INLINE CUSTOM DROPDOWN */}
+                      <td style={{ minWidth: '150px' }}>
+                        <SortDropdown
+                          value={draftRole}
+                          disabled={busyId === user.id}
+                          size="sm"
+                          options={[
+                            { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
+                            { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
+                            { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
+                          ]}
+                          onChange={(val) =>
+                            setRoleDrafts((curr) => ({
+                              ...curr,
+                              [user.id]: val as AdminUser['role'],
+                            }))
+                          }
+                          ariaLabel={`Role for ${user.email}`}
+                          style={{ width: '135px' }}
+                        />
+                      </td>
+
+                      {/* ACCOUNT STATUS COLUMN */}
+                      <td>
+                        <span
+                          className={`admin-status-pill ${
+                            user.isActive ? 'admin-status-pill--active' : 'admin-status-pill--inactive'
+                          }`}
+                        >
+                          <span
+                            className={`admin-status-dot ${
+                              user.isActive ? 'admin-status-dot--active' : 'admin-status-dot--inactive'
+                            }`}
+                          />
+                          <span>{user.isActive ? (locale === 'vi' ? 'Hoạt động' : 'Active') : (locale === 'vi' ? 'Vô hiệu' : 'Inactive')}</span>
+                        </span>
+                      </td>
+
+                      {/* LAST LOGIN COLUMN */}
+                      <td>
+                        <span style={{ fontSize: '12.5px', color: user.lastLoginAt ? '#334155' : '#94a3b8' }}>
+                          {user.lastLoginAt
+                            ? new Date(user.lastLoginAt).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : (locale === 'vi' ? 'Chưa từng' : 'Never')}
+                        </span>
+                      </td>
+
+                      {/* ACTIONS COLUMN */}
+                      <td>
+                        <div className="review-actions">
+                          <Button
+                            variant="ghost"
+                            disabled={busyId === user.id || draftRole === user.role}
+                            onClick={() => handleSaveRole(user, draftRole)}
+                          >
+                            {locale === 'vi' ? 'Lưu vai trò' : 'Save role'}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            disabled={busyId === user.id}
+                            onClick={() => updateActive(user)}
+                          >
+                            {user.isActive ? (locale === 'vi' ? 'Vô hiệu hóa' : 'Deactivate') : (locale === 'vi' ? 'Kích hoạt' : 'Activate')}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+                ) : (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+                        No users found
+                      </div>
+                      <div style={{ fontSize: '12.5px' }}>
+                        No accounts match your current filter and search keyword.
                       </div>
                     </td>
                   </tr>
@@ -479,52 +716,7 @@ export function AdminUsersView() {
             </div>
           </div>
         )}
-      </Panel>
-
-      <dialog ref={dialogRef} className="users-create-dialog" aria-label="Create user">
-        <h2>Create user account</h2>
-        <p className="users-create-hint">Creates an approved, active account. Leave the password blank to let the user set one via reset.</p>
-        {createError && <div className="users-create-error" role="alert">{createError}</div>}
-        <Field label="Email">
-          <TextInput
-            aria-label="New user email"
-            placeholder="new.user@university.edu"
-            type="email"
-            value={createEmail}
-            onChange={(event) => setCreateEmail(event.target.value)}
-          />
-        </Field>
-        <Field label="Full name">
-          <TextInput
-            aria-label="New user name"
-            placeholder="Full name"
-            value={createName}
-            onChange={(event) => setCreateName(event.target.value)}
-          />
-        </Field>
-        <Field label="Role">
-          <SelectInput aria-label="New user role" value={createRole} onChange={(event) => setCreateRole(event.target.value as AdminUser['role'])}>
-            <option value="STUDENT">Student</option>
-            <option value="LECTURER">Lecturer</option>
-            <option value="ADMIN">Admin</option>
-          </SelectInput>
-        </Field>
-        <Field label="Initial password" hint="Optional">
-          <TextInput
-            aria-label="Initial password"
-            placeholder="Password (optional)"
-            type="password"
-            value={createPassword}
-            onChange={(event) => setCreatePassword(event.target.value)}
-          />
-        </Field>
-        <div className="review-actions users-create-actions">
-          <Button variant="secondary" disabled={creating} onClick={closeCreateDialog}>Cancel</Button>
-          <Button disabled={creating || !createEmail.trim()} onClick={createUser}>
-            {creating ? 'Creating...' : 'Create user'}
-          </Button>
-        </div>
-      </dialog>
+      </div>
     </AdminShell>
   );
 }
