@@ -22,7 +22,8 @@ function isAllowedAdminPath(path: string[], method: string) {
   if (root === 'reviews') return method === 'GET' && path.length === 1;
 
   if (root === 'users') {
-    if (path.length === 1) return method === 'GET';
+    if (path.length === 1) return method === 'GET' || method === 'POST';
+    if (path.length === 2) return ['GET', 'PATCH', 'DELETE'].includes(method);
     return method === 'PATCH' && path.length === 3 && (resource === 'role' || resource === 'status');
   }
 
@@ -40,6 +41,8 @@ function isAllowedAdminPath(path: string[], method: string) {
 }
 
 function getUpstreamPath(path: string[]) {
+  // /api/v1/users CRUD lives under its own prefix, everything else under /api/v1/admin
+  if (path[0] === 'users' && path.length <= 2) return '/api/v1/' + path.map((segment) => encodeURIComponent(segment)).join('/');
   const prefix = path[0] === 'publications' ? '/api/v1/' : '/api/v1/admin/';
   return prefix + path.map((segment) => encodeURIComponent(segment)).join('/');
 }

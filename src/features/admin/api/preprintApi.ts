@@ -184,6 +184,20 @@ export const preprintApi = {
   }),
   listUsers: (params: { page?: number; limit?: number; role?: AdminUser['role']; search?: string; isActive?: boolean } = {}) =>
     request<AdminUsersResponse>(`/api/v1/admin/users${queryString(params)}`),
+  getUser: (id: string) => request<AdminUser>(`/api/v1/admin/users/${id}`),
+  createUser: (input: { email: string; name?: string | null; username?: string | null; studentId?: string | null; major?: string | null; password?: string; role?: AdminUser['role'] }) =>
+    request<AdminUser>('/api/v1/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  updateUser: (id: string, input: Partial<{ email: string; name: string | null; username: string | null; studentId: string | null; major: string | null; role: AdminUser['role']; password: string }>) =>
+    request<AdminUser>(`/api/v1/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  deleteUser: (id: string) => request<AdminUser>(`/api/v1/admin/users/${id}`, {
+    method: 'DELETE',
+  }),
   updateUserRole: (id: string, role: AdminUser['role']) => requestResponse<never>(`/api/v1/admin/users/${id}/role`, {
     method: 'PATCH',
     body: JSON.stringify({ role }),
