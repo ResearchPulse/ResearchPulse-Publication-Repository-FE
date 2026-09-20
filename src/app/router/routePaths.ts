@@ -32,6 +32,7 @@ export const ROUTES = {
   STUDENT: {
     ROOT: '/student',
     PREPRINTS: '/student/my-preprints',
+    PUBLISHED: '/student/published',
     NEW_PREPRINT: '/student/my-preprints/new',
     PREPRINT_DETAIL: (id: string | number) => `/student/my-preprints/${id}`,
   },

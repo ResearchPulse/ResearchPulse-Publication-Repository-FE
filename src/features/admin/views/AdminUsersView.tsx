@@ -41,6 +41,17 @@ export function AdminUsersView() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Custom Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    cancelLabel: string;
+    isDanger?: boolean;
+    onConfirm: () => Promise<void> | void;
+  } | null>(null);
+
   // Create-user dialog state
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [createEmail, setCreateEmail] = useState('');
@@ -89,21 +100,32 @@ export function AdminUsersView() {
   };
 
   // Delete user
-  const removeUser = async (user: AdminUser) => {
-    if (!window.confirm(`Delete ${user.email}? This cannot be undone.`)) return;
-
-    setBusyId(user.id);
-    setMessage(null);
-    try {
-      await adminApi.deleteUser(user.id);
-      setResult((curr) => (curr ? { ...curr, users: curr.users.filter((item) => item.id !== user.id) } : curr));
-      refreshOverview();
-      setMessage(`Deleted ${user.email}.`);
-    } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to delete user.');
-    } finally {
-      setBusyId(null);
-    }
+  const removeUser = (user: AdminUser) => {
+    setConfirmModal({
+      open: true,
+      title: locale === 'vi' ? 'Xác nhận xóa người dùng' : 'Delete User',
+      description: locale === 'vi'
+        ? `Bạn có chắc chắn muốn xóa tài khoản ${user.email}? Hành động này không thể hoàn tác.`
+        : `Are you sure you want to delete ${user.email}? This action cannot be undone.`,
+      confirmLabel: locale === 'vi' ? 'Xóa người dùng' : 'Delete User',
+      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
+      isDanger: true,
+      onConfirm: async () => {
+        setBusyId(user.id);
+        setMessage(null);
+        try {
+          await adminApi.deleteUser(user.id);
+          setResult((curr) => (curr ? { ...curr, users: curr.users.filter((item) => item.id !== user.id) } : curr));
+          refreshOverview();
+          setMessage(locale === 'vi' ? `Đã xóa ${user.email}.` : `Deleted ${user.email}.`);
+        } catch (reason: unknown) {
+          setMessage(reason instanceof Error ? reason.message : 'Unable to delete user.');
+        } finally {
+          setBusyId(null);
+          setConfirmModal(null);
+        }
+      }
+    });
   };
 
   // Fetch overview metrics
@@ -111,7 +133,7 @@ export function AdminUsersView() {
     adminApi
       .overview()
       .then((data) => setOverview(data))
-      .catch(() => {});
+      .catch(() => { });
   };
 
   const refreshPending = () => {
@@ -181,25 +203,39 @@ export function AdminUsersView() {
   const adminsCount = Math.max(0, totalUsersCount - studentsCount - lecturersCount);
 
   // Decide pending registration (Approve / Reject)
-  const decidePendingUser = async (user: AdminUser, decision: 'approve' | 'reject') => {
-    if (!window.confirm(`${decision === 'approve' ? 'Approve' : 'Reject'} registration for ${user.email}?`)) return;
-    setBusyId(user.id);
-    setMessage(null);
-    try {
-      const updated =
-        decision === 'approve' ? await adminApi.approveUser(user.id) : await adminApi.rejectUser(user.id);
-      setPendingUsers((current) => current.filter((item) => item.id !== user.id));
-      refreshOverview();
-      setMessage(
-        decision === 'approve'
-          ? `Approved registration for ${user.name || user.email}. Temporary credentials issued.`
-          : `Registration for ${user.email} was rejected.`,
-      );
-    } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to process pending registration.');
-    } finally {
-      setBusyId(null);
-    }
+  const decidePendingUser = (user: AdminUser, decision: 'approve' | 'reject') => {
+    const isApprove = decision === 'approve';
+    setConfirmModal({
+      open: true,
+      title: isApprove
+        ? (locale === 'vi' ? 'Duyệt đăng ký tài khoản' : 'Approve Registration')
+        : (locale === 'vi' ? 'Từ chối đăng ký tài khoản' : 'Reject Registration'),
+      description: isApprove
+        ? (locale === 'vi' ? `Xác nhận duyệt yêu cầu đăng ký của ${user.email}? Tài khoản sẽ được cấp thông tin đăng nhập tạm thời.` : `Approve registration request for ${user.email}? Temporary credentials will be issued.`)
+        : (locale === 'vi' ? `Xác nhận từ chối yêu cầu đăng ký của ${user.email}?` : `Reject registration request for ${user.email}?`),
+      confirmLabel: isApprove ? (locale === 'vi' ? 'Duyệt' : 'Approve') : (locale === 'vi' ? 'Từ chối' : 'Reject'),
+      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
+      isDanger: !isApprove,
+      onConfirm: async () => {
+        setBusyId(user.id);
+        setMessage(null);
+        try {
+          await (decision === 'approve' ? adminApi.approveUser(user.id) : adminApi.rejectUser(user.id));
+          setPendingUsers((current) => current.filter((item) => item.id !== user.id));
+          refreshOverview();
+          setMessage(
+            decision === 'approve'
+              ? (locale === 'vi' ? `Đã duyệt đăng ký cho ${user.name || user.email}. Thông tin đăng nhập tạm thời đã được cấp.` : `Approved registration for ${user.name || user.email}. Temporary credentials issued.`)
+              : (locale === 'vi' ? `Đã từ chối đăng ký cho ${user.email}.` : `Registration for ${user.email} was rejected.`),
+          );
+        } catch (reason: unknown) {
+          setMessage(reason instanceof Error ? reason.message : 'Unable to process pending registration.');
+        } finally {
+          setBusyId(null);
+          setConfirmModal(null);
+        }
+      }
+    });
   };
 
   // Save role change on Confirm button click
@@ -214,9 +250,9 @@ export function AdminUsersView() {
       setResult((curr) =>
         curr
           ? {
-              ...curr,
-              users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
-            }
+            ...curr,
+            users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
+          }
           : curr,
       );
       setRoleDrafts((curr) => {
@@ -234,28 +270,46 @@ export function AdminUsersView() {
   };
 
   // Toggle active/inactive status
-  const updateActive = async (user: AdminUser) => {
+  const updateActive = (user: AdminUser) => {
     const nextActive = !user.isActive;
-    if (!window.confirm(`${nextActive ? 'Activate' : 'Deactivate'} account for ${user.name || user.email}?`)) return;
-
-    setBusyId(user.id);
-    setMessage(null);
-    try {
-      const updated = await adminApi.updateUserStatus(user.id, nextActive);
-      setResult((curr) =>
-        curr
-          ? {
-              ...curr,
-              users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
-            }
-          : curr,
-      );
-      setMessage(`Account for ${user.email} is now ${nextActive ? 'Active' : 'Inactive'}.`);
-    } catch (reason: unknown) {
-      setMessage(reason instanceof Error ? reason.message : 'Unable to update user status.');
-    } finally {
-      setBusyId(null);
-    }
+    setConfirmModal({
+      open: true,
+      title: nextActive
+        ? (locale === 'vi' ? 'Kích hoạt tài khoản' : 'Activate Account')
+        : (locale === 'vi' ? 'Khóa tài khoản' : 'Deactivate Account'),
+      description: nextActive
+        ? (locale === 'vi' ? `Bạn có muốn kích hoạt lại tài khoản cho ${user.name || user.email}?` : `Activate account for ${user.name || user.email}?`)
+        : (locale === 'vi' ? `Bạn có chắc chắn muốn khóa tài khoản của ${user.name || user.email}? Người dùng sẽ không thể đăng nhập.` : `Deactivate account for ${user.name || user.email}? The user will not be able to sign in.`),
+      confirmLabel: nextActive ? (locale === 'vi' ? 'Kích hoạt' : 'Activate') : (locale === 'vi' ? 'Khóa tài khoản' : 'Deactivate'),
+      cancelLabel: locale === 'vi' ? 'Hủy' : 'Cancel',
+      isDanger: !nextActive,
+      onConfirm: async () => {
+        setBusyId(user.id);
+        setMessage(null);
+        try {
+          const updated = await adminApi.updateUserStatus(user.id, nextActive);
+          setResult((curr) =>
+            curr
+              ? {
+                ...curr,
+                users: curr.users.map((item) => (item.id === updated.id ? updated : item)),
+              }
+              : curr,
+          );
+          refreshOverview();
+          setMessage(
+            locale === 'vi'
+              ? `${nextActive ? 'Đã kích hoạt' : 'Đã khóa'} tài khoản cho ${user.name || user.email}.`
+              : `${nextActive ? 'Activated' : 'Deactivated'} account for ${user.name || user.email}.`,
+          );
+        } catch (reason: unknown) {
+          setMessage(reason instanceof Error ? reason.message : 'Unable to update user status.');
+        } finally {
+          setBusyId(null);
+          setConfirmModal(null);
+        }
+      }
+    });
   };
 
   return (
@@ -630,112 +684,110 @@ export function AdminUsersView() {
                     const draftRole = roleDrafts[user.id] || user.role;
                     return (
                       <tr key={user.id}>
-                      {/* USER COLUMN */}
-                      <td>
-                        <div className="admin-user-cell">
-                          <div className="admin-user-avatar">
-                            {getUserInitials(user.name, user.email)}
-                          </div>
-                          <div className="admin-user-info">
-                            <div className="admin-user-name">
-                              <span>{user.name || 'Unnamed User'}</span>
-                              {user.studentId && (
-                                <span className="admin-user-subtag">
-                                  ID: {user.studentId}
-                                </span>
-                              )}
-                              {user.major && (
-                                <span className="admin-user-subtag">
-                                  {user.major}
-                                </span>
-                              )}
+                        {/* USER COLUMN */}
+                        <td>
+                          <div className="admin-user-cell">
+                            <div className="admin-user-avatar">
+                              {getUserInitials(user.name, user.email)}
                             </div>
-                            <span className="admin-user-email">{user.email}</span>
+                            <div className="admin-user-info">
+                              <div className="admin-user-name">
+                                <span>{user.name || 'Unnamed User'}</span>
+                                {user.studentId && (
+                                  <span className="admin-user-subtag">
+                                    ID: {user.studentId}
+                                  </span>
+                                )}
+                                {user.major && (
+                                  <span className="admin-user-subtag">
+                                    {user.major}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="admin-user-email">{user.email}</span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* ROLE COLUMN: INLINE CUSTOM DROPDOWN */}
-                      <td style={{ minWidth: '150px' }}>
-                        <SortDropdown
-                          value={draftRole}
-                          disabled={busyId === user.id}
-                          size="sm"
-                          options={[
-                            { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
-                            { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
-                            { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
-                          ]}
-                          onChange={(val) =>
-                            setRoleDrafts((curr) => ({
-                              ...curr,
-                              [user.id]: val as AdminUser['role'],
-                            }))
-                          }
-                          ariaLabel={`Role for ${user.email}`}
-                          style={{ width: '135px' }}
-                        />
-                      </td>
-
-                      {/* ACCOUNT STATUS COLUMN */}
-                      <td>
-                        <span
-                          className={`admin-status-pill ${
-                            user.isActive ? 'admin-status-pill--active' : 'admin-status-pill--inactive'
-                          }`}
-                        >
-                          <span
-                            className={`admin-status-dot ${
-                              user.isActive ? 'admin-status-dot--active' : 'admin-status-dot--inactive'
-                            }`}
+                        {/* ROLE COLUMN: INLINE CUSTOM DROPDOWN */}
+                        <td style={{ minWidth: '150px' }}>
+                          <SortDropdown
+                            value={draftRole}
+                            disabled={busyId === user.id}
+                            size="sm"
+                            options={[
+                              { value: 'STUDENT', label: locale === 'vi' ? 'Sinh viên' : 'Student' },
+                              { value: 'LECTURER', label: locale === 'vi' ? 'Giảng viên' : 'Lecturer' },
+                              { value: 'ADMIN', label: locale === 'vi' ? 'Quản trị viên' : 'Admin' },
+                            ]}
+                            onChange={(val) =>
+                              setRoleDrafts((curr) => ({
+                                ...curr,
+                                [user.id]: val as AdminUser['role'],
+                              }))
+                            }
+                            ariaLabel={`Role for ${user.email}`}
+                            style={{ width: '135px' }}
                           />
-                          <span>{user.isActive ? (locale === 'vi' ? 'Hoạt động' : 'Active') : (locale === 'vi' ? 'Vô hiệu' : 'Inactive')}</span>
-                        </span>
-                      </td>
+                        </td>
 
-                      {/* LAST LOGIN COLUMN */}
-                      <td>
-                        <span style={{ fontSize: '12.5px', color: user.lastLoginAt ? '#334155' : '#94a3b8' }}>
-                          {user.lastLoginAt
-                            ? new Date(user.lastLoginAt).toLocaleDateString(undefined, {
+                        {/* ACCOUNT STATUS COLUMN */}
+                        <td>
+                          <span
+                            className={`admin-status-pill ${user.isActive ? 'admin-status-pill--active' : 'admin-status-pill--inactive'
+                              }`}
+                          >
+                            <span
+                              className={`admin-status-dot ${user.isActive ? 'admin-status-dot--active' : 'admin-status-dot--inactive'
+                                }`}
+                            />
+                            <span>{user.isActive ? (locale === 'vi' ? 'Hoạt động' : 'Active') : (locale === 'vi' ? 'Vô hiệu' : 'Inactive')}</span>
+                          </span>
+                        </td>
+
+                        {/* LAST LOGIN COLUMN */}
+                        <td>
+                          <span style={{ fontSize: '12.5px', color: user.lastLoginAt ? '#334155' : '#94a3b8' }}>
+                            {user.lastLoginAt
+                              ? new Date(user.lastLoginAt).toLocaleDateString(undefined, {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric',
                               })
-                            : (locale === 'vi' ? 'Chưa từng' : 'Never')}
-                        </span>
-                      </td>
+                              : (locale === 'vi' ? 'Chưa từng' : 'Never')}
+                          </span>
+                        </td>
 
-                      {/* ACTIONS COLUMN */}
-                      <td>
-                        <div className="review-actions">
-                          <Button
-                            variant="ghost"
-                            disabled={busyId === user.id || draftRole === user.role}
-                            onClick={() => handleSaveRole(user, draftRole)}
-                          >
-                            {locale === 'vi' ? 'Lưu vai trò' : 'Save role'}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            disabled={busyId === user.id}
-                            onClick={() => updateActive(user)}
-                          >
-                            {user.isActive ? (locale === 'vi' ? 'Vô hiệu hóa' : 'Deactivate') : (locale === 'vi' ? 'Kích hoạt' : 'Activate')}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            disabled={busyId === user.id}
-                            onClick={() => removeUser(user)}
-                            style={{ color: '#dc2626' }}
-                          >
-                            {locale === 'vi' ? 'Xóa' : 'Delete'}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                        {/* ACTIONS COLUMN */}
+                        <td>
+                          <div className="review-actions">
+                            <Button
+                              variant="ghost"
+                              disabled={busyId === user.id || draftRole === user.role}
+                              onClick={() => handleSaveRole(user, draftRole)}
+                            >
+                              {locale === 'vi' ? 'Lưu vai trò' : 'Save role'}
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              disabled={busyId === user.id}
+                              onClick={() => updateActive(user)}
+                            >
+                              {user.isActive ? (locale === 'vi' ? 'Vô hiệu hóa' : 'Deactivate') : (locale === 'vi' ? 'Kích hoạt' : 'Activate')}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              disabled={busyId === user.id}
+                              onClick={() => removeUser(user)}
+                              style={{ color: '#dc2626' }}
+                            >
+                              {locale === 'vi' ? 'Xóa' : 'Delete'}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
@@ -864,6 +916,78 @@ export function AdminUsersView() {
           </div>
         </form>
       </dialog>
+
+      {/* Custom General Confirmation Modal */}
+      {confirmModal && confirmModal.open && (
+        <div className="admin-modal-backdrop" onClick={() => !busyId && setConfirmModal(null)}>
+          <div
+            className="admin-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <div className={`admin-modal-icon ${confirmModal.isDanger ? 'admin-modal-icon--rejected' : 'admin-modal-icon--published'}`}>
+                {confirmModal.isDanger ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <h3 className="admin-modal-title">{confirmModal.title}</h3>
+                <p className="admin-modal-subtitle">{confirmModal.description}</p>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={() => !busyId && setConfirmModal(null)}
+                aria-label="Close"
+                disabled={Boolean(busyId)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn-cancel"
+                onClick={() => setConfirmModal(null)}
+                disabled={Boolean(busyId)}
+              >
+                {confirmModal.cancelLabel}
+              </button>
+              <button
+                type="button"
+                className={`admin-btn-confirm ${confirmModal.isDanger ? 'admin-btn-confirm--rejected' : 'admin-btn-confirm--published'}`}
+                onClick={() => confirmModal.onConfirm()}
+                disabled={Boolean(busyId)}
+              >
+                {busyId ? (
+                  <>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                      <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                    </svg>
+                    {locale === 'vi' ? 'Đang xử lý...' : 'Processing...'}
+                  </>
+                ) : (
+                  confirmModal.confirmLabel
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminShell>
   );
 }

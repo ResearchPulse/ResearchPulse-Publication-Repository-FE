@@ -63,7 +63,12 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const isLecturer = user?.role === 'LECTURER' || (pathname?.startsWith('/lecturer/') ?? false);
-  const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
+  const isPublishedSection = pathname?.startsWith('/student/published') ?? false;
+  const workspacePath = isPublishedSection
+    ? '/student/published'
+    : isLecturer
+    ? '/lecturer/submissions'
+    : '/student/my-preprints';
   const editPath = isLecturer ? `${workspacePath}/new?id=${id}` : `${workspacePath}/${id}/edit`;
   const versionsPath = `${workspacePath}/${id}/versions`;
 

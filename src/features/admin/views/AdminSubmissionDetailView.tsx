@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminShell, AdminPageHeader } from '../components';
 import { DetailSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 import {
   adminApi,
   type AdminPublication,
@@ -542,6 +543,11 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
   const [assignmentBusy, setAssignmentBusy] = useState(false);
   const [visibilityBusy, setVisibilityBusy] = useState(false);
 
+  // Decision Modal State
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+  const [decisionAction, setDecisionAction] = useState<'PUBLISHED' | 'REJECTED' | 'DRAFTING' | null>(null);
+  const [decisionReason, setDecisionReason] = useState('Editorial decision recorded by Admin backup.');
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -615,12 +621,17 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
   const uniqueLecturers = useMemo(() => {
     const seenEmails = new Set<string>();
     const seenIds = new Set<string>();
+    const seenNames = new Set<string>();
     const result: AdminUser[] = [];
     for (const l of lecturers) {
       const emailKey = (l.email || '').toLowerCase().trim();
-      if (seenIds.has(l.id) || (emailKey && seenEmails.has(emailKey))) continue;
+      const nameKey = (l.name || '').toLowerCase().trim();
+      if (seenIds.has(l.id)) continue;
+      if (emailKey && seenEmails.has(emailKey)) continue;
+      if (nameKey && seenNames.has(nameKey)) continue;
       if (l.id) seenIds.add(l.id);
       if (emailKey) seenEmails.add(emailKey);
+      if (nameKey) seenNames.add(nameKey);
       result.push(l);
     }
     return result;
@@ -629,6 +640,18 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
   const eligibleLecturers = useMemo(() => {
     return uniqueLecturers.filter((lecturer) => !authorUserIds.has(lecturer.id));
   }, [uniqueLecturers, authorUserIds]);
+
+  const primaryLecturerOptions = useMemo(() => {
+    return [
+      { value: '', label: 'Select primary lecturer' },
+      ...eligibleLecturers.map((lecturer) => ({
+        value: lecturer.id,
+        label: lecturer.name || lecturer.email,
+        subLabel: lecturer.name ? lecturer.email : undefined,
+        searchTerms: `${lecturer.name || ''} ${lecturer.email || ''}`.trim(),
+      })),
+    ];
+  }, [eligibleLecturers]);
 
   const toggleSecondaryLecturer = (lecturerId: string) => {
     if (secondaryReviewerIds.includes(lecturerId)) {
@@ -642,20 +665,30 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
     }
   };
 
-  const changeStatus = async (status: 'PUBLISHED' | 'REJECTED' | 'DRAFTING') => {
-    const actionLabel = status === 'PUBLISHED' ? 'publish' : status === 'DRAFTING' ? 'request revision for' : 'reject';
-    if (!publication || !window.confirm(`Confirm action to ${actionLabel} this manuscript?`)) return;
-    const reason = window.prompt('Admin backup reason (required for audit timeline):', 'Editorial decision recorded by Admin backup.')?.trim();
+  const openDecisionModal = (status: 'PUBLISHED' | 'REJECTED' | 'DRAFTING') => {
+    setDecisionAction(status);
+    setDecisionReason('Editorial decision recorded by Admin backup.');
+    setDecisionModalOpen(true);
+  };
+
+  const executeDecision = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!publication || !decisionAction) return;
+
+    const reason = decisionReason.trim();
     if (!reason) return;
 
     setBusy(true);
     setDecisionMessage(null);
+    const status = decisionAction;
+    
     try {
       const updated = await adminApi.changeStatus(id, status, reason);
       setPublication((current) => current ? { ...current, ...updated, status } : current);
       setDecisionMessage(`Manuscript successfully moved to ${status}.`);
-    } catch (reason: unknown) {
-      setDecisionMessage(reason instanceof Error ? reason.message : 'Unable to change manuscript status.');
+      setDecisionModalOpen(false);
+    } catch (error: unknown) {
+      setDecisionMessage(error instanceof Error ? error.message : 'Unable to change manuscript status.');
     } finally {
       setBusy(false);
     }
@@ -936,25 +969,23 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                   <label className="student-field__label" htmlFor="primary-reviewer" style={{ display: 'block', marginBottom: '6px' }}>
                     Primary lecturer
                   </label>
-                  <select
-                    id="primary-reviewer"
-                    className="student-select"
-                    value={primaryReviewerId}
-                    onChange={(event) => {
-                      const val = event.target.value;
-                      setPrimaryReviewerId(val);
-                      setSecondaryReviewerIds((prev) => prev.filter((id) => id !== val));
-                    }}
-                    disabled={assignmentBusy}
-                    style={{ marginBottom: '14px' }}
-                  >
-                    <option value="">Select primary lecturer</option>
-                    {eligibleLecturers.map((lecturer) => (
-                      <option key={lecturer.id} value={lecturer.id}>
-                        {lecturer.name || lecturer.email}
-                      </option>
-                    ))}
-                  </select>
+                  <div style={{ marginBottom: '14px' }}>
+                    <SortDropdown
+                      id="primary-reviewer"
+                      value={primaryReviewerId}
+                      options={primaryLecturerOptions}
+                      onChange={(val) => {
+                        setPrimaryReviewerId(val);
+                        setSecondaryReviewerIds((prev) => prev.filter((id) => id !== val));
+                      }}
+                      disabled={assignmentBusy}
+                      ariaLabel="Select primary lecturer"
+                      className="admin-primary-reviewer-dropdown"
+                      searchable={true}
+                      searchPlaceholder="Tìm kiếm theo tên hoặc email..."
+                      emptyMessage="Không tìm thấy giảng viên phù hợp"
+                    />
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', marginTop: '0' }}>
                     <p className="student-field__label" style={{ margin: 0 }}>
                       Secondary lecturers (choose 2)
@@ -1172,7 +1203,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                         type="button"
                         className="admin-btn-decision admin-btn-decision--publish"
                         disabled={busy}
-                        onClick={() => changeStatus('PUBLISHED')}
+                        onClick={() => openDecisionModal('PUBLISHED')}
                       >
                         <div className="admin-btn-decision__icon-wrap">
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1189,7 +1220,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                           type="button"
                           className="admin-btn-decision admin-btn-decision--revision"
                           disabled={busy}
-                          onClick={() => changeStatus('DRAFTING')}
+                          onClick={() => openDecisionModal('DRAFTING')}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -1201,7 +1232,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                           type="button"
                           className="admin-btn-decision admin-btn-decision--reject"
                           disabled={busy}
-                          onClick={() => changeStatus('REJECTED')}
+                          onClick={() => openDecisionModal('REJECTED')}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -1218,7 +1249,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                         type="button"
                         className="admin-btn-decision admin-btn-decision--reopen"
                         disabled={busy}
-                        onClick={() => changeStatus('DRAFTING')}
+                        onClick={() => openDecisionModal('DRAFTING')}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <polyline points="1 4 1 10 7 10" />
@@ -1232,6 +1263,105 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
                 </div>
               )}
             </Panel>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Decision Confirmation Modal */}
+      {decisionModalOpen && decisionAction && (
+        <div className="admin-modal-backdrop" onClick={() => !busy && setDecisionModalOpen(false)}>
+          <div 
+            className="admin-modal-card" 
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="decision-modal-title"
+          >
+            <form onSubmit={executeDecision}>
+              <div className="admin-modal-header">
+                <div className={`admin-modal-icon admin-modal-icon--${decisionAction.toLowerCase()}`}>
+                  {decisionAction === 'PUBLISHED' && (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                  {decisionAction === 'DRAFTING' && (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  )}
+                  {decisionAction === 'REJECTED' && (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="15" y1="9" x2="9" y2="15"/>
+                      <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h3 id="decision-modal-title" className="admin-modal-title">
+                    {decisionAction === 'PUBLISHED' ? 'Confirm Publication' : decisionAction === 'DRAFTING' ? 'Request Revision' : 'Reject Manuscript'}
+                  </h3>
+                  <p className="admin-modal-subtitle">
+                    {decisionAction === 'PUBLISHED' ? 'You are about to publish this manuscript.' : decisionAction === 'DRAFTING' ? 'You are requesting the author to revise this manuscript.' : 'You are about to reject this manuscript.'} This action will be recorded in the audit timeline.
+                  </p>
+                </div>
+                <button type="button" className="admin-modal-close" onClick={() => !busy && setDecisionModalOpen(false)} aria-label="Close" disabled={busy}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="admin-modal-body">
+                <div className="admin-modal-field">
+                  <label htmlFor="decision-reason" className="admin-modal-label">Admin backup reason (Required)</label>
+                  <textarea
+                    id="decision-reason"
+                    className="admin-modal-textarea"
+                    value={decisionReason}
+                    onChange={(e) => setDecisionReason(e.target.value)}
+                    placeholder="Enter reason for this decision..."
+                    required
+                    disabled={busy}
+                    rows={4}
+                  />
+                  <p className="admin-modal-hint">Please provide a clear reason for the audit log.</p>
+                </div>
+              </div>
+
+              <div className="admin-modal-footer">
+                <button 
+                  type="button" 
+                  className="admin-btn-cancel" 
+                  onClick={() => setDecisionModalOpen(false)}
+                  disabled={busy}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className={`admin-btn-confirm admin-btn-confirm--${decisionAction.toLowerCase()}`}
+                  disabled={busy || !decisionReason.trim()}
+                >
+                  {busy ? (
+                    <>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                        <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      {decisionAction === 'PUBLISHED' ? 'Publish Manuscript' : decisionAction === 'DRAFTING' ? 'Confirm Revision' : 'Confirm Rejection'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

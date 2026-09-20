@@ -6,3 +6,5 @@ export * from './StudentDashboardView';
 export * from './StudentMentorFeedbackView';
 export * from './StudentVersionArchiveView';
 export * from './StudentAccountView';
+export * from './StudentPublishedView';
+export * from './StudentPublishedDetailView';
