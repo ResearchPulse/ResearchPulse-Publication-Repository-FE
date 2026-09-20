@@ -17,10 +17,7 @@ export function StudentAccountView() {
   const [formData, setFormData] = useState({
     name: '',
     studentId: '',
-    affiliation: '',
     major: '',
-    orcid: '',
-    bio: '',
   });
 
   // Sync form data whenever user changes or edit mode opens
@@ -29,10 +26,7 @@ export function StudentAccountView() {
       setFormData({
         name: user.name || '',
         studentId: user.studentId || '',
-        affiliation: user.affiliation || '',
         major: user.major || '',
-        orcid: user.orcid || '',
-        bio: user.bio || '',
       });
     }
   }, [user, isEditing]);
@@ -40,10 +34,8 @@ export function StudentAccountView() {
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Sinh viên';
   const displayEmail = user?.email || 'Chưa cập nhật email';
   const displayRole = user?.role === 'STUDENT' ? 'Sinh viên / Tác giả nghiên cứu' : user?.role || 'Sinh viên';
-  const displayAffiliation = user?.affiliation || 'Hyperdata Lab';
   const displayMajor = user?.major || 'Chưa cập nhật';
   const displayStudentId = user?.studentId || 'Chưa thiết lập';
-  const displayOrcid = user?.orcid || 'Chưa liên kết';
 
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name?.trim()) {
@@ -71,10 +63,7 @@ export function StudentAccountView() {
       const res = await authApi.updateProfile({
         name: formData.name.trim() || undefined,
         studentId: formData.studentId.trim() || undefined,
-        affiliation: formData.affiliation.trim() || undefined,
         major: formData.major.trim() || undefined,
-        orcid: formData.orcid.trim() || undefined,
-        bio: formData.bio.trim() || undefined,
       });
 
       if (res.user) {
@@ -306,28 +295,6 @@ export function StudentAccountView() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    Đơn vị nghiên cứu / Trường
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.affiliation}
-                    onChange={(e) => setFormData({ ...formData, affiliation: e.target.value })}
-                    placeholder="Ví dụ: Hyperdata Lab / Trường ĐH Bách Khoa"
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '14px',
-                      background: '#ffffff',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                     Lĩnh vực nghiên cứu
                   </label>
                   <input
@@ -335,28 +302,6 @@ export function StudentAccountView() {
                     value={formData.major}
                     onChange={(e) => setFormData({ ...formData, major: e.target.value })}
                     placeholder="Ví dụ: Trí tuệ nhân tạo, Xử lý ngôn ngữ tự nhiên"
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '14px',
-                      background: '#ffffff',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                    Mã định danh ORCID iD
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.orcid}
-                    onChange={(e) => setFormData({ ...formData, orcid: e.target.value })}
-                    placeholder="0009-0002-8419-2201"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -391,30 +336,6 @@ export function StudentAccountView() {
                     }}
                   />
                 </div>
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Giới thiệu tóm tắt (Bio)
-                </label>
-                <textarea
-                  rows={3}
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  placeholder="Tóm tắt quá trình học tập, mục tiêu nghiên cứu hoặc hướng tiếp cận học thuật..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '14px',
-                    background: '#ffffff',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                  }}
-                />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -496,28 +417,10 @@ export function StudentAccountView() {
 
             <div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Đơn vị đào tạo / Trường
-              </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                {displayAffiliation}
-              </div>
-            </div>
-
-            <div>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 Lĩnh vực nghiên cứu
               </span>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayMajor}
-              </div>
-            </div>
-
-            <div>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Mã định danh ORCID iD
-              </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                {displayOrcid}
               </div>
             </div>
 
@@ -531,17 +434,6 @@ export function StudentAccountView() {
               </div>
             </div>
           </div>
-
-          {user?.bio && (
-            <div style={{ marginTop: '16px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                Giới thiệu tóm tắt
-              </span>
-              <div style={{ fontSize: '13.5px', color: '#334155', padding: '12px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', lineHeight: 1.6 }}>
-                {user.bio}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Security & Access Card */}

@@ -56,9 +56,6 @@ export const authApi = {
     lastName?: string;
     studentId?: string;
     major?: string;
-    affiliation?: string;
-    orcid?: string;
-    bio?: string;
     avatarUrl?: string;
   }): Promise<{ success: boolean; message?: string; user?: User }> {
     const res = await fetch('/api/auth/profile', {

@@ -16,9 +16,6 @@ type RawUser = {
   lastName?: string | null;
   studentId?: string | null;
   major?: string | null;
-  affiliation?: string | null;
-  orcid?: string | null;
-  bio?: string | null;
   avatarUrl?: string | null;
   role?: string;
   status?: string;
@@ -47,9 +44,6 @@ function normalizeUser(payload: AuthPayload): User | null {
     lastName: raw.lastName ?? undefined,
     studentId: raw.studentId ?? undefined,
     major: raw.major ?? undefined,
-    affiliation: raw.affiliation ?? undefined,
-    orcid: raw.orcid ?? undefined,
-    bio: raw.bio ?? undefined,
     avatarUrl: raw.avatarUrl ?? undefined,
     role: normalizeRole(raw.role),
     status: raw.status ?? undefined,
