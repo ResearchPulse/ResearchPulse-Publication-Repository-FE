@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { LecturerShell } from '../components';
 import { DetailSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerRecommendation, type LecturerReviewDetail } from '../api';
+import { useTranslation } from '@/i18n';
 
 const NativePdfViewer = dynamic(
   () => import('../../preprint/components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
@@ -122,6 +123,7 @@ function ReviewCommentItem({ comment }: { comment: string }) {
 }
 
 export function LecturerReviewDetailView({ publicationId }: { publicationId: string }) {
+  const { t, locale } = useTranslation();
   const { user } = useAuth();
   const [detail, setDetail] = useState<LecturerReviewDetail | null>(null);
   const [comment, setComment] = useState('');
@@ -257,23 +259,23 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
     }
   }
 
-  if (loading) return <LecturerShell active="reviews" title="Review manuscript"><DetailSkeleton /></LecturerShell>;
-  if (error && !detail) return <LecturerShell active="reviews" title="Review manuscript"><ErrorState title="Manuscript unavailable" description={error} action={<Link href={ROUTES.LECTURER.REVIEWS}><Button variant="secondary">Back to queue</Button></Link>} /></LecturerShell>;
+  if (loading) return <LecturerShell active="reviews" title={locale === 'vi' ? 'Thẩm định bản thảo' : 'Review manuscript'}><DetailSkeleton /></LecturerShell>;
+  if (error && !detail) return <LecturerShell active="reviews" title={locale === 'vi' ? 'Thẩm định bản thảo' : 'Review manuscript'}><ErrorState title={locale === 'vi' ? 'Không thể mở bản thảo' : 'Manuscript unavailable'} description={error} action={<Link href={ROUTES.LECTURER.REVIEWS}><Button variant="secondary">{locale === 'vi' ? 'Quay lại hàng đợi' : 'Back to queue'}</Button></Link>} /></LecturerShell>;
   if (!detail) return null;
 
-  const title = detail.publication.title?.trim() || currentVersion?.fileName || 'Untitled manuscript';
+  const title = detail.publication.title?.trim() || currentVersion?.fileName || (locale === 'vi' ? 'Bản thảo chưa đặt tên' : 'Untitled manuscript');
   const isFaculty = detail.publication.uploader?.role === 'LECTURER';
-  const uploader = detail.publication.uploader?.name || (isFaculty ? 'Anonymous Author' : 'Student Author');
+  const uploader = detail.publication.uploader?.name || (isFaculty ? (locale === 'vi' ? 'Tác giả ẩn danh' : 'Anonymous Author') : (locale === 'vi' ? 'Tác giả sinh viên' : 'Student Author'));
 
   return (
-    <LecturerShell active="reviews" title="Review manuscript">
+    <LecturerShell active="reviews" title={locale === 'vi' ? 'Thẩm định bản thảo' : 'Review manuscript'}>
       <div className="admin-detail-top-nav">
         <Link className="admin-back-btn" href={ROUTES.LECTURER.REVIEWS}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
-          <span>Back to review queue</span>
+          <span>{locale === 'vi' ? 'Quay lại danh sách chờ duyệt' : 'Back to review queue'}</span>
         </Link>
       </div>
       <PageHeader
@@ -287,42 +289,44 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
               fileName={currentVersion?.fileName || 'manuscript.pdf'}
             />
           ) : (
-            <div className="lecturer-pdf-empty">PDF preview is not available for this manuscript.</div>
+            <div className="lecturer-pdf-empty">
+              {locale === 'vi' ? 'Bản thảo này hiện chưa có bản xem trước PDF.' : 'PDF preview is not available for this manuscript.'}
+            </div>
           )}
           <div className="lecturer-file-meta" style={{ marginTop: '16px', padding: '16px 24px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12.5px' }}>
             <span>{formatFileSize(currentVersion?.fileSize ?? detail.publication.fileSize)}</span>
             <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
-              {currentVersion?.sha256 ? `SHA-256: ${currentVersion.sha256}` : 'Hash unavailable'}
+              {currentVersion?.sha256 ? `SHA-256: ${currentVersion.sha256}` : (locale === 'vi' ? 'Mã băm không khả dụng' : 'Hash unavailable')}
             </span>
           </div>
         </div>
         <div className="lecturer-detail-side">
           <Panel className="lecturer-metadata-panel">
-            <span className="lecturer-panel-eyebrow">Manuscript information</span>
+            <span className="lecturer-panel-eyebrow">{locale === 'vi' ? 'Thông tin bản thảo' : 'Manuscript information'}</span>
             <dl className="lecturer-metadata-list">
               <div>
-                <dt>Author</dt>
+                <dt>{locale === 'vi' ? 'Tác giả' : 'Author'}</dt>
                 <dd>
                   {uploader}{' '}
                   {isFaculty ? (
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>(Double-Blind)</span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>({locale === 'vi' ? 'Ẩn danh đôi' : 'Double-Blind'})</span>
                   ) : detail.publication.uploader?.email ? (
                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>({detail.publication.uploader.email})</span>
                   ) : null}
                 </dd>
               </div>
-              <div><dt>Status</dt><dd><StatusBadge status={detail.publication.status} /></dd></div>
-              <div><dt>Role</dt><dd><strong>{isPrimary ? 'Primary Lecturer (Lead)' : isSecondary ? 'Secondary Reviewer' : 'Reviewer'}</strong></dd></div>
+              <div><dt>{locale === 'vi' ? 'Trạng thái' : 'Status'}</dt><dd><StatusBadge status={detail.publication.status} /></dd></div>
+              <div><dt>{locale === 'vi' ? 'Vai trò' : 'Role'}</dt><dd><strong>{isPrimary ? (locale === 'vi' ? 'Giảng viên thẩm định chính (Lead)' : 'Primary Lecturer (Lead)') : isSecondary ? (locale === 'vi' ? 'Giảng viên đồng thẩm định' : 'Secondary Reviewer') : (locale === 'vi' ? 'Người thẩm định' : 'Reviewer')}</strong></dd></div>
               <div>
-                <dt>Authors</dt>
+                <dt>{locale === 'vi' ? 'Tác giả' : 'Authors'}</dt>
                 <dd>
                   <ReviewAuthorsList
                     authors={detail.publication.authors}
-                    fallback={isFaculty ? 'Anonymous Author (Double-Blind Review)' : uploader}
+                    fallback={isFaculty ? (locale === 'vi' ? 'Tác giả ẩn danh (Thẩm định đôi)' : 'Anonymous Author (Double-Blind Review)') : uploader}
                   />
                 </dd>
               </div>
-              <div><dt>Keywords</dt><dd>{detail.publication.keywords?.join(', ') || 'No keywords provided'}</dd></div>
+              <div><dt>{locale === 'vi' ? 'Từ khóa' : 'Keywords'}</dt><dd>{detail.publication.keywords?.join(', ') || (locale === 'vi' ? 'Chưa có từ khóa' : 'No keywords provided')}</dd></div>
             </dl>
           </Panel>
 
@@ -331,13 +335,13 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
             <Panel className="lecturer-secondary-panel">
               <div className="lecturer-panel-heading" style={{ marginBottom: '8px' }}>
                 <div>
-                  <span className="lecturer-panel-eyebrow">Peer Review Evidence</span>
-                  <h2>Secondary Reviewers ({secondarySubmittedCount}/{secondaryReviews.length || 2} submitted)</h2>
+                  <span className="lecturer-panel-eyebrow">{locale === 'vi' ? 'Ý kiến phản biện đồng cấp' : 'Peer Review Evidence'}</span>
+                  <h2>{locale === 'vi' ? `Giảng viên đồng phản biện (${secondarySubmittedCount}/${secondaryReviews.length || 2} đã nộp)` : `Secondary Reviewers (${secondarySubmittedCount}/${secondaryReviews.length || 2} submitted)`}</h2>
                 </div>
               </div>
               {secondaryReviews.length === 0 ? (
                 <p className="lecturer-muted" style={{ fontStyle: 'italic', margin: 0 }}>
-                  Secondary reviewers have not been assigned yet.
+                  {locale === 'vi' ? 'Chưa có giảng viên đồng phản biện nào được phân công.' : 'Secondary reviewers have not been assigned yet.'}
                 </p>
               ) : (
                 <div className="simple-reviewer-list" style={{ borderTop: '1px solid #f1f5f9', marginTop: '6px', marginBottom: 0 }}>
@@ -365,11 +369,11 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                                   {rev.reviewer?.name || rev.reviewer?.email || rev.reviewerId}
                                 </span>
                                 <span className="simple-reviewer-item__role-tag simple-reviewer-item__role-tag--secondary">
-                                  Secondary
+                                  {locale === 'vi' ? 'Đồng phản biện' : 'Secondary'}
                                 </span>
                               </div>
                               <p className="simple-reviewer-item__sub">
-                                Independent Reviewer · {formatDate(rev.submittedAt || rev.updatedAt || rev.createdAt)}
+                                {locale === 'vi' ? 'Người phản biện độc lập' : 'Independent Reviewer'} · {formatDate(rev.submittedAt || rev.updatedAt || rev.createdAt)}
                               </p>
                             </div>
                           </div>
@@ -377,17 +381,17 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                           <div className="simple-reviewer-item__badge">
                             {isNeedsRevision && (
                               <span className="user-badge user-badge--revision" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
-                                Needs Revision
+                                {locale === 'vi' ? 'Cần chỉnh sửa' : 'Needs Revision'}
                               </span>
                             )}
                             {isPublish && (
                               <span className="user-badge user-badge--approved" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
-                                Recommend Publish
+                                {locale === 'vi' ? 'Đề xuất xuất bản' : 'Recommend Publish'}
                               </span>
                             )}
                             {isReject && (
                               <span className="user-badge user-badge--withdrawn" style={{ fontSize: '10.5px', padding: '2px 7px' }}>
-                                Recommend Reject
+                                {locale === 'vi' ? 'Đề xuất từ chối' : 'Recommend Reject'}
                               </span>
                             )}
                             {!rev.recommendation && (
@@ -401,7 +405,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                                   border: '1px solid #e2e8f0',
                                 }}
                               >
-                                Pending
+                                {locale === 'vi' ? 'Đang chờ' : 'Pending'}
                               </span>
                             )}
                           </div>
@@ -416,19 +420,21 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
             </Panel>
           )}
 
-          {/* Unified Evaluation & Decision Panel (matching UI of Hình 1) */}
+          {/* Unified Evaluation & Decision Panel */}
           <Panel className="lecturer-review-panel">
             <div className="lecturer-panel-heading">
               <div>
                 <span className="lecturer-panel-eyebrow">
-                  {isPrimary ? 'Lead academic evaluation' : 'Independent evaluation'}
+                  {isPrimary
+                    ? (locale === 'vi' ? 'Đánh giá & Quyết định thẩm định chính' : 'Lead academic evaluation')
+                    : (locale === 'vi' ? 'Đánh giá độc lập' : 'Independent evaluation')}
                 </span>
                 <h2>
                   {isPrimary
-                    ? 'Academic evaluation & decision'
+                    ? (locale === 'vi' ? 'Đánh giá học thuật & Quyết định' : 'Academic evaluation & decision')
                     : submitted
-                    ? 'Update your review'
-                    : 'Submit your review'}
+                    ? (locale === 'vi' ? 'Cập nhật đánh giá của bạn' : 'Update your review')
+                    : (locale === 'vi' ? 'Gửi đánh giá thẩm định' : 'Submit your review')}
                 </h2>
               </div>
               <StatusBadge
@@ -459,7 +465,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                   onClick={() => (isPrimary ? setPrimaryDecision('PUBLISHED') : setRecommendation('PUBLISH'))}
                   disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
                 >
-                  Publish
+                  {locale === 'vi' ? 'Chấp thuận' : 'Publish'}
                 </button>
                 <button
                   type="button"
@@ -469,7 +475,7 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                   onClick={() => (isPrimary ? setPrimaryDecision('DRAFTING') : setRecommendation('NEEDS_REVISION'))}
                   disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
                 >
-                  Revision
+                  {locale === 'vi' ? 'Chỉnh sửa' : 'Revision'}
                 </button>
                 <button
                   type="button"
@@ -479,23 +485,23 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
                   onClick={() => (isPrimary ? setPrimaryDecision('REJECTED') : setRecommendation('REJECT'))}
                   disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
                 >
-                  Reject
+                  {locale === 'vi' ? 'Từ chối' : 'Reject'}
                 </button>
               </div>
 
               <Field
-                label={isPrimary ? 'Evaluation & requirements' : 'Comments'}
+                label={isPrimary ? (locale === 'vi' ? 'Đánh giá & Yêu cầu chỉnh sửa' : 'Evaluation & requirements') : (locale === 'vi' ? 'Nhận xét chuyên môn' : 'Comments')}
                 hint={
                   isPrimary
-                    ? 'Explain the academic evaluation and requirements for the author. This is recorded as the decision rationale.'
-                    : 'Explain the main academic evidence behind your recommendation.'
+                    ? (locale === 'vi' ? 'Giải thích nhận xét học thuật và các yêu cầu chỉnh sửa gửi tới tác giả.' : 'Explain the academic evaluation and requirements for the author. This is recorded as the decision rationale.')
+                    : (locale === 'vi' ? 'Nêu rõ căn cứ học thuật cho khuyến nghị đánh giá của bạn.' : 'Explain the main academic evidence behind your recommendation.')
                 }
               >
                 <TextArea
                   value={comment}
                   onChange={(event) => setComment(event.target.value)}
                   rows={6}
-                  placeholder="Enter your evaluation comments..."
+                  placeholder={locale === 'vi' ? 'Nhập nội dung nhận xét và đánh giá chuyên môn...' : 'Enter your evaluation comments...'}
                   disabled={saving || (isPrimary && detail.publication.status !== 'REVIEWING')}
                 />
               </Field>
@@ -503,21 +509,21 @@ export function LecturerReviewDetailView({ publicationId }: { publicationId: str
               {isPrimary ? (
                 detail.publication.status === 'REVIEWING' ? (
                   <Button type="submit" loading={saving} style={{ width: '100%' }}>
-                    Submit
+                    {locale === 'vi' ? 'Gửi quyết định thẩm định' : 'Submit Decision'}
                   </Button>
                 ) : (
                   <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid var(--hd-line)', borderRadius: '6px', fontSize: '13px', color: 'var(--hd-muted)' }}>
-                    Workflow decision finalized as <strong>{detail.publication.status}</strong>.
+                    {locale === 'vi' ? 'Quyết định quy trình đã được hoàn tất với trạng thái' : 'Workflow decision finalized as'} <strong>{detail.publication.status}</strong>.
                   </div>
                 )
               ) : (
                 detail.publication.status === 'REVIEWING' ? (
                   <Button type="submit" loading={saving} style={{ width: '100%' }}>
-                    Submit
+                    {locale === 'vi' ? 'Gửi đánh giá' : 'Submit Review'}
                   </Button>
                 ) : (
                   <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid var(--hd-line)', borderRadius: '6px', fontSize: '13px', color: 'var(--hd-muted)' }}>
-                    Review period is closed for this round.
+                    {locale === 'vi' ? 'Vòng thẩm định này hiện đã đóng.' : 'Review period is closed for this round.'}
                   </div>
                 )
               )}

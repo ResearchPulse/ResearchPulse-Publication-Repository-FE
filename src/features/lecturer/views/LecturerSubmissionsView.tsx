@@ -11,11 +11,11 @@ import { TableSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
 import { useTranslation } from '@/i18n';
 
-function formatUpdatedDate(value: string) {
+function formatUpdatedDate(value: string, locale: string = 'en') {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Recently updated';
+  if (Number.isNaN(date.getTime())) return locale === 'vi' ? 'Vừa cập nhật' : 'Recently updated';
 
-  return new Intl.DateTimeFormat('en', {
+  return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -88,29 +88,31 @@ export function LecturerSubmissionsView() {
   const renderStatusBadge = (status: PreprintStatus) => {
     switch (status) {
       case 'PUBLISHED':
-        return <span className="user-badge user-badge--approved">PUBLISHED</span>;
+        return <span className="user-badge user-badge--approved">{locale === 'vi' ? 'ĐÃ XUẤT BẢN' : 'PUBLISHED'}</span>;
       case 'APPROVED':
-        return <span className="user-badge user-badge--approved">APPROVED</span>;
+        return <span className="user-badge user-badge--approved">{locale === 'vi' ? 'ĐÃ DUYỆT' : 'APPROVED'}</span>;
       case 'NEEDS_REVISION':
-        return <span className="user-badge user-badge--revision">NEEDS REVISION</span>;
+        return <span className="user-badge user-badge--revision">{locale === 'vi' ? 'CẦN CHỈNH SỬA' : 'NEEDS REVISION'}</span>;
       case 'UNDER_REVIEW':
-        return <span className="user-badge user-badge--review">UNDER REVIEW</span>;
+        return <span className="user-badge user-badge--review">{locale === 'vi' ? 'ĐANG THẨM ĐỊNH' : 'UNDER REVIEW'}</span>;
       case 'DRAFT':
-        return <span className="user-badge user-badge--draft">DRAFT</span>;
+        return <span className="user-badge user-badge--draft">{locale === 'vi' ? 'BẢN NHÁP' : 'DRAFT'}</span>;
       case 'WITHDRAWN':
       case 'REJECTED':
-        return <span className="user-badge user-badge--withdrawn">REJECTED</span>;
+        return <span className="user-badge user-badge--withdrawn">{locale === 'vi' ? 'BỊ TỪ CHỐI' : 'REJECTED'}</span>;
       default:
         return <span className="user-badge">{status}</span>;
     }
   };
 
   return (
-    <LecturerShell active="submissions" title="My Manuscripts">
+    <LecturerShell active="submissions" title={locale === 'vi' ? 'Bản thảo của tôi' : 'My Manuscripts'}>
       {/* Notice Banner */}
       {apiPending && (
         <div className="user-notice" style={{ marginTop: '0', marginBottom: '20px' }}>
-          Repository service is temporarily unreachable, preview data shown.
+          {locale === 'vi'
+            ? 'Dịch vụ kho lưu trữ tạm thời gián đoạn, đang hiển thị dữ liệu xem trước.'
+            : 'Repository service is temporarily unreachable, preview data shown.'}
         </div>
       )}
 
@@ -126,11 +128,19 @@ export function LecturerSubmissionsView() {
           </div>
           <div className="dashboard-alert-banner__content">
             <div className="dashboard-alert-banner__header">
-              <strong className="dashboard-alert-banner__title">Action Required: Revision Requested</strong>
-              <span className="dashboard-alert-banner__badge">Version {revisionItem.current_version}</span>
+              <strong className="dashboard-alert-banner__title">
+                {locale === 'vi' ? 'Yêu cầu hành động: Cần cập nhật chỉnh sửa' : 'Action Required: Revision Requested'}
+              </strong>
+              <span className="dashboard-alert-banner__badge">
+                {locale === 'vi' ? `Phiên bản ${revisionItem.current_version}` : `Version ${revisionItem.current_version}`}
+              </span>
             </div>
             <p className="dashboard-alert-banner__desc">
-              Review team requested revision updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.
+              {locale === 'vi' ? (
+                <>Hội đồng thẩm định yêu cầu bổ sung chỉnh sửa đối với <em>&ldquo;{revisionItem.title}&rdquo;</em>.</>
+              ) : (
+                <>Review team requested revision updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.</>
+              )}
             </p>
           </div>
           <div className="dashboard-alert-banner__action">
@@ -138,7 +148,7 @@ export function LecturerSubmissionsView() {
               href={`${ROUTES.LECTURER.NEW_SUBMISSION}?id=${revisionItem.id}`}
               className="dashboard-alert-banner__btn"
             >
-              Review &amp; Revise →
+              {locale === 'vi' ? 'Xem & Chỉnh sửa →' : 'Review & Revise →'}
             </Link>
           </div>
         </div>
@@ -163,7 +173,7 @@ export function LecturerSubmissionsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.total}</span>
-            <span className="student-metric-label">Total Manuscripts</span>
+            <span className="student-metric-label">{locale === 'vi' ? 'Tổng số bản thảo' : 'Total Manuscripts'}</span>
           </div>
         </div>
 
@@ -182,7 +192,7 @@ export function LecturerSubmissionsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value">{metrics.underReview}</span>
-            <span className="student-metric-label">In Peer Review</span>
+            <span className="student-metric-label">{locale === 'vi' ? 'Đang thẩm định' : 'In Peer Review'}</span>
           </div>
         </div>
 
@@ -204,7 +214,7 @@ export function LecturerSubmissionsView() {
             <span className="student-metric-value" style={{ color: metrics.needsRevision > 0 ? '#d97706' : undefined }}>
               {metrics.needsRevision}
             </span>
-            <span className="student-metric-label">Needs Revision</span>
+            <span className="student-metric-label">{locale === 'vi' ? 'Cần chỉnh sửa' : 'Needs Revision'}</span>
           </div>
         </div>
 
@@ -223,7 +233,7 @@ export function LecturerSubmissionsView() {
           </div>
           <div className="student-metric-info">
             <span className="student-metric-value" style={{ color: '#16a34a' }}>{metrics.approved}</span>
-            <span className="student-metric-label">Published</span>
+            <span className="student-metric-label">{locale === 'vi' ? 'Đã xuất bản' : 'Published'}</span>
           </div>
         </div>
       </div>
@@ -244,21 +254,21 @@ export function LecturerSubmissionsView() {
             className={`student-tab-pill ${selectedTab === 'UNDER_REVIEW' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('UNDER_REVIEW')}
           >
-            {t('student.preprints.underReview')} <span className="student-tab-pill__count">{metrics.underReview}</span>
+            {locale === 'vi' ? 'Đang thẩm định' : 'Under Review'} <span className="student-tab-pill__count">{metrics.underReview}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'NEEDS_REVISION' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setSelectedTab('NEEDS_REVISION')}
           >
-            {t('student.preprints.needsRevision')} <span className="student-tab-pill__count">{metrics.needsRevision}</span>
+            {locale === 'vi' ? 'Cần chỉnh sửa' : 'Needs Revision'} <span className="student-tab-pill__count">{metrics.needsRevision}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${selectedTab === 'APPROVED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setSelectedTab('APPROVED')}
           >
-            {t('student.preprints.approved')} <span className="student-tab-pill__count">{metrics.approved}</span>
+            {locale === 'vi' ? 'Đã duyệt' : 'Approved'} <span className="student-tab-pill__count">{metrics.approved}</span>
           </button>
           {metrics.drafts > 0 && (
             <button
@@ -266,7 +276,7 @@ export function LecturerSubmissionsView() {
               className={`student-tab-pill ${selectedTab === 'DRAFT' ? 'student-tab-pill--active' : ''}`}
               onClick={() => setSelectedTab('DRAFT')}
             >
-              {t('student.preprints.draft')} <span className="student-tab-pill__count">{metrics.drafts}</span>
+              {locale === 'vi' ? 'Bản nháp' : 'Draft'} <span className="student-tab-pill__count">{metrics.drafts}</span>
             </button>
           )}
         </div>
@@ -314,11 +324,11 @@ export function LecturerSubmissionsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Faculty manuscripts repository list">
             <thead>
               <tr>
-                <th style={{ width: '52%' }}>Manuscript</th>
-                <th>Discipline</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Updated</th>
+                <th style={{ width: '48%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
+                <th>{locale === 'vi' ? 'Chuyên ngành' : 'Discipline'}</th>
+                <th>{locale === 'vi' ? 'Phiên bản' : 'Version'}</th>
+                <th>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
+                <th>{locale === 'vi' ? 'Cập nhật' : 'Updated'}</th>
               </tr>
             </thead>
             <tbody>
@@ -330,7 +340,7 @@ export function LecturerSubmissionsView() {
 
       {error && !loading && (
         <div className="student-error-banner">
-          <strong>Error loading manuscripts:</strong> {error.message}
+          <strong>{locale === 'vi' ? 'Lỗi tải bản thảo:' : 'Error loading manuscripts:'}</strong> {error.message}
         </div>
       )}
 
@@ -345,14 +355,18 @@ export function LecturerSubmissionsView() {
               <line x1="9" y1="15" x2="15" y2="15" />
             </svg>
           </div>
-          <h3>No manuscripts found</h3>
+          <h3>{locale === 'vi' ? 'Không tìm thấy bản thảo nào' : 'No manuscripts found'}</h3>
           <p style={{ maxWidth: '480px', margin: '0 auto 16px', color: '#64748b' }}>
             {searchQuery || selectedTab !== 'ALL'
-              ? 'No manuscripts match your current filters. Try changing your search query or status tab.'
-              : 'You have not submitted any manuscripts yet. Start a new submission or store private preprints in your faculty archive.'}
+              ? (locale === 'vi'
+                ? 'Không có bản thảo nào khớp với bộ lọc tìm kiếm. Hãy thử từ khóa khác hoặc chuyển tab trạng thái.'
+                : 'No manuscripts match your current filters. Try changing your search query or status tab.')
+              : (locale === 'vi'
+                ? 'Bạn chưa nộp bản thảo nào. Hãy bắt đầu nộp bản thảo nghiên cứu mới ngay hôm nay.'
+                : 'You have not submitted any manuscripts yet. Start a new submission or store private preprints in your faculty archive.')}
           </p>
           <Link href={ROUTES.LECTURER.NEW_SUBMISSION} className="student-btn student-btn--primary">
-            + New Submission
+            {locale === 'vi' ? '+ Nộp bản thảo mới' : '+ New Submission'}
           </Link>
         </div>
       )}
@@ -363,11 +377,11 @@ export function LecturerSubmissionsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Faculty manuscripts repository list">
             <thead>
               <tr>
-                <th style={{ width: '52%' }}>Manuscript</th>
-                <th>Discipline</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Updated</th>
+                <th style={{ width: '48%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
+                <th>{locale === 'vi' ? 'Chuyên ngành' : 'Discipline'}</th>
+                <th>{locale === 'vi' ? 'Phiên bản' : 'Version'}</th>
+                <th>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
+                <th>{locale === 'vi' ? 'Cập nhật' : 'Updated'}</th>
               </tr>
             </thead>
             <tbody>
@@ -382,12 +396,12 @@ export function LecturerSubmissionsView() {
                         {item.title}
                       </Link>
                       {item.is_private && (
-                        <span className="dashboard-private-pill">Private</span>
+                        <span className="dashboard-private-pill">{locale === 'vi' ? 'Riêng tư' : 'Private'}</span>
                       )}
                     </div>
                   </td>
                   <td>
-                    <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>
+                    <span className="dashboard-badge-tag">{item.discipline || (locale === 'vi' ? 'Đa ngành' : 'General')}</span>
                   </td>
                   <td>
                     <span className="dashboard-version-pill">v{item.current_version}</span>
@@ -396,7 +410,7 @@ export function LecturerSubmissionsView() {
                     {renderStatusBadge(item.status)}
                   </td>
                   <td className="dashboard-table__date">
-                    {formatUpdatedDate(item.updated_at)}
+                    {formatUpdatedDate(item.updated_at, locale)}
                   </td>
                 </tr>
               ))}

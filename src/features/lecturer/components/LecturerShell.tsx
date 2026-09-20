@@ -288,9 +288,15 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                         </div>
                       </Link>
                     ) : (
-                      <p className="student-topbar__notif-item-desc">
-                        {locale === 'vi' ? 'Không có nhiệm vụ thẩm định nào đang chờ.' : 'No pending review tasks in your queue.'}
-                      </p>
+                      <div className="student-topbar__notif-empty">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        </svg>
+                        <p>
+                          {locale === 'vi' ? 'Không có nhiệm vụ thẩm định nào đang chờ.' : 'No pending review tasks in your queue.'}
+                        </p>
+                      </div>
                     )}
                   </div>
                   <div className="student-topbar__notif-footer">
@@ -301,6 +307,8 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
                 </div>
               )}
             </div>
+
+            <LanguageSwitcher variant="toggle" />
 
             <Link href={ROUTES.LECTURER.NEW_SUBMISSION} className="student-topbar__cta">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
