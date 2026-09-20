@@ -324,7 +324,7 @@
   text-decoration: none;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   font-family: inherit;
 }
 
@@ -337,21 +337,17 @@
   background-color: #0071bc;
   color: #ffffff;
   border-color: #0071bc;
-  box-shadow: 0 2px 8px rgba(0, 113, 188, 0.25);
 }
 
 .student-btn--primary:hover:not(:disabled) {
   background-color: #005f9e;
   border-color: #005f9e;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 113, 188, 0.35);
 }
 
 .student-btn--secondary {
   background-color: #ffffff;
   color: #122331;
   border-color: #dce4e9;
-  box-shadow: 0 1px 3px rgba(18, 35, 49, 0.04);
 }
 
 .student-btn--secondary:hover:not(:disabled) {
@@ -364,7 +360,6 @@
   background-color: #d97706;
   color: #ffffff;
   border-color: #d97706;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25);
 }
 
 .student-btn--warning:hover:not(:disabled) {
@@ -411,11 +406,6 @@
 
 .student-btn--block {
   width: 100%;
-}
-
-.student-btn--shimmer {
-  position: relative;
-  overflow: hidden;
 }
 
 /* ==========================================================================
@@ -929,7 +919,7 @@
 .student-search-input:focus {
   outline: none;
   border-color: #0071bc;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.12), 0 2px 8px rgba(0, 113, 188, 0.04);
+  box-shadow: none;
   width: 280px;
 }
 
@@ -997,7 +987,7 @@
 .student-sort-dropdown__trigger:focus {
   outline: none;
   border-color: #0071bc;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.14);
+  box-shadow: none;
 }
 
 .student-sort-dropdown__arrow {
@@ -1624,8 +1614,14 @@
   color: #122331;
   background-color: #ffffff;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease;
   box-sizing: border-box;
+}
+
+.student-input:hover,
+.student-select:hover,
+.student-textarea:hover {
+  border-color: #94a3b8;
 }
 
 .student-input:focus,
@@ -1633,7 +1629,7 @@
 .student-textarea:focus {
   outline: none;
   border-color: #0071bc;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.14);
+  box-shadow: none;
 }
 
 .student-textarea {
@@ -2083,7 +2079,6 @@
   padding: 16px 0;
   border-top: 1px solid #dce4e9;
   margin-top: 8px;
-  animation: studentFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) both 250ms;
 }
 
 .student-form-actions-right {
@@ -5772,7 +5767,7 @@
 .student-searchable-select__trigger:focus {
   outline: none;
   border-color: #0071bc;
-  box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.14);
+  box-shadow: none;
 }
 
 .student-searchable-select__placeholder {

@@ -1151,7 +1151,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       type="button"
                       onClick={() => handleSubmit(true)}
                       disabled={isSubmitting || isAnalyzing}
-                      className="student-btn student-btn--primary student-btn--shimmer"
+                      className="student-btn student-btn--primary"
                     >
                       <span>{isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Submitting…' : isRevisionMode ? 'Submit Revised Version' : 'Submit for Faculty Review'}</span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
