@@ -24,7 +24,7 @@ export function StudentSidebar({
   const { user } = useAuth();
 
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Student';
-  const displayOrg = user?.studentId ? `Student ID: ${user.studentId}` : (user?.role === 'STUDENT' ? 'Student Workspace' : user?.email || 'Workspace');
+  const displayOrg = user?.email || '';
 
   const getInitials = (name?: string, email?: string) => {
     if (name?.trim()) {
@@ -181,9 +181,11 @@ export function StudentSidebar({
               <span className="student-sidebar__name" title={displayName}>
                 {displayName}
               </span>
-              <span className="student-sidebar__org" title={displayOrg}>
-                {displayOrg}
-              </span>
+              {displayOrg && (
+                <span className="student-sidebar__org" title={displayOrg}>
+                  {displayOrg}
+                </span>
+              )}
 
             </div>
             <button

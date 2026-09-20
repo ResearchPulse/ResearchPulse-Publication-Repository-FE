@@ -729,9 +729,6 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <span className="student-step-number">01</span>
                 <div>
                   <h3 className="student-form-section__title">Upload Manuscript PDF</h3>
-                  <p className="student-form-section__desc">
-                    Attach your camera-ready PDF document (up to 50MB). Once uploaded, GROBID automated extraction will parse the manuscript's metadata, title, and citations.
-                  </p>
                 </div>
               </div>
 
@@ -803,25 +800,6 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   )}
                 </div>
               )}
-
-              <div className="student-upload-specs-strip">
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  PDF max 50MB (Camera-Ready)
-                </span>
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  Automated GROBID Parser
-                </span>
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  CC BY 4.0 Open Access
-                </span>
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  48–72h Faculty Review SLA
-                </span>
-              </div>
             </div>
 
             {/* If Revision: Summary of Revisions (Author Response) */}
@@ -831,9 +809,6 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <span className="student-step-number student-step-number--amber">★</span>
                   <div>
                     <h3 className="student-form-section__title">Summary of Revisions (Author Response)</h3>
-                    <p className="student-form-section__desc">
-                      Explain explicitly how this version addresses the reviewer comments above.
-                    </p>
                   </div>
                 </div>
 
@@ -860,7 +835,6 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <span className="student-step-number">02</span>
                 <div>
                   <h3 className="student-form-section__title">Authorship & Attribution</h3>
-                  <p className="student-form-section__desc">Primary submitter attribution is pre-filled from your profile. Add contributing co-authors if applicable.</p>
                 </div>
               </div>
 
@@ -869,15 +843,21 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <div className="student-author-avatar">{primaryInitials}</div>
                 <div className="student-author-info">
                   <div className="student-author-name-row">
-                    <strong>{primaryAuthorName}</strong>
+                    <strong className="student-author-name">{primaryAuthorName}</strong>
                     <span className="student-author-pill">Primary Author</span>
                     <span className="student-author-pill">Corresponding</span>
                   </div>
                   <span className="student-author-meta">
-                    {primaryAuthorEmail} • {isLecturer ? 'Giảng viên' : (primaryAuthorStudentId || 'MSSV chưa nhập')} • {primaryAuthorInst}
+                    {[
+                      primaryAuthorEmail,
+                      isLecturer ? 'Giảng viên' : (primaryAuthorStudentId ? `MSSV: ${primaryAuthorStudentId}` : null),
+                      primaryAuthorInst,
+                    ].filter(Boolean).join(' • ')}
                   </span>
-                  <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'MISSING_IDENTIFIER'}`}>
-                    {authors[0]?.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
+                  <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'VERIFIED'}`}>
+                    {authors[0]?.verificationStatus === 'VERIFIED' || (!isEditing && !authors[0])
+                      ? 'Active User verified'
+                      : 'Needs User verification before Submit'}
                   </span>
                 </div>
               </div>
@@ -888,11 +868,15 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <div className="student-author-avatar student-author-avatar--co">CA</div>
                   <div className="student-author-info">
                     <div className="student-author-name-row">
-                      <strong>{ca.name}</strong>
+                      <strong className="student-author-name">{ca.name}</strong>
                       <span className="student-author-pill student-author-pill--co">Co-Author</span>
                     </div>
                     <span className="student-author-meta">
-                      {ca.email || 'Email chưa nhập'} • {ca.studentId || 'MSSV chưa nhập'} • {ca.institution}
+                      {[
+                        ca.email || 'Email chưa nhập',
+                        ca.studentId ? `MSSV: ${ca.studentId}` : null,
+                        ca.institution,
+                      ].filter(Boolean).join(' • ')}
                     </span>
                     <span className={`student-author-verification student-author-verification--${ca.verificationStatus || 'MISSING_IDENTIFIER'}`}>
                       {ca.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
@@ -984,9 +968,6 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <span className="student-step-number">03</span>
                 <div>
                   <h3 className="student-form-section__title">Manuscript Metadata & Discipline</h3>
-                  <p className="student-form-section__desc">
-                    Metadata will be automatically extracted from your PDF via GROBID. You can review, refine, or fill in any missing details before submission.
-                  </p>
                 </div>
               </div>
 
