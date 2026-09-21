@@ -61,8 +61,10 @@ export function StudentPublishedView() {
   useEffect(() => {
     if (selected) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
       };
     }
   }, [selected]);
@@ -389,6 +391,8 @@ export function StudentPublishedView() {
       {mounted && selected && createPortal(
         <div
           className="pl-published-modal-backdrop"
+          data-lenis-prevent="true"
+          onWheel={(e) => e.stopPropagation()}
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelected(null);
           }}
@@ -402,11 +406,14 @@ export function StudentPublishedView() {
             justifyContent: 'center',
             zIndex: 9999,
             padding: '20px',
+            overscrollBehavior: 'contain',
           }}
         >
           <div
             role="dialog"
             aria-modal="true"
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
             style={{
               background: '#ffffff',
               borderRadius: '16px',
@@ -415,6 +422,8 @@ export function StudentPublishedView() {
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch',
               padding: '32px',
               position: 'relative',
               boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',

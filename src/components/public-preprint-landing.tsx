@@ -99,7 +99,13 @@ function PublishedCatalogue() {
   useEffect(() => {
     if (selected) {
       document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = ''; };
+      document.documentElement.style.overflow = 'hidden';
+      globalLenis?.stop();
+      return () => {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        globalLenis?.start();
+      };
     }
   }, [selected]);
 
@@ -269,8 +275,24 @@ function PublishedCatalogue() {
       </div>
 
       {mounted && selected && createPortal(
-        <div className="pl-published-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>
-          <div className="pl-published-modal-panel" role="dialog" aria-modal="true" style={{ maxWidth: modalTab === 'pdf' ? 980 : 680, transition: 'max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        <div
+          className="pl-published-modal-backdrop"
+          data-lenis-prevent="true"
+          onWheel={(e) => e.stopPropagation()}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}
+        >
+          <div
+            className="pl-published-modal-panel"
+            role="dialog"
+            aria-modal="true"
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: modalTab === 'pdf' ? 980 : 680,
+              transition: 'max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              overscrollBehavior: 'contain',
+            }}
+          >
             <button 
               type="button" 
               onClick={() => setSelected(null)} 

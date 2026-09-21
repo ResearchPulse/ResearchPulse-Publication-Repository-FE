@@ -2930,6 +2930,7 @@ body:has(.public-landing) {
   justify-content: center;
   padding: 24px;
   box-sizing: border-box;
+  overscroll-behavior: contain;
 }
 
 .pl-published-modal-panel {
@@ -2939,6 +2940,8 @@ body:has(.public-landing) {
   width: 100%;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 32px;
   position: relative;
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 1px 1px rgba(0, 0, 0, 0.05);
