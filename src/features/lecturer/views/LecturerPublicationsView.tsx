@@ -97,12 +97,21 @@ export function LecturerPublicationsView() {
   // Expandable abstracts
   const [expandedAbstracts, setExpandedAbstracts] = useState<Record<string, boolean>>({});
 
+  const isMyPublication = useCallback(
+    (pub: LecturerPublication) => {
+      if (!user) return false;
+      if (pub.uploader?.id && pub.uploader.id === user.id) return true;
+      if (user.email && pub.uploader?.email && pub.uploader.email.toLowerCase() === user.email.toLowerCase()) return true;
+      return false;
+    },
+    [user],
+  );
+
   const fetchPublications = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await lecturerPublicationApi.list({
-        scope: selectedScope,
         discipline: selectedDiscipline !== 'ALL' ? selectedDiscipline : undefined,
       });
       setItems(res.items || []);
@@ -112,7 +121,7 @@ export function LecturerPublicationsView() {
     } finally {
       setLoading(false);
     }
-  }, [selectedScope, selectedDiscipline]);
+  }, [selectedDiscipline]);
 
   useEffect(() => {
     fetchPublications();
@@ -130,13 +139,19 @@ export function LecturerPublicationsView() {
   }, [items]);
 
   // Helper to determine the access scope of a publication
-  const getPublicationScope = (pub: LecturerPublication): 'PUBLIC' | 'FACULTY_ONLY' | 'CAMPUS' | 'ASSIGNED' => {
-    if (pub.status === 'REVIEWING') return 'ASSIGNED';
-    if (!pub.audiences || pub.audiences.length === 0) return 'CAMPUS';
-    if (pub.audiences.includes('GUEST')) return 'PUBLIC';
-    if (pub.audiences.includes('LECTURER') && !pub.audiences.includes('STUDENT')) return 'FACULTY_ONLY';
-    return 'CAMPUS';
-  };
+  const getPublicationScope = useCallback(
+    (pub: LecturerPublication): 'PUBLIC' | 'FACULTY_ONLY' | 'CAMPUS' | 'ASSIGNED' => {
+      const isMine = isMyPublication(pub);
+      if ((pub.myReview || pub.status === 'REVIEWING') && !isMine) {
+        return 'ASSIGNED';
+      }
+      if (!pub.audiences || pub.audiences.length === 0) return 'CAMPUS';
+      if (pub.audiences.includes('GUEST')) return 'PUBLIC';
+      if (pub.audiences.includes('LECTURER') && !pub.audiences.includes('STUDENT')) return 'FACULTY_ONLY';
+      return 'CAMPUS';
+    },
+    [isMyPublication],
+  );
 
   // Metrics summary
   const metrics = useMemo(() => {
@@ -396,6 +411,7 @@ export function LecturerPublicationsView() {
 
       {/* Metrics Summary Strip (All 5 cards on 1 row) */}
       <div
+        className="lecturer-publications-metric-strip"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
@@ -951,7 +967,7 @@ export function LecturerPublicationsView() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {/* View Details / Read Link */}
-                    {pub.status === 'REVIEWING' ? (
+                    {pub.status === 'REVIEWING' && !isMyPub ? (
                       <Link
                         href={ROUTES.LECTURER.REVIEW_DETAIL(pub.id)}
                         style={{
@@ -975,6 +991,55 @@ export function LecturerPublicationsView() {
                         </svg>
                         {locale === 'vi' ? 'Vào thẩm định' : 'Review Manuscript'}
                       </Link>
+                    ) : pub.status === 'REVIEWING' && isMyPub ? (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <Link
+                          href={ROUTES.LECTURER.SUBMISSION_DETAIL(pub.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '7px 14px',
+                            borderRadius: '8px',
+                            backgroundColor: '#0071bc',
+                            color: '#ffffff',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                          </svg>
+                          {locale === 'vi' ? 'Xem bản thảo' : 'View Manuscript'}
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setViewPdfPub(pub)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '7px 12px',
+                            borderRadius: '8px',
+                            backgroundColor: '#f1f5f9',
+                            color: '#334155',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: '1px solid #cbd5e1',
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                            <path d="M22 3h-6a4 4 0 0 1-4 4v14a3 3 0 0 1 3-3h7z" />
+                          </svg>
+                          {locale === 'vi' ? 'Đọc bản thảo' : 'Read PDF'}
+                        </button>
+                      </div>
                     ) : (
                       <button
                         type="button"
