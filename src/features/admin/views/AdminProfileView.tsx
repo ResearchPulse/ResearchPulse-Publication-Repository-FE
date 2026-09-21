@@ -94,7 +94,7 @@ export function AdminProfileView() {
                 </span>
               </div>
               <p style={{ margin: '6px 0 0', fontSize: '13.5px', color: '#64748b' }}>
-                System Administrator · Hyperdata Lab
+                System Administrator · HyperData Lab
               </p>
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#0071bc', fontWeight: 500 }}>
                 {displayEmail}

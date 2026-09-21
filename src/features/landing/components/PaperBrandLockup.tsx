@@ -5,8 +5,8 @@ type PaperBrandLockupProps = {
 
 export function PaperBrandLockup({ className = '', compact = false }: PaperBrandLockupProps) {
   return (
-    <a className={'paper-brand-lockup ' + className} href="/" aria-label="Hyperdata Lab Preprint Repository">
-      <img src="/images/hyperdata-lab-logo.png" alt="Hyperdata Lab" className="paper-brand-logo" />
+    <a className={'paper-brand-lockup ' + className} href="/" aria-label="HyperData Lab Preprint Repository">
+      <img src="/images/hyperdata-lab-logo.png" alt="HyperData Lab" className="paper-brand-logo" />
       {!compact && <span className="paper-brand-divider">/</span>}
       {!compact && <span className="paper-brand-name">Preprint Repository</span>}
     </a>

@@ -93,17 +93,17 @@ export function AdminSidebar({
     <aside className={`student-sidebar ${isOpen ? 'student-sidebar--open' : ''}`}>
       {/* Brand Header */}
       <div className="student-sidebar__brand">
-        <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
+        <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-sidebar__logo-link" aria-label="HyperData Lab Home">
           <div className="student-sidebar__logo-lockup">
             <Image
               src="/hyperdata-lab-logo.png"
-              alt="Hyperdata Lab Logo"
+              alt="HyperData Lab Logo"
               width={28}
               height={28}
               style={{ borderRadius: '6px', objectFit: 'contain' }}
               priority
             />
-            <span className="student-sidebar__brand-name">HYPERDATA LAB</span>
+            <span className="student-sidebar__brand-name">HyperData Lab</span>
           </div>
         </Link>
 
