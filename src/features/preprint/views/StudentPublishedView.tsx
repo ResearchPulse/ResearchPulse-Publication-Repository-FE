@@ -9,6 +9,7 @@ import { StudentShell } from '../components';
 import { SortDropdown } from '@/components/sort-dropdown';
 import { useTranslation } from '@/i18n';
 import { ExpandableAbstract } from '@/shared/components';
+import { Skeleton, PublishedPaperCardSkeleton } from '@/components/skeleton';
 import dynamic from 'next/dynamic';
 
 const NativePdfViewer = dynamic(
@@ -233,21 +234,21 @@ export function StudentPublishedView() {
       <div className="student-metrics-grid student-metrics-grid--3" style={{ marginBottom: '24px' }}>
         <div className="student-metric-card">
           <div className="student-metric-info">
-            <span className="student-metric-value">{items.length}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={36} height={26} style={{ display: 'inline-block' }} /> : items.length}</span>
             <span className="student-metric-label">{locale === 'vi' ? 'Tổng số bài báo xuất bản' : 'Total Published Papers'}</span>
           </div>
         </div>
 
         <div className="student-metric-card">
           <div className="student-metric-info">
-            <span className="student-metric-value">{Math.max(1, disciplineOptions.length - 1)}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={36} height={26} style={{ display: 'inline-block' }} /> : Math.max(1, disciplineOptions.length - 1)}</span>
             <span className="student-metric-label">{locale === 'vi' ? 'Lĩnh vực nghiên cứu' : 'Academic Disciplines'}</span>
           </div>
         </div>
 
         <div className="student-metric-card">
           <div className="student-metric-info">
-            <span className="student-metric-value">{displayItems.length}</span>
+            <span className="student-metric-value">{loading ? <Skeleton width={36} height={26} style={{ display: 'inline-block' }} /> : displayItems.length}</span>
             <span className="student-metric-label">{locale === 'vi' ? 'Kết quả hiển thị' : 'Matching Results'}</span>
           </div>
         </div>
@@ -299,9 +300,7 @@ export function StudentPublishedView() {
       {/* Results Grid */}
       {loading ? (
         <div className="student-pub-grid">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="student-pub-skeleton" />
-          ))}
+          <PublishedPaperCardSkeleton count={6} />
         </div>
       ) : displayItems.length > 0 ? (
         <div className="student-pub-grid">

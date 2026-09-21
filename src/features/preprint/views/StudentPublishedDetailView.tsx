@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
 import { useTranslation } from '@/i18n';
 import { ExpandableAbstract } from '@/shared/components';
+import { DetailSkeleton } from '@/components/skeleton';
 import type { PublicPublication } from './StudentPublishedView';
 
 const NativePdfViewer = dynamic(
@@ -121,13 +122,7 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
         </Link>
       </div>
 
-      {loading && (
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0' }}>
-          <div style={{ height: '24px', width: '120px', background: '#e2e8f0', borderRadius: '6px', marginBottom: '16px', animation: 'pulse 1.5s infinite' }} />
-          <div style={{ height: '36px', width: '80%', background: '#e2e8f0', borderRadius: '8px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }} />
-          <div style={{ height: '140px', background: '#f8fafc', borderRadius: '12px', marginBottom: '24px', animation: 'pulse 1.5s infinite' }} />
-        </div>
-      )}
+      {loading && <DetailSkeleton />}
 
       {error && !loading && (
         <div style={{ background: '#ffffff', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', border: '1px solid #e2e8f0' }}>

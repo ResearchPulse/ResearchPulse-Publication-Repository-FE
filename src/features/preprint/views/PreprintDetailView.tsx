@@ -75,6 +75,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
   const versionsPath = `${workspacePath}/${id}/versions`;
 
   const { item, loading, error } = usePreprintDetail(id);
+  const activeDownloadUrl = item?.download_url || item?.versions?.find((v) => v.is_current)?.download_url || item?.versions?.[0]?.download_url;
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
   const [copiedDoi, setCopiedDoi] = useState(false);
   const [pdfExpanded, setPdfExpanded] = useState(false);
@@ -287,8 +288,8 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
               </div>
 
               <div className="student-paper-hero__actions">
-                {item.download_url ? (
-                  <a href={item.download_url} target="_blank" rel="noreferrer" className="student-btn student-btn--primary">
+                {activeDownloadUrl ? (
+                  <a href={activeDownloadUrl} target="_blank" rel="noreferrer" className="student-btn student-btn--primary">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="7 10 12 15 17 10" />
@@ -487,9 +488,9 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
           {/* Tab 2: Manuscript PDF Direct Reader */}
           {activeTab === 'PDF_VIEW' && (
             <div className="student-tab-panel" style={{ marginTop: '20px' }}>
-              {item.download_url ? (
+              {activeDownloadUrl ? (
                 <NativePdfViewer
-                  url={item.download_url}
+                  url={activeDownloadUrl}
                   fileName={item.file_name || `${item.title?.substring(0, 50) || 'manuscript'}.pdf`}
                 />
               ) : (

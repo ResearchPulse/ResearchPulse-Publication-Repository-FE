@@ -273,7 +273,7 @@ function normalizePublication(
     file_size: formatFileSize(publication.fileSize),
     sha256: publication.sha256 || undefined,
     doi: publication.doi || undefined,
-    download_url: publication.downloadUrl,
+    download_url: publication.downloadUrl || versions.find((v) => v.isCurrent)?.downloadUrl || versions[0]?.downloadUrl || (publication.currentVersion as any)?.downloadUrl,
     updated_at: publication.updatedAt,
     submitted_at: publication.status === 'DRAFTING' ? undefined : publication.updatedAt,
     reviews: primaryReviews.map(mapReview),

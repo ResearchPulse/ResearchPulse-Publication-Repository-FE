@@ -10,11 +10,11 @@ export function usePreprintDetail(id: string) {
   const { data, isLoading, error } = useQuery<StudentPreprint, Error>({
     queryKey: ['preprint-detail', id],
     queryFn: () => studentPreprintApi.get(id),
-    initialData: () => {
+    placeholderData: () => {
       const cachedList = queryClient.getQueryData<StudentPreprint[]>(['preprints', 'mine']);
       return cachedList?.find((p) => p.id === id);
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes fresh cache
+    staleTime: 30 * 1000, // 30s fresh cache for detail
     gcTime: 10 * 60 * 1000,
     retry: 1,
   });

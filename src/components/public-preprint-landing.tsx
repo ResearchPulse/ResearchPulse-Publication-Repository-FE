@@ -8,6 +8,7 @@ import { HyperdataLogo } from './hyperdata-logo';
 import { PublicPortalShowcase } from './public-portal-showcase';
 import { ScrollRevealObserver } from './scroll-reveal';
 import { ExpandableAbstract } from '@/shared/components';
+import { Skeleton } from '@/components/skeleton';
 import { useTranslation } from '@/i18n';
 import dynamic from 'next/dynamic';
 
@@ -226,11 +227,30 @@ function PublishedCatalogue() {
         {loading ? (
           <div className="pl-published-grid">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="pl-published-card" style={{ height: 240, opacity: 0.6 }}>
-                <div className="skeleton-line" style={{ width: '40%', marginBottom: 16 }}></div>
-                <div className="skeleton-line" style={{ width: '90%', height: 24, marginBottom: 12 }}></div>
-                <div className="skeleton-line" style={{ width: '70%', height: 24, marginBottom: 24 }}></div>
-                <div className="skeleton-line" style={{ width: '100%', height: 60 }}></div>
+              <div key={i} className="pl-published-card" style={{ cursor: 'default', pointerEvents: 'none' }} aria-hidden="true">
+                <div className="pl-published-card-meta-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Skeleton variant="pill" width={110} height={22} />
+                  <Skeleton variant="pill" width={42} height={22} />
+                </div>
+                <div style={{ margin: '14px 0 10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <Skeleton height={18} width={`${85 + (i % 2) * 10}%`} />
+                  <Skeleton height={18} width={`${60 + (i % 3) * 15}%`} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <Skeleton variant="circle" width={16} height={16} />
+                  <Skeleton height={12} width={130} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+                  <Skeleton height={12} width="100%" />
+                  <Skeleton height={12} width="90%" />
+                </div>
+                <div className="pl-published-card-footer" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <Skeleton variant="pill" width={65} height={20} />
+                    <Skeleton variant="pill" width={75} height={20} />
+                  </div>
+                  <Skeleton height={13} width={90} />
+                </div>
               </div>
             ))}
           </div>
