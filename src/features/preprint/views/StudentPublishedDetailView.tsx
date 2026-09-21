@@ -251,7 +251,24 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
                     </h4>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {paper.keywords.map((kw) => (
-                        <span key={kw} style={{ fontSize: '12.5px', background: '#f1f5f9', color: '#334155', padding: '4px 12px', borderRadius: '16px', fontWeight: 500, border: '1px solid #e2e8f0' }}>
+                        <span
+                          key={kw}
+                          title={`#${kw}`}
+                          style={{
+                            fontSize: '12.5px',
+                            background: '#f1f5f9',
+                            color: '#334155',
+                            padding: '4px 12px',
+                            borderRadius: '16px',
+                            fontWeight: 500,
+                            border: '1px solid #e2e8f0',
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
+                          }}
+                        >
                           #{kw}
                         </span>
                       ))}

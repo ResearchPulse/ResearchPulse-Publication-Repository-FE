@@ -367,7 +367,7 @@ export function StudentPublishedView() {
                 {item.keywords && item.keywords.length > 0 && (
                   <div className="student-pub-card__tags">
                     {item.keywords.slice(0, 3).map((kw) => (
-                      <span key={kw} className="student-pub-card__tag">
+                      <span key={kw} className="student-pub-card__tag" title={`#${kw}`}>
                         #{kw}
                       </span>
                     ))}
@@ -517,7 +517,23 @@ export function StudentPublishedView() {
                   {selected.keywords && selected.keywords.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
                       {selected.keywords.map((kw) => (
-                        <span key={kw} style={{ fontSize: '12px', background: '#e2e8f0', color: '#475569', padding: '3px 10px', borderRadius: '16px', fontWeight: 600 }}>
+                        <span
+                          key={kw}
+                          title={`#${kw}`}
+                          style={{
+                            fontSize: '12px',
+                            background: '#e2e8f0',
+                            color: '#475569',
+                            padding: '3px 10px',
+                            borderRadius: '16px',
+                            fontWeight: 600,
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
+                          }}
+                        >
                           #{kw}
                         </span>
                       ))}

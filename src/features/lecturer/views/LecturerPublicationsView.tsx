@@ -908,6 +908,7 @@ export function LecturerPublicationsView() {
                     {pub.keywords.map((kw, i) => (
                       <span
                         key={i}
+                        title={`#${kw}`}
                         style={{
                           fontSize: '11.5px',
                           color: '#64748b',
@@ -915,6 +916,11 @@ export function LecturerPublicationsView() {
                           border: '1px solid #e2e8f0',
                           padding: '2px 8px',
                           borderRadius: '4px',
+                          maxWidth: '150px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-block',
                         }}
                       >
                         #{kw}
