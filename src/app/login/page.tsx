@@ -102,17 +102,20 @@ function LoginForm() {
       </div>
 
       {/* 3 Nút Đăng nhập nhanh để Test (Dev Quick Test) */}
-      <div style={{
-        marginBottom: 20,
-        padding: '12px 14px',
-        background: '#f8fafc',
-        borderRadius: 10,
-        border: '1px dashed #cbd5e1',
-        textAlign: 'left'
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-          ⚡ Đăng nhập nhanh để test:
-        </div>
+      {(process.env.NEXT_PUBLIC_ENABLE_QUICK_LOGIN !== undefined 
+        ? process.env.NEXT_PUBLIC_ENABLE_QUICK_LOGIN === 'true' 
+        : process.env.NODE_ENV !== 'production') && (
+        <div style={{
+          marginBottom: 20,
+          padding: '12px 14px',
+          background: '#f8fafc',
+          borderRadius: 10,
+          border: '1px dashed #cbd5e1',
+          textAlign: 'left'
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+            ⚡ Đăng nhập nhanh để test:
+          </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <button
             type="button"
@@ -218,6 +221,7 @@ function LoginForm() {
           </button>
         </div>
       </div>
+      )}
 
       {error && (
         <div className="auth-alert-box" role="alert" style={{ marginBottom: 18 }}>
