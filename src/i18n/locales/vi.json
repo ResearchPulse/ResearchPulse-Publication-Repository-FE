@@ -347,6 +347,7 @@
     "preprints": {
       "totalCount": "Tổng số bản thảo",
       "underReview": "Đang thẩm định",
+      "inReview": "Đang thẩm định",
       "needsRevision": "Cần chỉnh sửa",
       "approved": "Đã duyệt",
       "published": "Đã xuất bản",

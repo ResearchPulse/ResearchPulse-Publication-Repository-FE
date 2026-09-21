@@ -347,6 +347,7 @@
     "preprints": {
       "totalCount": "Total Manuscripts",
       "underReview": "Under Review",
+      "inReview": "Under Review",
       "needsRevision": "Needs Revision",
       "approved": "Approved",
       "published": "Published",

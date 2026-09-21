@@ -82,7 +82,7 @@ export function PreprintListView() {
       case 'NEEDS_REVISION':
         return <span className="user-badge user-badge--revision">{t('student.preprints.revisionNeeded').toUpperCase()}</span>;
       case 'UNDER_REVIEW':
-        return <span className="user-badge user-badge--review">{t('student.preprints.inReview').toUpperCase()}</span>;
+        return <span className="user-badge user-badge--review">{t('student.preprints.underReview').toUpperCase()}</span>;
       case 'DRAFT':
         return <span className="user-badge user-badge--draft">{t('student.preprints.draft').toUpperCase()}</span>;
       case 'WITHDRAWN':
