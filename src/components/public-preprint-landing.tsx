@@ -8,6 +8,7 @@ import { HyperdataLogo } from './hyperdata-logo';
 import { PublicPortalShowcase } from './public-portal-showcase';
 import { ScrollRevealObserver } from './scroll-reveal';
 import { ExpandableAbstract } from '@/shared/components';
+import { useTranslation } from '@/i18n';
 import dynamic from 'next/dynamic';
 
 const NativePdfViewer = dynamic(
@@ -275,13 +276,23 @@ function PublishedCatalogue() {
                       </div>
 
                       <div className="pl-published-card-footer">
-                        <div style={{ display: 'flex', gap: 6, overflow: 'hidden' }}>
+                        <div className="pl-published-card-tags">
                           {item.keywords?.slice(0, 2).map(kw => (
-                            <span key={kw} style={{ fontSize: 11, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap' }}>#{kw}</span>
+                            <span
+                              key={kw}
+                              className="pl-published-card-tag"
+                              title={`#${kw}`}
+                            >
+                              #{kw}
+                            </span>
                           ))}
-                          {(item.keywords?.length || 0) > 2 && <span style={{ fontSize: 11, color: '#94a3b8' }}>+{item.keywords!.length - 2}</span>}
+                          {(item.keywords?.length || 0) > 2 && (
+                            <span className="pl-published-card-tag-more">
+                              +{item.keywords!.length - 2}
+                            </span>
+                          )}
                         </div>
-                        <span style={{ fontSize: 13, color: '#0071bc', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span className="pl-published-card-cta">
                           Xem Bài Báo
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                         </span>
@@ -411,7 +422,25 @@ function PublishedCatalogue() {
                   {selected.keywords && selected.keywords.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
                       {selected.keywords.map(kw => (
-                        <span key={kw} style={{ fontSize: 12, background: '#e2e8f0', color: '#475569', padding: '3px 10px', borderRadius: 16, fontWeight: 600 }}>#{kw}</span>
+                        <span
+                          key={kw}
+                          title={`#${kw}`}
+                          style={{
+                            fontSize: 12,
+                            background: '#e2e8f0',
+                            color: '#475569',
+                            padding: '3px 10px',
+                            borderRadius: 16,
+                            fontWeight: 600,
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
+                          }}
+                        >
+                          #{kw}
+                        </span>
                       ))}
                     </div>
                   )}
@@ -488,6 +517,7 @@ function PublishedCatalogue() {
 }
 
 export default function PublicPreprintLanding() {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [studentId, setStudentId] = useState('');
@@ -966,9 +996,9 @@ export default function PublicPreprintLanding() {
             <div className="pl-workflow-head">
               <span className="pl-workflow-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                Lộ Trình Xuất Bản Khép Kín
+                {t('workflow.roadmapPill', 'Lộ Trình Xuất Bản Khép Kín')}
               </span>
-              <h2 className="pl-workflow-title">Quy Trình Đăng Bài Trong Hệ Thống</h2>
+              <h2 className="pl-workflow-title">{t('workflow.roadmapTitle', 'Quy Trình Đăng Bài Trong Hệ Thống')}</h2>
               <p className="pl-workflow-desc">
                 Hành trình 6 bước liền mạch và minh bạch, kết nối tác giả với hội đồng giảng viên từ khâu để lại thông tin đến khi công trình chính thức công bố mở.
               </p>
@@ -980,7 +1010,7 @@ export default function PublicPreprintLanding() {
                 <div className="pl-workflow-divider-line"></div>
                 <div className="pl-workflow-divider-pill">
                   <span className="pl-workflow-divider-dot"></span>
-                  <span>Giai Đoạn 1: Khởi Tạo &amp; Kích Hoạt Tài Khoản Tác Giả</span>
+                  <span>{t('workflow.phase1', 'Giai Đoạn 1: Khởi Tạo & Kích Hoạt Tài Khoản Tác Giả')}</span>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
                 <div className="pl-workflow-divider-line"></div>
@@ -1002,12 +1032,12 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">Để Lại Thông Tin</h3>
+                  <h3 className="pl-workflow-card-title">{t('workflow.step1Title', 'Để Lại Thông Tin')}</h3>
                   <p className="pl-workflow-card-desc">
-                    Sinh viên đăng ký trực tuyến với Họ tên, Mã số sinh viên (MSSV), Chuyên ngành và Email học tập để bắt đầu thiết lập hồ sơ tác giả.
+                    {t('workflow.step1Desc', 'Sinh viên đăng ký trực tuyến với Họ tên, Mã số sinh viên (MSSV), Chuyên ngành và Email học tập để bắt đầu thiết lập hồ sơ tác giả.')}
                   </p>
                   <a href="#register-section" onClick={scrollToRegister} className="pl-workflow-card-action" style={{ textDecoration: 'none' }}>
-                    <span>Khởi Tạo Hồ Sơ Trực Tuyến</span>
+                    <span>{t('workflow.step1Action', 'Khởi Tạo Hồ Sơ Trực Tuyến')}</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </a>
                 </div>
@@ -1033,12 +1063,12 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">HyperData Lab Liên Hệ</h3>
+                  <h3 className="pl-workflow-card-title">{t('workflow.step2Title', 'HyperData Lab Liên Hệ')}</h3>
                   <p className="pl-workflow-card-desc">
-                    HyperData Lab hoặc Ban cố vấn khoa học kết nối trực tiếp với sinh viên nhằm xác minh thông tin và định hướng phạm vi đề tài nghiên cứu.
+                    {t('workflow.step2Desc', 'HyperData Lab hoặc Ban cố vấn khoa học kết nối trực tiếp với sinh viên nhằm xác minh thông tin và định hướng phạm vi đề tài nghiên cứu.')}
                   </p>
                   <div className="pl-workflow-card-action">
-                    <span>Tư Vấn &amp; Thẩm Định Sơ Bộ</span>
+                    <span>{t('workflow.step2Action', 'Tư Vấn & Thẩm Định Sơ Bộ')}</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
@@ -1065,12 +1095,12 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">Cung Cấp Tài Khoản</h3>
+                  <h3 className="pl-workflow-card-title">{t('workflow.step3Title', 'Cung Cấp Tài Khoản')}</h3>
                   <p className="pl-workflow-card-desc">
-                    Quản trị viên (Admin) phê duyệt cấp tài khoản. Tên đăng nhập được tự động đồng bộ theo chuẩn MSSV và mật khẩu tạm thời được gửi về email trường.
+                    {t('workflow.step3Desc', 'Quản trị viên (Admin) phê duyệt cấp tài khoản. Tên đăng nhập được tự động đồng bộ theo chuẩn MSSV và mật khẩu tạm thời được gửi về email trường.')}
                   </p>
                   <div className="pl-workflow-card-action">
-                    <span>Kích Hoạt Quyền Tác Giả</span>
+                    <span>{t('workflow.step3Action', 'Kích Hoạt Quyền Tác Giả')}</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
@@ -1081,7 +1111,7 @@ export default function PublicPreprintLanding() {
                 <div className="pl-workflow-divider-line"></div>
                 <div className="pl-workflow-divider-pill">
                   <span className="pl-workflow-divider-dot"></span>
-                  <span>Giai Đoạn 2: Nộp Bản Thảo &amp; Bình Duyệt Học Thuật</span>
+                  <span>{t('workflow.phase2', 'Giai Đoạn 2: Nộp Bản Thảo & Bình Duyệt Học Thuật')}</span>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
                 <div className="pl-workflow-divider-line"></div>
@@ -1106,12 +1136,12 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">Gửi Bài Nghiên Cứu</h3>
+                  <h3 className="pl-workflow-card-title">{t('workflow.step4Title', 'Gửi Bài Nghiên Cứu')}</h3>
                   <p className="pl-workflow-card-desc">
-                    Tác giả tải lên file bản thảo PDF. Nền tảng tự động bóc tách siêu dữ liệu học thuật qua GROBID và đóng dấu SHA-256 xác lập bản quyền sớm.
+                    {t('workflow.step4Desc', 'Tác giả tải lên file bản thảo PDF. Nền tảng tự động bóc tách siêu dữ liệu học thuật qua GROBID và đóng dấu SHA-256 xác lập bản quyền sớm.')}
                   </p>
                   <div className="pl-workflow-card-action">
-                    <span>Bóc Tách PDF &amp; Đóng Dấu Hash</span>
+                    <span>{t('workflow.step4Action', 'Bóc Tách PDF & Đóng Dấu Hash')}</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
@@ -1138,12 +1168,12 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">HyperData Lab Review</h3>
+                  <h3 className="pl-workflow-card-title">{t('workflow.step5Title', 'Hội Đồng Chuyên Môn Review')}</h3>
                   <p className="pl-workflow-card-desc">
-                    Hội đồng chuyên môn HyperData Lab trực tiếp thẩm định phương pháp luận, cho điểm phản biện và hỗ trợ sinh viên sửa đổi, nâng cấp phiên bản (v2.0, v3.0).
+                    {t('workflow.step5Desc', 'Hội đồng chuyên môn trực tiếp thẩm định phương pháp luận, cho điểm phản biện và hỗ trợ sinh viên sửa đổi, nâng cấp phiên bản (v2.0, v3.0).')}
                   </p>
                   <div className="pl-workflow-card-action">
-                    <span>Bình Duyệt &amp; Hướng Dẫn Sửa Đổi</span>
+                    <span>{t('workflow.step5Action', 'Bình Duyệt & Hướng Dẫn Sửa Đổi')}</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
@@ -1171,12 +1201,12 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">Công Bố Mở (Publish)</h3>
+                  <h3 className="pl-workflow-card-title">{t('workflow.step6Title', 'Công Bố (Publish)')}</h3>
                   <p className="pl-workflow-card-desc">
-                    Bản thảo chính thức được cấp quyền truy cập mở, xuất hiện trên kho lưu trữ HyperData Lab và sẵn sàng cho việc trích dẫn học thuật vĩnh viễn.
+                    {t('workflow.step6Desc', 'Bản thảo chính thức được cấp quyền truy cập mở, xuất hiện trên kho lưu trữ HyperData Lab và sẵn sàng cho việc trích dẫn học thuật vĩnh viễn.')}
                   </p>
                   <div className="pl-workflow-card-action pl-workflow-card-action--final">
-                    <span>Lưu Trữ Mở &amp; Trích Dẫn Toàn Cầu</span>
+                    <span>{t('workflow.step6Action', 'Lưu Trữ Mở & Trích Dẫn Toàn Cầu')}</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                   </div>
                 </div>

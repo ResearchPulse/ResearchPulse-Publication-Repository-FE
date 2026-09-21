@@ -2480,6 +2480,11 @@
   padding: 2px 8px;
   border-radius: 5px;
   font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 /* Authors Table in Detail */
@@ -3978,6 +3983,15 @@
   color: #0f172a;
   outline: none;
   width: 100%;
+}
+
+.student-topbar__search-input::-webkit-search-cancel-button,
+.student-topbar__search-input::-webkit-search-decoration,
+.student-search-input::-webkit-search-cancel-button,
+.student-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }
 
 .student-topbar__view-toggle {
@@ -7314,12 +7328,20 @@
   padding: 3px 8px;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .student-pub-card__tag-more {
   font-size: 11px;
   color: #8b9aa4;
   padding: 3px 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .student-pub-card__footer {
@@ -7329,12 +7351,15 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .student-pub-card__date {
   font-size: 12px;
   color: #8b9aa4;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .student-pub-card__action {
@@ -7344,6 +7369,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: transform 180ms ease;
 }
 

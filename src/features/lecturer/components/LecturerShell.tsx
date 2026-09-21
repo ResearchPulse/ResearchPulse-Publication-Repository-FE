@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { Suspense, useState, useRef, useEffect, type ReactNode } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
-import { useTranslation } from '@/i18n';
+import { useTranslation, LanguageSwitcher } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
 export type LecturerNavKey = 'reviews' | 'submissions' | 'profile' | 'publications';
@@ -16,6 +17,124 @@ export interface LecturerShellProps {
   title: string;
   pendingCount?: number;
   children: ReactNode;
+}
+
+function LecturerTopbarSearch() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || searchParams?.get('q') || '');
+
+  // 1. Sync from URL
+  useEffect(() => {
+    const q = searchParams?.get('search') || searchParams?.get('q') || '';
+    setSearchQuery(q);
+  }, [searchParams]);
+
+  // 2. Bi-directional sync: listen to search changes from list tables
+  useEffect(() => {
+    const handleSearchChange = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (typeof customEvent.detail === 'string') {
+        setSearchQuery(customEvent.detail);
+      }
+    };
+    window.addEventListener('lecturer-search-change', handleSearchChange);
+    return () => window.removeEventListener('lecturer-search-change', handleSearchChange);
+  }, []);
+
+  const isListView =
+    pathname.startsWith('/lecturer/submissions') ||
+    pathname.startsWith('/lecturer/reviews') ||
+    pathname.startsWith('/lecturer/publications');
+
+  const getTargetListRoute = () => {
+    if (pathname.startsWith('/lecturer/reviews')) return '/lecturer/reviews';
+    if (pathname.startsWith('/lecturer/publications')) return '/lecturer/publications';
+    return '/lecturer/submissions';
+  };
+
+  const onInputChange = (val: string) => {
+    setSearchQuery(val);
+
+    if (isListView) {
+      // Realtime live filter: broadcast to table immediately
+      window.dispatchEvent(new CustomEvent('lecturer-search-change', { detail: val }));
+
+      // Update URL silently without whole page reload
+      const target = getTargetListRoute();
+      const newUrl = val.trim() ? `${target}?search=${encodeURIComponent(val.trim())}` : target;
+      window.history.replaceState(null, '', newUrl);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = searchQuery.trim();
+    const target = getTargetListRoute();
+    if (trimmed) {
+      router.push(`${target}?search=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push(target);
+    }
+  };
+
+  const handleClear = () => {
+    onInputChange('');
+    if (!isListView) {
+      router.push(getTargetListRoute());
+    }
+  };
+
+  return (
+    <form className="student-topbar__search" onSubmit={handleSearch} role="search">
+      <button
+        type="submit"
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          display: 'flex',
+          alignItems: 'center',
+          cursor: 'pointer',
+          color: 'inherit',
+        }}
+        aria-label={t('common.search')}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      </button>
+      <input
+        type="text"
+        placeholder={t('common.search')}
+        value={searchQuery}
+        onChange={(e) => onInputChange(e.target.value)}
+        className="student-topbar__search-input"
+        aria-label={t('common.search')}
+      />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={handleClear}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#94a3b8',
+            fontSize: '15px',
+            padding: '0 4px',
+            lineHeight: 1,
+          }}
+          aria-label="Clear search"
+        >
+          ×
+        </button>
+      )}
+    </form>
+  );
 }
 
 export function LecturerShell({ active, title, pendingCount, children }: LecturerShellProps) {
@@ -225,20 +344,21 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
           </div>
 
           <div className="student-topbar__right">
-            <div className="student-topbar__search">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                placeholder={t('common.searchShell')}
-                className="student-topbar__search-input"
-                aria-label={t('common.searchManuscripts')}
-              />
-            </div>
+            <Suspense fallback={
+              <div className="student-topbar__search">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" placeholder={t('common.search')} className="student-topbar__search-input" disabled />
+              </div>
+            }>
+              <LecturerTopbarSearch />
+            </Suspense>
 
             <NotificationBell />
+
+            <LanguageSwitcher variant="toggle" />
 
             <Link href={ROUTES.LECTURER.NEW_SUBMISSION} className="student-topbar__cta">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
