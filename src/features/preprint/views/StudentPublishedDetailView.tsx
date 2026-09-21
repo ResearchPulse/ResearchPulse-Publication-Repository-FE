@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
 import { useTranslation } from '@/i18n';
+import { ExpandableAbstract } from '@/shared/components';
 import type { PublicPublication } from './StudentPublishedView';
 
 const NativePdfViewer = dynamic(
@@ -234,12 +235,12 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
               <>
                 {/* Abstract */}
                 <div style={{ marginBottom: '28px' }}>
-                  <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#122331', margin: '0 0 10px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
-                    {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
-                  </h3>
-                  <p style={{ color: '#334155', fontSize: '14.5px', lineHeight: 1.7, margin: 0, background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    {paper.abstract || (locale === 'vi' ? 'Không có tóm tắt cho bài báo này.' : 'No abstract provided for this preprint.')}
-                  </p>
+                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '12.5px', textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
+                      {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
+                    </h3>
+                    <ExpandableAbstract text={paper.abstract} locale={locale} fontSize="14.5px" />
+                  </div>
                 </div>
 
                 {/* Keywords */}

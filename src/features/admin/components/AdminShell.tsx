@@ -9,7 +9,7 @@ import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
 import { adminApi } from '../api';
-import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { useTranslation } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
 export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'registrations' | 'profile';
@@ -308,8 +308,6 @@ export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSide
         </div>
 
         <NotificationBell />
-
-        <LanguageSwitcher variant="toggle" />
       </div>
     </header>
   );

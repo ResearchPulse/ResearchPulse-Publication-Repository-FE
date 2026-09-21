@@ -1903,6 +1903,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .admin-user-avatar {
@@ -2020,21 +2021,28 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  overflow: hidden;
+  flex: 1;
 }
 
 .admin-user-name {
   font-weight: 700;
   font-size: 13.5px;
   color: #0f172a;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .admin-user-email {
   font-size: 12px;
   color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
 }
 
 .admin-user-subtag {
@@ -2295,6 +2303,30 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.admin-users-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: auto;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+  padding: 12px 10px !important;
+  white-space: nowrap;
+}
+
+.admin-users-table td:first-child {
+  min-width: 180px;
+  max-width: 280px;
+  white-space: normal;
+}
+
+.admin-users-table td button,
+.admin-users-table td span,
+.admin-users-table td a {
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {

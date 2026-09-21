@@ -11,6 +11,7 @@ import { usePreprintDetail } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
 import { DetailSkeleton } from '@/components/skeleton';
 import { useTranslation } from '@/i18n';
+import { ExpandableAbstract } from '@/shared/components';
 
 const NativePdfViewer = dynamic(
   () => import('../components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
@@ -398,7 +399,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 <div className="student-panel-main">
                   <section className="student-section-card">
                     <h3 className="student-section-card__title">Abstract</h3>
-                    <p className="student-section-card__abstract">{item.abstract || 'Chưa có abstract nghiên cứu.'}</p>
+                    <ExpandableAbstract text={item.abstract} locale="vi" />
 
                     {item.keywords && item.keywords.length > 0 && (
                       <div className="student-keywords-wrap">
