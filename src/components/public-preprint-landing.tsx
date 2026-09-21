@@ -1201,7 +1201,7 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">{t('workflow.step6Title', 'Công Bố Mở (Publish)')}</h3>
+                  <h3 className="pl-workflow-card-title">{t('workflow.step6Title', 'Công Bố (Publish)')}</h3>
                   <p className="pl-workflow-card-desc">
                     {t('workflow.step6Desc', 'Bản thảo chính thức được cấp quyền truy cập mở, xuất hiện trên kho lưu trữ HyperData Lab và sẵn sàng cho việc trích dẫn học thuật vĩnh viễn.')}
                   </p>
