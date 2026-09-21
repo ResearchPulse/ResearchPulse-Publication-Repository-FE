@@ -2,7 +2,7 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-html, body { min-height: 100%; }
+html, body { min-height: 100%; max-width: 100%; overflow-x: hidden; }
 body { margin: 0; background: var(--hd-bg); color: var(--hd-ink); font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; font-family: inherit; }
