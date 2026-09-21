@@ -6,6 +6,20 @@ import { createPortal } from 'react-dom';
 import { StudentShell } from '../components';
 import { SortDropdown } from '@/components/sort-dropdown';
 import { useTranslation } from '@/i18n';
+import dynamic from 'next/dynamic';
+
+const NativePdfViewer = dynamic(
+  () => import('../components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '12px' }}>
+        <div className="student-spinner" />
+        <span style={{ fontSize: '14px', color: '#64748b' }}>Đang tải tài liệu PDF...</span>
+      </div>
+    ),
+  }
+);
 
 export type PublicPublication = {
   id: string;
@@ -32,6 +46,7 @@ export function StudentPublishedView() {
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<PublicPublication[]>([]);
   const [selected, setSelected] = useState<PublicPublication | null>(null);
+  const [modalTab, setModalTab] = useState<'overview' | 'pdf'>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,6 +97,7 @@ export function StudentPublishedView() {
 
   const handleSelectPaper = async (paper: PublicPublication) => {
     setSelected(paper);
+    setModalTab('overview');
     try {
       const res = await fetch(`/api/publications/public/${paper.id}`);
       if (res.ok) {
@@ -394,7 +410,8 @@ export function StudentPublishedView() {
             style={{
               background: '#ffffff',
               borderRadius: '16px',
-              maxWidth: '680px',
+              maxWidth: modalTab === 'pdf' ? '980px' : '680px',
+              transition: 'max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
@@ -432,86 +449,116 @@ export function StudentPublishedView() {
               </div>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-              <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#0f172a', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
-                {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
-              </h4>
-              <p style={{ color: '#334155', fontSize: '14px', lineHeight: 1.65, margin: 0 }}>
-                {selected.abstract || (locale === 'vi' ? 'Không có tóm tắt.' : 'No abstract provided.')}
-              </p>
+            {modalTab === 'pdf' ? (
+              <div style={{ marginTop: 16 }}>
+                {selected.downloadUrl ? (
+                  <NativePdfViewer
+                    url={selected.downloadUrl}
+                    fileName={selected.currentVersion?.fileName || `${selected.title?.substring(0, 50) || 'manuscript'}.pdf`}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 350, gap: 12 }}>
+                    <div className="student-spinner" />
+                    <span style={{ fontSize: 14, color: '#64748b' }}>{locale === 'vi' ? 'Đang chuẩn bị tài liệu PDF...' : 'Loading PDF document...'}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#0f172a', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
+                    {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
+                  </h4>
+                  <p style={{ color: '#334155', fontSize: '14px', lineHeight: 1.65, margin: 0 }}>
+                    {selected.abstract || (locale === 'vi' ? 'Không có tóm tắt.' : 'No abstract provided.')}
+                  </p>
 
-              {selected.keywords && selected.keywords.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
-                  {selected.keywords.map((kw) => (
-                    <span key={kw} style={{ fontSize: '12px', background: '#e2e8f0', color: '#475569', padding: '3px 10px', borderRadius: '16px', fontWeight: 600 }}>
-                      #{kw}
-                    </span>
-                  ))}
+                  {selected.keywords && selected.keywords.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
+                      {selected.keywords.map((kw) => (
+                        <span key={kw} style={{ fontSize: '12px', background: '#e2e8f0', color: '#475569', padding: '3px 10px', borderRadius: '16px', fontWeight: 600 }}>
+                          #{kw}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Citation Box */}
-            <div style={{ background: '#f0fdf4', padding: '18px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #bbf7d0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#166534' }}>
-                  <span>{locale === 'vi' ? 'Trích dẫn bài báo này:' : 'Cite this paper:'}</span>
-                  <div style={{ display: 'inline-flex', gap: '4px', marginLeft: '6px' }}>
-                    {(['APA', 'IEEE', 'BibTeX'] as const).map((fmt) => (
-                      <button
-                        key={fmt}
-                        type="button"
-                        onClick={() => setCitationFormat(fmt)}
-                        className={`student-citation-fmt-btn ${citationFormat === fmt ? 'student-citation-fmt-btn--active' : ''}`}
-                      >
-                        {fmt}
-                      </button>
-                    ))}
+                {/* Citation Box */}
+                <div style={{ background: '#f0fdf4', padding: '18px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#166534' }}>
+                      <span>{locale === 'vi' ? 'Trích dẫn bài báo này:' : 'Cite this paper:'}</span>
+                      <div style={{ display: 'inline-flex', gap: '4px', marginLeft: '6px' }}>
+                        {(['APA', 'IEEE', 'BibTeX'] as const).map((fmt) => (
+                          <button
+                            key={fmt}
+                            type="button"
+                            onClick={() => setCitationFormat(fmt)}
+                            className={`student-citation-fmt-btn ${citationFormat === fmt ? 'student-citation-fmt-btn--active' : ''}`}
+                          >
+                            {fmt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => copyCitation(selected)}
+                      className="student-citation-copy-btn"
+                      style={{
+                        color: citationCopied ? '#15803d' : '#0071bc',
+                      }}
+                    >
+                      {citationCopied ? (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                          <span>{locale === 'vi' ? 'Đã sao chép!' : 'Copied!'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                          <span>{locale === 'vi' ? 'Sao chép trích dẫn' : 'Copy Citation'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: '13px', color: '#14532d', background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #dcfce7', fontFamily: 'monospace', lineHeight: 1.5, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                    {getFormattedCitation(selected, citationFormat)}
                   </div>
                 </div>
+              </>
+            )}
 
-                <button
-                  type="button"
-                  onClick={() => copyCitation(selected)}
-                  className="student-citation-copy-btn"
-                  style={{
-                    color: citationCopied ? '#15803d' : '#0071bc',
-                  }}
-                >
-                  {citationCopied ? (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                      <span>{locale === 'vi' ? 'Đã sao chép!' : 'Copied!'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                      <span>{locale === 'vi' ? 'Sao chép trích dẫn' : 'Copy Citation'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div style={{ fontSize: '13px', color: '#14532d', background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #dcfce7', fontFamily: 'monospace', lineHeight: 1.5, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                {getFormattedCitation(selected, citationFormat)}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                className="student-modal-btn-dismiss"
-              >
-                {locale === 'vi' ? 'Đóng' : 'Close'}
-              </button>
-              <Link
-                href={`/student/published/${selected.id}?tab=pdf`}
-                className="student-modal-btn-detail"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                {locale === 'vi' ? 'Xem chi tiết bài báo (PDF)' : 'View Full Paper (PDF)'}
-              </Link>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '20px' }}>
+              {modalTab === 'pdf' ? (
+                <>
+                  <button type="button" onClick={() => setModalTab('overview')} className="student-modal-btn-dismiss" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                    {locale === 'vi' ? 'Quay lại tóm tắt' : 'Back to summary'}
+                  </button>
+                  <button type="button" onClick={() => setSelected(null)} className="student-modal-btn-dismiss">
+                    {locale === 'vi' ? 'Đóng' : 'Close'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => setSelected(null)} className="student-modal-btn-dismiss">
+                    {locale === 'vi' ? 'Đóng' : 'Close'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalTab('pdf')}
+                    className="student-modal-btn-detail"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    {locale === 'vi' ? 'Xem chi tiết bài báo (PDF)' : 'View Full Paper (PDF)'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>,

@@ -7,6 +7,20 @@ import Lenis from 'lenis';
 import { HyperdataLogo } from './hyperdata-logo';
 import { PublicPortalShowcase } from './public-portal-showcase';
 import { ScrollRevealObserver } from './scroll-reveal';
+import dynamic from 'next/dynamic';
+
+const NativePdfViewer = dynamic(
+  () => import('../features/preprint/components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '12px' }}>
+        <div className="student-spinner" />
+        <span style={{ fontSize: '14px', color: '#64748b' }}>Đang tải tài liệu PDF...</span>
+      </div>
+    ),
+  }
+);
 
 // Helper for Vietnamese diacritic removal for live username preview
 const VIETNAMESE_MAP: Record<string, string> = {
@@ -70,6 +84,7 @@ function PublishedCatalogue() {
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<PublicPublication[]>([]);
   const [selected, setSelected] = useState<PublicPublication | null>(null);
+  const [modalTab, setModalTab] = useState<'overview' | 'pdf'>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,6 +105,7 @@ function PublishedCatalogue() {
 
   const handleSelectPaper = async (paper: PublicPublication) => {
     setSelected(paper);
+    setModalTab('overview');
     try {
       const res = await fetch(`/api/publications/public/${paper.id}`);
       if (res.ok) {
@@ -254,7 +270,7 @@ function PublishedCatalogue() {
 
       {mounted && selected && createPortal(
         <div className="pl-published-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>
-          <div className="pl-published-modal-panel" role="dialog" aria-modal="true">
+          <div className="pl-published-modal-panel" role="dialog" aria-modal="true" style={{ maxWidth: modalTab === 'pdf' ? 980 : 680, transition: 'max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
             <button 
               type="button" 
               onClick={() => setSelected(null)} 
@@ -280,65 +296,96 @@ function PublishedCatalogue() {
               </div>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: 20, borderRadius: 14, marginBottom: 20, border: '1px solid #eef2f6' }}>
-              <h4 style={{ fontSize: 12.5, textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>Tóm tắt nghiên cứu (Abstract)</h4>
-              <p style={{ color: '#334155', fontSize: 14.5, lineHeight: 1.65, margin: 0 }}>{selected.abstract}</p>
-              
-              {selected.keywords && selected.keywords.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-                  {selected.keywords.map(kw => (
-                    <span key={kw} style={{ fontSize: 12, background: '#e2e8f0', color: '#475569', padding: '3px 10px', borderRadius: 16, fontWeight: 600 }}>#{kw}</span>
-                  ))}
+            {modalTab === 'pdf' ? (
+              <div style={{ marginTop: 16 }}>
+                {selected.downloadUrl ? (
+                  <NativePdfViewer
+                    url={selected.downloadUrl}
+                    fileName={selected.currentVersion?.fileName || `${selected.title?.substring(0, 50) || 'manuscript'}.pdf`}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 350, gap: 12 }}>
+                    <div className="student-spinner" />
+                    <span style={{ fontSize: 14, color: '#64748b' }}>Đang chuẩn bị tài liệu PDF...</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div style={{ background: '#f8fafc', padding: 20, borderRadius: 14, marginBottom: 20, border: '1px solid #eef2f6' }}>
+                  <h4 style={{ fontSize: 12.5, textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>Tóm tắt nghiên cứu (Abstract)</h4>
+                  <p style={{ color: '#334155', fontSize: 14.5, lineHeight: 1.65, margin: 0 }}>{selected.abstract}</p>
+                  
+                  {selected.keywords && selected.keywords.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+                      {selected.keywords.map(kw => (
+                        <span key={kw} style={{ fontSize: 12, background: '#e2e8f0', color: '#475569', padding: '3px 10px', borderRadius: 16, fontWeight: 600 }}>#{kw}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div style={{ background: '#f0fdf4', padding: 18, borderRadius: 14, marginBottom: 24, border: '1px solid #bbf7d0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#166534' }}>
-                  <span>📖 Trích dẫn công trình này:</span>
-                  <div style={{ display: 'inline-flex', gap: 4, marginLeft: 6 }}>
-                    {(['APA', 'IEEE', 'BibTeX'] as const).map(fmt => (
-                      <button 
-                        key={fmt} 
-                        type="button" 
-                        onClick={() => setCitationFormat(fmt)}
-                        style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6, border: citationFormat === fmt ? '1px solid #16a34a' : '1px solid #cbd5e1', background: citationFormat === fmt ? '#16a34a' : '#ffffff', color: citationFormat === fmt ? '#ffffff' : '#475569', cursor: 'pointer' }}
-                      >
-                        {fmt}
-                      </button>
-                    ))}
+                <div style={{ background: '#f0fdf4', padding: 18, borderRadius: 14, marginBottom: 24, border: '1px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#166534' }}>
+                      <span>📖 Trích dẫn công trình này:</span>
+                      <div style={{ display: 'inline-flex', gap: 4, marginLeft: 6 }}>
+                        {(['APA', 'IEEE', 'BibTeX'] as const).map(fmt => (
+                          <button 
+                            key={fmt} 
+                            type="button" 
+                            onClick={() => setCitationFormat(fmt)}
+                            style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6, border: citationFormat === fmt ? '1px solid #16a34a' : '1px solid #cbd5e1', background: citationFormat === fmt ? '#16a34a' : '#ffffff', color: citationFormat === fmt ? '#ffffff' : '#475569', cursor: 'pointer' }}
+                          >
+                            {fmt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      onClick={() => copyCitation(selected)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: citationCopied ? '#15803d' : '#0071bc', background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}
+                    >
+                      {citationCopied ? (
+                        <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg><span>Đã sao chép!</span></>
+                      ) : (
+                        <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Sao chép trích dẫn</span></>
+                      )}
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: 13, color: '#14532d', background: '#ffffff', padding: '10px 14px', borderRadius: 8, border: '1px solid #dcfce7', fontFamily: 'monospace', lineHeight: 1.5, overflowX: 'auto' }}>
+                    {getFormattedCitation(selected, citationFormat)}
                   </div>
                 </div>
-
-                <button 
-                  type="button" 
-                  onClick={() => copyCitation(selected)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: citationCopied ? '#15803d' : '#0071bc', background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}
-                >
-                  {citationCopied ? (
-                    <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg><span>Đã sao chép!</span></>
-                  ) : (
-                    <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Sao chép trích dẫn</span></>
-                  )}
-                </button>
-              </div>
-
-              <div style={{ fontSize: 13, color: '#14532d', background: '#ffffff', padding: '10px 14px', borderRadius: 8, border: '1px solid #dcfce7', fontFamily: 'monospace', lineHeight: 1.5, overflowX: 'auto' }}>
-                {getFormattedCitation(selected, citationFormat)}
-              </div>
-            </div>
+              </>
+            )}
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setSelected(null)} className="pl-published-btn-secondary" style={{ padding: '10px 18px', fontSize: 13.5 }}>Đóng</button>
-              <Link
-                href={`/student/published/${selected.id}?tab=pdf`}
-                className="pl-published-btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', fontSize: 13.5, textDecoration: 'none' }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                Xem chi tiết bài báo (PDF)
-              </Link>
+              {modalTab === 'pdf' ? (
+                <>
+                  <button type="button" onClick={() => setModalTab('overview')} className="pl-published-btn-secondary" style={{ padding: '10px 18px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                    Quay lại tóm tắt
+                  </button>
+                  <button type="button" onClick={() => setSelected(null)} className="pl-published-btn-secondary" style={{ padding: '10px 18px', fontSize: 13.5 }}>Đóng</button>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => setSelected(null)} className="pl-published-btn-secondary" style={{ padding: '10px 18px', fontSize: 13.5 }}>Đóng</button>
+                  <button
+                    type="button"
+                    onClick={() => setModalTab('pdf')}
+                    className="pl-published-btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', fontSize: 13.5, textDecoration: 'none', cursor: 'pointer' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Xem chi tiết bài báo (PDF)
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>,
