@@ -13,7 +13,7 @@ import type { Metadata } from 'next';
 import { AppProviders } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Hyperdata Lab',
+  title: 'HYPERDATA LAB',
   description: 'A public academic repository for early research, faculty mentorship, and transparent publication workflows.',
   icons: {
     icon: [
