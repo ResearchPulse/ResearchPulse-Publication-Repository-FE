@@ -4,7 +4,7 @@ export interface I18nContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   toggleLocale: () => void;
-  t: (key: string, variables?: Record<string, string | number>) => string;
+  t: (key: string, fallbackOrVars?: string | Record<string, string | number>, variables?: Record<string, string | number>) => string;
   isReady: boolean;
 }
 
