@@ -180,7 +180,7 @@ function mapAnalysis(analysis: {
     abstract: analysis.abstract,
     doi: analysis.doi,
     publicationDate: analysis.publicationDate,
-    keywords: [],
+    keywords: analysis.keywords || [],
     authors: analysis.authors.map((author, index) => ({
       name: author.name,
       email: author.email || '',

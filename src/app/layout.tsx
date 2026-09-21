@@ -13,7 +13,7 @@ import type { Metadata } from 'next';
 import { AppProviders } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Hyperdata Lab',
+  title: 'HyperData Lab',
   description: 'A public academic repository for early research, faculty mentorship, and transparent publication workflows.',
   icons: {
     icon: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang='vi' suppressHydrationWarning>
       <body suppressHydrationWarning>
         <AppProviders>{children}</AppProviders>
       </body>

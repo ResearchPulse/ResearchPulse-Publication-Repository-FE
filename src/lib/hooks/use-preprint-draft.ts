@@ -12,10 +12,10 @@ export interface PreprintDraftData {
   isPrivate: boolean;
   authors: Array<{
     name: string;
-    email: string;
+    email?: string;
     studentId?: string;
     role: 'STUDENT' | 'LECTURER' | 'ADMIN';
-    institution: string;
+    institution?: string;
     isPrimary: boolean;
   }>;
 }

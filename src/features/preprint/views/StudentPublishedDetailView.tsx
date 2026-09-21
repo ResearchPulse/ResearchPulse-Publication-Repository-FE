@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
 import { useTranslation } from '@/i18n';
+import { ExpandableAbstract } from '@/shared/components';
 import type { PublicPublication } from './StudentPublishedView';
 
 const NativePdfViewer = dynamic(
@@ -30,7 +32,9 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
   const [error, setError] = useState<string | null>(null);
   const [citationFormat, setCitationFormat] = useState<'APA' | 'IEEE' | 'BibTeX'>('APA');
   const [citationCopied, setCitationCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'pdf'>('overview');
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams?.get('tab') === 'pdf' ? 'pdf' : 'overview';
+  const [activeTab, setActiveTab] = useState<'overview' | 'pdf'>(defaultTab);
 
   useEffect(() => {
     let active = true;
@@ -65,12 +69,12 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
     const year = pub.publishedAt ? new Date(pub.publishedAt).getFullYear() : new Date().getFullYear();
     const title = pub.title || (locale === 'vi' ? 'Bản thảo nghiên cứu' : 'Research Preprint');
     if (format === 'APA') {
-      return `${authorsStr} (${year}). ${title}. Hyperdata Lab Academic Repository, ${pub.currentVersion?.versionLabel || 'v1.0'}. https://hyperdatalab.org/preprints/${pub.id}`;
+      return `${authorsStr} (${year}). ${title}. HyperData Lab Academic Repository, ${pub.currentVersion?.versionLabel || 'v1.0'}. https://hyperdatalab.org/preprints/${pub.id}`;
     }
     if (format === 'IEEE') {
-      return `[1] ${authorsStr}, "${title}," Hyperdata Lab Preprint Rep., vol. 1, no. 1, ${year}.`;
+      return `[1] ${authorsStr}, "${title}," HyperData Lab Preprint Rep., vol. 1, no. 1, ${year}.`;
     }
-    return `@article{hyperdatalab_${pub.id.slice(0, 8)},\n  title={${title}},\n  author={${authorsStr}},\n  journal={Hyperdata Lab Preprints},\n  year={${year}}\n}`;
+    return `@article{hyperdatalab_${pub.id.slice(0, 8)},\n  title={${title}},\n  author={${authorsStr}},\n  journal={HyperData Lab Preprints},\n  year={${year}}\n}`;
   };
 
   const copyCitation = () => {
@@ -231,12 +235,12 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
               <>
                 {/* Abstract */}
                 <div style={{ marginBottom: '28px' }}>
-                  <h3 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#122331', margin: '0 0 10px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
-                    {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
-                  </h3>
-                  <p style={{ color: '#334155', fontSize: '14.5px', lineHeight: 1.7, margin: 0, background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    {paper.abstract || (locale === 'vi' ? 'Không có tóm tắt cho bài báo này.' : 'No abstract provided for this preprint.')}
-                  </p>
+                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontSize: '12.5px', textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
+                      {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
+                    </h3>
+                    <ExpandableAbstract text={paper.abstract} locale={locale} fontSize="14.5px" />
+                  </div>
                 </div>
 
                 {/* Keywords */}
@@ -370,7 +374,7 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#64748b' }}>{locale === 'vi' ? 'Kho lưu trữ:' : 'Repository:'}</span>
-                  <span style={{ fontWeight: 600, color: '#0071bc' }}>Hyperdata Lab</span>
+                  <span style={{ fontWeight: 600, color: '#0071bc' }}>HyperData Lab</span>
                 </div>
               </div>
             </div>

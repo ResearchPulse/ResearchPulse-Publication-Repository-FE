@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 import { preprintApiBaseUrl } from './oidc';
 import type { Role, User } from '@/shared/types';
 
@@ -66,7 +67,7 @@ export async function getUserFromAccessToken(accessToken: string): Promise<User 
   }
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   try {
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get('app_session')?.value;
@@ -81,7 +82,7 @@ export async function getCurrentUser(): Promise<User | null> {
   } catch {
     return null;
   }
-}
+});
 
 export function canAccessArea(role: Role | undefined, area: 'admin' | 'lecturer' | 'student') {
   if (!role) return false;

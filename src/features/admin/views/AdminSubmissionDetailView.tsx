@@ -6,6 +6,7 @@ import { Panel, StatusBadge } from '@hyperdata/design-system';
 import { AdminShell, AdminPageHeader } from '../components';
 import { DetailSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
+import { ExpandableAbstract } from '@/shared/components';
 import {
   adminApi,
   type AdminPublication,
@@ -814,7 +815,7 @@ export function AdminSubmissionDetailView({ id }: AdminSubmissionDetailViewProps
             {/* Abstract */}
             <div className="manuscript-abstract-box">
               <div className="manuscript-abstract-label">Abstract</div>
-              <p className="manuscript-abstract-text">{publication.abstract || 'No abstract provided for this manuscript.'}</p>
+              <ExpandableAbstract text={publication.abstract} locale="en" />
             </div>
 
             {/* Primary PDF Asset */}

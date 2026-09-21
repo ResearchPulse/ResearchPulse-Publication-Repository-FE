@@ -9,7 +9,7 @@ import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
 import { adminApi } from '../api';
-import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { useTranslation } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
 export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'registrations' | 'profile';
@@ -20,6 +20,9 @@ export interface AdminShellProps {
   pendingCount?: number;
   children: ReactNode;
 }
+
+let globalPendingCountCache: number | undefined = undefined;
+let lastPendingCountFetchTime = 0;
 
 export function AdminSidebar({
   active,
@@ -34,7 +37,9 @@ export function AdminSidebar({
 }) {
   const { user } = useAuth();
   const { t, locale } = useTranslation();
-  const [internalPendingCount, setInternalPendingCount] = useState<number | undefined>(pendingCount);
+  const [internalPendingCount, setInternalPendingCount] = useState<number | undefined>(
+    () => pendingCount ?? globalPendingCountCache
+  );
 
   useEffect(() => {
     if (pendingCount !== undefined) {
@@ -43,21 +48,31 @@ export function AdminSidebar({
   }, [pendingCount]);
 
   useEffect(() => {
-    adminApi
-      .listPendingUsers({ limit: 1 })
-      .then((res) => {
-        setInternalPendingCount(res.pagination?.total ?? res.users.length);
-      })
-      .catch(() => {});
+    const now = Date.now();
+    // If recently fetched within 15 seconds, don't hit the DB again
+    if (now - lastPendingCountFetchTime >= 15000 || globalPendingCountCache === undefined) {
+      lastPendingCountFetchTime = now;
+      adminApi
+        .listPendingUsers({ limit: 1 })
+        .then((res) => {
+          const count = res.pagination?.total ?? res.users.length;
+          globalPendingCountCache = count;
+          setInternalPendingCount(count);
+        })
+        .catch(() => {});
+    }
 
     let es: EventSource | null = null;
     try {
       es = new EventSource('/api/admin/registrations/stream');
       es.addEventListener('registration:new', () => {
+        lastPendingCountFetchTime = Date.now();
         adminApi
           .listPendingUsers({ limit: 1 })
           .then((res) => {
-            setInternalPendingCount(res.pagination?.total ?? res.users.length);
+            const count = res.pagination?.total ?? res.users.length;
+            globalPendingCountCache = count;
+            setInternalPendingCount(count);
           })
           .catch(() => {});
       });
@@ -93,17 +108,17 @@ export function AdminSidebar({
     <aside className={`student-sidebar ${isOpen ? 'student-sidebar--open' : ''}`}>
       {/* Brand Header */}
       <div className="student-sidebar__brand">
-        <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
+        <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-sidebar__logo-link" aria-label="HyperData Lab Home">
           <div className="student-sidebar__logo-lockup">
             <Image
               src="/hyperdata-lab-logo.png"
-              alt="Hyperdata Lab Logo"
+              alt="HyperData Lab Logo"
               width={28}
               height={28}
               style={{ borderRadius: '6px', objectFit: 'contain' }}
               priority
             />
-            <span className="student-sidebar__brand-name">Hyperdata Lab</span>
+            <span className="student-sidebar__brand-name">HyperData Lab</span>
           </div>
         </Link>
 
@@ -308,8 +323,6 @@ export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSide
         </div>
 
         <NotificationBell />
-
-        <LanguageSwitcher variant="toggle" />
       </div>
     </header>
   );

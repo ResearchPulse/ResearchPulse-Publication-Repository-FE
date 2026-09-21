@@ -105,7 +105,7 @@ export function LecturerProfileView() {
                 </span>
               </div>
               <p style={{ margin: '6px 0 0', fontSize: '13.5px', color: '#64748b' }}>
-                {user?.role === 'LECTURER' ? 'Faculty Reviewer · Department of Computer Science & Engineering' : user?.role === 'ADMIN' ? 'System Administrator · Hyperdata Lab' : 'Student Scholar · Science & Technology Faculty'}
+                {user?.role === 'LECTURER' ? 'Faculty Reviewer · Department of Computer Science & Engineering' : user?.role === 'ADMIN' ? 'System Administrator · HyperData Lab' : 'Student Scholar · Science & Technology Faculty'}
               </p>
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#0071bc', fontWeight: 500 }}>
                 {displayEmail}
@@ -239,7 +239,7 @@ export function LecturerProfileView() {
               {user?.studentId ? (
                 <div>
                   <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {locale === 'vi' ? 'Mã số sinh viên (MSSV)' : 'Student Identifier (MSSV)'}
+                    {locale === 'vi' ? 'Mã Số Giảng Viên (MSGV)' : 'Lecturer Identifier (MSGV)'}
                   </span>
                   <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', color: '#334155' }}>
                     {user.studentId}

@@ -2,15 +2,17 @@ import type { PreprintStatus } from '@/shared/types';
 
 export type Author = {
   name: string;
-  email: string;
+  email?: string;
   studentId?: string;
   role?: 'STUDENT' | 'LECTURER' | 'ADMIN';
-  userId?: string;
-  verificationStatus?: 'VERIFIED' | 'UNREGISTERED' | 'MISSING_IDENTIFIER' | 'INACTIVE';
+  userId?: string | null;
+  verificationStatus?: 'VERIFIED' | 'UNLINKED' | 'INVITATION_PENDING' | 'CLAIM_PENDING' | 'UNREGISTERED' | 'MISSING_IDENTIFIER' | 'INACTIVE';
   verificationReason?: string;
-  institution: string;
+  institution?: string;
+  orderIndex?: number;
   isPrimary?: boolean;
   isCorresponding?: boolean;
+  source?: 'GROBID' | 'AI' | 'USER' | 'ACCOUNT' | 'SYSTEM';
 };
 
 export type ReviewDecision = 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';

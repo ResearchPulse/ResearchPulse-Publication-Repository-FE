@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
-import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { useTranslation } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
 export type LecturerNavKey = 'reviews' | 'submissions' | 'profile' | 'publications';
@@ -58,17 +58,17 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
       <aside className={`student-sidebar ${sidebarOpen ? 'student-sidebar--open' : ''}`}>
         {/* Brand Header */}
         <div className="student-sidebar__brand">
-          <Link href={ROUTES.LECTURER.REVIEWS} className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
+          <Link href={ROUTES.LECTURER.REVIEWS} className="student-sidebar__logo-link" aria-label="HyperData Lab Home">
             <div className="student-sidebar__logo-lockup">
               <Image
                 src="/hyperdata-lab-logo.png"
-                alt="Hyperdata Lab Logo"
+                alt="HyperData Lab Logo"
                 width={28}
                 height={28}
                 style={{ borderRadius: '6px', objectFit: 'contain' }}
                 priority
               />
-              <span className="student-sidebar__brand-name">Hyperdata Lab</span>
+              <span className="student-sidebar__brand-name">HyperData Lab</span>
             </div>
           </Link>
 
@@ -239,8 +239,6 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
             </div>
 
             <NotificationBell />
-
-            <LanguageSwitcher variant="toggle" />
 
             <Link href={ROUTES.LECTURER.NEW_SUBMISSION} className="student-topbar__cta">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

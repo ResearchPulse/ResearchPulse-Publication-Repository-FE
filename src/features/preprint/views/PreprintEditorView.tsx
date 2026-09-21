@@ -193,8 +193,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
   const isEditing = Boolean(id);
-  const isLecturer = user?.role === 'LECTURER';
   const isLecturerRoute = pathname?.startsWith('/lecturer/') ?? false;
+  const isLecturer = (user?.role === 'LECTURER') || isLecturerRoute;
   const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
   const devMockSubmitEnabled = process.env.NEXT_PUBLIC_DEV_MOCK_SUBMIT === 'true';
 
@@ -213,7 +213,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [newAuthorName, setNewAuthorName] = useState('');
   const [newAuthorEmail, setNewAuthorEmail] = useState('');
   const [newAuthorStudentId, setNewAuthorStudentId] = useState('');
-  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
+  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER'>(isLecturerRoute ? 'LECTURER' : 'STUDENT');
   const [newAuthorInst, setNewAuthorInst] = useState('');
   const [showAddAuthor, setShowAddAuthor] = useState(false);
 
@@ -352,7 +352,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       setAnalysis(result);
       setTitle(result.title || '');
       setAbstractText(result.abstract || '');
-      setKeywordsInput('');
+      setKeywordsInput(result.keywords?.length ? result.keywords.join(', ') : '');
       setDiscipline(isEditing ? discipline : '');
 
       // Smart populate: automatically link uploader student profile to primary author
@@ -361,17 +361,27 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         const isSelf = user && (
           (user.studentId && author.studentId && user.studentId.toUpperCase() === author.studentId.toUpperCase()) ||
           (user.email && author.email && user.email.toLowerCase() === author.email.toLowerCase()) ||
-          (index === 0 && user.role === 'STUDENT')
+          index === 0
         );
+        const resolvedRole = isLecturerRoute
+          ? 'LECTURER'
+          : ((author.role || user?.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN');
+
         if (isSelf && user) {
           return {
             ...author,
             name: author.name || user.name || '',
             email: author.email || user.email || '',
             studentId: author.studentId || user.studentId || undefined,
-            role: (author.role || user.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN',
+            role: resolvedRole,
             userId: user.id,
             verificationStatus: 'VERIFIED' as const,
+          };
+        }
+        if (isLecturerRoute && index === 0) {
+          return {
+            ...author,
+            role: 'LECTURER' as const,
           };
         }
         return author;
@@ -409,13 +419,40 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setNewAuthorName('');
     setNewAuthorEmail('');
     setNewAuthorStudentId('');
-    setNewAuthorRole('STUDENT');
+    setNewAuthorRole(isLecturerRoute ? 'LECTURER' : 'STUDENT');
     setNewAuthorInst('');
     setShowAddAuthor(false);
   };
 
   const removeCoAuthor = (index: number) => {
     setAuthors(authors.filter((_, authorIndex) => authorIndex !== index + 1));
+  };
+
+  const moveAuthorUp = (index: number) => {
+    if (index === 0) return;
+    const newAuthors = [...authors];
+    const temp = newAuthors[index];
+    newAuthors[index] = newAuthors[index - 1];
+    newAuthors[index - 1] = temp;
+    newAuthors.forEach(a => a.isPrimary = false);
+    if (newAuthors[0]) newAuthors[0].isPrimary = true;
+    setAuthors(newAuthors);
+  };
+
+  const moveAuthorDown = (index: number) => {
+    if (index >= authors.length - 1) return;
+    const newAuthors = [...authors];
+    const temp = newAuthors[index];
+    newAuthors[index] = newAuthors[index + 1];
+    newAuthors[index + 1] = temp;
+    newAuthors.forEach(a => a.isPrimary = false);
+    if (newAuthors[0]) newAuthors[0].isPrimary = true;
+    setAuthors(newAuthors);
+  };
+
+  const inviteAuthor = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    showError(`Đã gửi lời mời tham gia tới tác giả ${authors[index]?.name || ''}. (Mô phỏng)`);
   };
 
   const openEditAuthorModal = (index: number) => {
@@ -433,7 +470,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setEditName(author.name || '');
     setEditEmail(author.email || '');
     setEditStudentId(author.studentId || '');
-    setEditRole(author.role === 'LECTURER' ? 'LECTURER' : (author.studentId ? 'STUDENT' : (author.role === 'STUDENT' ? 'STUDENT' : 'LECTURER')));
+    const detectedRole = isLecturerRoute
+      ? (author.role === 'STUDENT' && index !== 0 ? 'STUDENT' : 'LECTURER')
+      : (author.role === 'LECTURER' ? 'LECTURER' : 'STUDENT');
+    setEditRole(detectedRole);
     setEditInstitution(author.institution || '');
     setEditIsPrimary(Boolean(author.isPrimary || index === 0));
   };
@@ -444,6 +484,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setEditEmail(user.email || '');
     if (user.studentId) setEditStudentId(user.studentId);
     setEditRole(user.role === 'LECTURER' ? 'LECTURER' : 'STUDENT');
+    if (user.affiliation && !editInstitution) {
+      setEditInstitution(user.affiliation);
+    }
   };
 
   const saveEditedAuthor = () => {
@@ -547,7 +590,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       return;
     }
 
-    const basePrimaryAuthor = {
+    const basePrimaryAuthor: StudentPreprint['authors'][number] = {
       name: primaryAuthorName,
       email: primaryAuthorEmail,
       studentId: isLecturer ? undefined : (user?.studentId || ''),
@@ -555,23 +598,23 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       institution: primaryAuthorInst,
       isPrimary: true,
       isCorresponding: true,
+      verificationStatus: 'VERIFIED',
+      source: 'ACCOUNT',
     };
     const sourceAuthors = authors.length > 0 ? authors : [basePrimaryAuthor];
     const uniqueAuthors = sourceAuthors.filter((author, index, list) => (
-      list.findIndex((candidate) => (
-        (candidate.email && author.email && candidate.email.toLowerCase() === author.email.toLowerCase())
-          || candidate.name.trim().toLowerCase() === author.name.trim().toLowerCase()
-      )) === index
+      list.findIndex((candidate) => {
+        if (candidate.email && author.email && candidate.email.toLowerCase() === author.email.toLowerCase()) return true;
+        if (candidate.studentId && author.studentId && candidate.studentId.toUpperCase() === author.studentId.toUpperCase()) return true;
+        return false;
+      }) === index || list.findIndex(c => c === author) === index
     ));
 
     if (submitNow) {
       if (!useMockSubmit) {
-        const incompleteAuthors = uniqueAuthors.filter((author) => {
-          const role = author.role || (author.studentId ? 'STUDENT' : (isLecturer ? 'LECTURER' : 'STUDENT'));
-          return role === 'STUDENT' ? !author.studentId?.trim() : !author.email?.trim();
-        });
-        if (incompleteAuthors.length > 0) {
-          showError('Cần đăng ký thành viên (Các tác giả phải có MSSV hoặc Email).');
+        const hasMissingName = uniqueAuthors.some(author => !author.name?.trim());
+        if (hasMissingName) {
+          showError('Tất cả các tác giả đều phải có họ và tên hợp lệ.');
           return;
         }
       }
@@ -601,6 +644,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
           role: author.role || (author.studentId ? 'STUDENT' as const : 'LECTURER' as const),
           affiliation: author.institution?.trim() || undefined,
           orderIndex: index,
+          isPrimary: Boolean(author.isPrimary),
+          isCorresponding: Boolean(author.isCorresponding),
+          verificationStatus: author.verificationStatus || 'UNLINKED',
+          source: author.source || 'USER',
         })),
       };
 
@@ -1000,29 +1047,43 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <span className="student-author-meta">
                     {[
                       primaryAuthorEmail,
-                      isLecturer ? 'Giảng viên' : (primaryAuthorStudentId ? `MSSV: ${primaryAuthorStudentId}` : null),
+                      primaryAuthorStudentId
+                        ? ((authors[0]?.role || (isLecturer ? 'LECTURER' : 'STUDENT')) === 'LECTURER'
+                            ? `MSGV: ${primaryAuthorStudentId}`
+                            : `MSSV: ${primaryAuthorStudentId}`)
+                        : (isLecturer ? 'Giảng viên' : null),
                       primaryAuthorInst,
                     ].filter(Boolean).join(' • ')}
                   </span>
-                  <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'VERIFIED'}`}>
+                  <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'UNLINKED'}`}>
                     {authors[0]?.verificationStatus === 'VERIFIED' || (!isEditing && !authors[0])
                       ? 'Tài khoản đã xác thực'
-                      : 'Cần xác thực tài khoản trước khi nộp'}
+                      : 'Tác giả ngoài hệ thống (Chưa liên kết)'}
                   </span>
                 </div>
                 {!isReadOnly && (
-                  <button
-                    type="button"
-                    className="student-btn student-btn--sm student-btn--secondary"
-                    style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, zIndex: 2 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openEditAuthorModal(0);
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    <span>Chỉnh sửa</span>
-                  </button>
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, zIndex: 2 }}>
+                    {authors.length > 1 && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); moveAuthorDown(0); }} className="student-btn student-btn--sm student-btn--secondary" title="Chuyển xuống">↓</button>
+                    )}
+                    {authors[0]?.verificationStatus === 'UNLINKED' && (
+                      <button type="button" onClick={(e) => inviteAuthor(e, 0)} className="student-btn student-btn--sm student-btn--secondary" style={{ color: '#2563eb' }}>
+                        ✉ Mời
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="student-btn student-btn--sm student-btn--secondary"
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditAuthorModal(0);
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Chỉnh sửa</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -1044,16 +1105,27 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <span className="student-author-meta">
                       {[
                         ca.email || 'Email chưa nhập',
-                        ca.studentId ? `MSSV: ${ca.studentId}` : null,
+                        ca.studentId
+                          ? (ca.role === 'LECTURER' ? `MSGV: ${ca.studentId}` : `MSSV: ${ca.studentId}`)
+                          : null,
                         ca.institution,
                       ].filter(Boolean).join(' • ')}
                     </span>
-                    <span className={`student-author-verification student-author-verification--${ca.verificationStatus || 'MISSING_IDENTIFIER'}`}>
-                      {ca.verificationStatus === 'VERIFIED' ? 'Tài khoản đã xác thực' : 'Cần xác thực tài khoản trước khi nộp'}
+                    <span className={`student-author-verification student-author-verification--${ca.verificationStatus || 'UNLINKED'}`}>
+                      {ca.verificationStatus === 'VERIFIED' ? 'Tài khoản đã xác thực' : 'Tác giả ngoài hệ thống (Chưa liên kết)'}
                     </span>
                   </div>
                   {!isReadOnly && (
                     <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, zIndex: 2 }}>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); moveAuthorUp(idx + 1); }} className="student-btn student-btn--sm student-btn--secondary" title="Chuyển lên">↑</button>
+                      {idx + 1 < authors.length - 1 && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); moveAuthorDown(idx + 1); }} className="student-btn student-btn--sm student-btn--secondary" title="Chuyển xuống">↓</button>
+                      )}
+                      {ca.verificationStatus === 'UNLINKED' && (
+                        <button type="button" onClick={(e) => inviteAuthor(e, idx + 1)} className="student-btn student-btn--sm student-btn--secondary" style={{ color: '#2563eb' }}>
+                          ✉ Mời
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="student-btn student-btn--sm student-btn--secondary"
@@ -1104,7 +1176,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="Mã số sinh viên (MSSV)"
+                      placeholder={newAuthorRole === 'LECTURER' ? 'Mã Số Giảng Viên (MSGV)' : 'Mã số sinh viên (MSSV)'}
                       value={newAuthorStudentId}
                       onChange={(e) => setNewAuthorStudentId(e.target.value)}
                     />
@@ -1442,15 +1514,21 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 </div>
 
                 <div className="student-field">
-                  <label className="student-field__label">Mã số sinh viên (MSSV)</label>
+                  <label className="student-field__label">
+                    {editRole === 'LECTURER' ? 'Mã Số Giảng Viên (MSGV)' : 'Mã số sinh viên (MSSV)'}
+                  </label>
                   <input
                     type="text"
                     className="student-input"
-                    placeholder="Ví dụ: SE170123"
+                    placeholder={editRole === 'LECTURER' ? 'Ví dụ: MSGV0042' : 'Ví dụ: SE170123'}
                     value={editStudentId}
                     onChange={(e) => setEditStudentId(e.target.value)}
                   />
-                  <span className="student-field__hint">Dùng để tự động match tài khoản sinh viên</span>
+                  <span className="student-field__hint">
+                    {editRole === 'LECTURER'
+                      ? 'Dùng để tự động match và liên kết hồ sơ giảng viên'
+                      : 'Dùng để tự động match tài khoản sinh viên'}
+                  </span>
                 </div>
               </div>
 

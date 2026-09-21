@@ -266,10 +266,10 @@ export function AdminRegistrationsView() {
                           <div className="admin-user-name">
                             {user.name || (locale === 'vi' ? 'Chưa có tên' : 'Unnamed Applicant')}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
-                            <span className="admin-user-email">{user.email}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', minWidth: 0 }}>
+                            <span className="admin-user-email" title={user.email}>{user.email}</span>
                             {user.phone && (
-                              <span style={{ fontSize: '11.5px', color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, border: '1px solid #bae6fd' }}>
+                              <span style={{ fontSize: '11.5px', color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, border: '1px solid #bae6fd', flexShrink: 0 }}>
                                 📞 {user.phone}
                               </span>
                             )}
@@ -309,19 +309,20 @@ export function AdminRegistrationsView() {
                         {user.major || '—'}
                       </span>
                     </td>
-                    <td>
-                      <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '12.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
                         {user.createdAt
                           ? new Date(user.createdAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : undefined, { year: 'numeric', month: 'short', day: 'numeric' })
                           : locale === 'vi' ? 'Gần đây' : 'Recently'}
                       </span>
                     </td>
-                    <td>
-                      <div className="review-actions" style={{ justifyContent: 'flex-end' }}>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <div className="review-actions" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap', gap: '6px' }}>
                         <Button
                           variant="primary"
                           disabled={busyId === user.id}
                           onClick={() => decidePendingUser(user, 'approve')}
+                          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                         >
                           {locale === 'vi' ? 'Phê duyệt' : 'Approve'}
                         </Button>
@@ -329,6 +330,7 @@ export function AdminRegistrationsView() {
                           variant="secondary"
                           disabled={busyId === user.id}
                           onClick={() => decidePendingUser(user, 'reject')}
+                          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                         >
                           {locale === 'vi' ? 'Từ chối' : 'Reject'}
                         </Button>

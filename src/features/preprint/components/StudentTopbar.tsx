@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { useTranslation } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
 interface StudentTopbarProps {
@@ -62,8 +62,6 @@ export function StudentTopbar({
         </div>
 
         <NotificationBell />
-
-        <LanguageSwitcher variant="toggle" />
 
         <Link href="/student/my-preprints/new" className="student-topbar__cta">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

@@ -43,19 +43,22 @@ export function AdminReviewsView() {
 
     try {
       let items: AdminReview[] = [];
+      let primaryFailed = false;
 
       // Primary attempt: fetch directly from /api/v1/admin/reviews
       try {
         const res = await adminApi.listAllReviews();
-        if (res?.items && Array.isArray(res.items) && res.items.length > 0) {
+        if (res && 'items' in res && Array.isArray(res.items)) {
           items = res.items;
+        } else {
+          primaryFailed = true;
         }
       } catch {
-        // Fall through to secondary fallback
+        primaryFailed = true;
       }
 
       // Secondary fallback: gather reviews across recent submissions
-      if (items.length === 0) {
+      if (primaryFailed) {
         try {
           const submissionsRes = await adminApi.listSubmissions({ limit: 50 });
           const pubs = submissionsRes.items || [];

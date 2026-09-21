@@ -225,11 +225,6 @@ body:has(.public-landing) {
   flex-shrink: 0;
   object-fit: contain;
   border-radius: 8px;
-  transition: transform var(--ds-duration-quick) var(--ds-ease-out);
-}
-
-.pl-brand:hover .pl-brand-logo-img {
-  transform: scale(1.05);
 }
 
 .pl-brand-name {
@@ -1278,14 +1273,16 @@ body:has(.public-landing) {
    Academic Trust & Community Banner
    ========================================================================== */
 .pl-trust-banner {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr);
-  gap: var(--ds-space-10);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--ds-radius-panel);
-  padding: 20px 28px;
-  align-items: center;
+  padding: 26px 32px;
+  margin: var(--ds-space-6) 0;
+  box-shadow: 0 1px 3px rgba(18, 35, 49, 0.04);
 }
 
 .pl-trust-quote {
@@ -1293,11 +1290,13 @@ body:has(.public-landing) {
   align-items: flex-start;
   gap: 16px;
   text-align: left;
+  flex: 1;
+  min-width: 0;
 }
 
 .pl-trust-avatar {
-  width: 54px;
-  height: 54px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: var(--color-primary-soft);
   border: 1px solid var(--ds-blue-200);
@@ -1306,6 +1305,7 @@ body:has(.public-landing) {
   justify-content: center;
   color: var(--color-primary);
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .pl-trust-avatar svg {
@@ -1313,23 +1313,28 @@ body:has(.public-landing) {
 }
 
 .pl-trust-text {
-  font-size: 16px;
+  font-size: 15px;
   font-style: italic;
   color: var(--color-text);
   line-height: 1.55;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
 }
 
 .pl-trust-author {
-  font-size: 12px;
+  display: block;
+  font-size: 11px;
   font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .pl-trust-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .pl-trust-label-head {
@@ -1344,19 +1349,22 @@ body:has(.public-landing) {
 
 .pl-trust-tags {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 8px;
 }
 
 .pl-trust-tags span {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   background: #ffffff;
   border: 1px solid var(--color-border);
-  padding: 7px 12px;
+  padding: 6px 11px;
   border-radius: var(--control-radius);
   color: var(--color-text);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(18, 35, 49, 0.03);
 }
 
 /* Grids & Cards (Panels with 24px radius) */
@@ -2235,9 +2243,11 @@ body:has(.public-landing) {
   }
   .pl-trust-labels {
     text-align: left;
+    align-items: flex-start;
   }
   .pl-trust-tags {
     justify-content: flex-start;
+    max-width: 100%;
   }
 
   /* Comparison & Steps responsive (1024px) */
@@ -2912,6 +2922,101 @@ body:has(.public-landing) {
   border-top: 1px solid #f1f5f9;
 }
 
+/* Published Catalogue Pagination */
+.pl-pagination-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 36px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+@media (min-width: 640px) {
+  .pl-pagination-container {
+    flex-direction: row;
+  }
+}
+
+.pl-pagination-info {
+  font-size: 13.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pl-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pl-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pl-pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0071bc;
+}
+
+.pl-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.pl-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pl-pagination-page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.pl-pagination-page-btn:hover:not(.pl-pagination-page-btn--active) {
+  background: #f1f5f9;
+  color: #0071bc;
+  border-color: #94a3b8;
+}
+
+.pl-pagination-page-btn--active {
+  background: #0071bc;
+  color: #ffffff;
+  border-color: #0071bc;
+  box-shadow: 0 2px 8px rgba(0, 113, 188, 0.25);
+}
+
 /* Quick View Modal */
 .pl-published-modal-backdrop {
   position: fixed;
@@ -2930,6 +3035,7 @@ body:has(.public-landing) {
   justify-content: center;
   padding: 24px;
   box-sizing: border-box;
+  overscroll-behavior: contain;
 }
 
 .pl-published-modal-panel {
@@ -2939,6 +3045,8 @@ body:has(.public-landing) {
   width: 100%;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 32px;
   position: relative;
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 1px 1px rgba(0, 0, 0, 0.05);
