@@ -90,12 +90,12 @@ function LoginForm() {
   };
 
   return (
-    <div className="auth-card" style={{ maxWidth: 480, margin: '0 auto' }}>
+    <div className="auth-card" style={{ width: '100%', margin: '0 auto' }}>
       <div style={{ marginBottom: 22, textAlign: 'left' }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#122331', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: '#122331', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
           Thông tin đăng nhập
         </h2>
-        <p style={{ fontSize: 13, color: '#647381', margin: 0, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13.5, color: '#647381', margin: 0, lineHeight: 1.5 }}>
           Nhập Tên đăng nhập học vụ (hoặc Email) cùng mật khẩu để tiếp tục.
         </p>
       </div>
@@ -327,6 +327,7 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.2,
@@ -370,10 +371,33 @@ export default function LoginPage() {
             <Link href="/#faq" className="pl-nav__link">Hỏi đáp</Link>
           </nav>
 
-          <div className="pl-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="pl-header__actions">
             <Link href="/#register-section" className="pl-header-action pl-header-action--primary">
               Đăng ký sinh viên
             </Link>
+          </div>
+
+          <div className="pl-mobile-nav" id="login-mobile-menu">
+            <button
+              type="button"
+              className="pl-mobile-nav__toggle"
+              aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu điều hướng'}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              )}
+            </button>
+            <div className={`pl-mobile-nav__panel ${mobileMenuOpen ? 'pl-mobile-nav__panel--open' : ''}`}>
+              <Link href="/#register-section" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link pl-mobile-nav__link--cta">
+                🎓 Đăng ký sinh viên
+              </Link>
+              <Link href="/#portal" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Cổng Lưu Trữ</Link>
+              <Link href="/#features" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Tính Năng</Link>
+              <Link href="/#faq" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Hỏi Đáp</Link>
+            </div>
           </div>
         </div>
       </header>
@@ -382,20 +406,20 @@ export default function LoginPage() {
       {/* Body: 2 Cột chuẩn như Landing Page Hero */}
       <main className="pl-hero" style={{ flex: 1, display: 'flex', padding: '60px 0', position: 'relative', zIndex: 1 }}>
         <div className="pl-container" style={{ display: 'flex', alignItems: 'center' }}>
-          <div className="pl-hero__grid" style={{ alignItems: 'flex-start', gap: '48px', width: '100%' }}>
+          <div className="pl-hero__grid" style={{ width: '100%' }}>
             
             {/* Cột trái: Giới thiệu & Cổng đăng nhập học thuật */}
-            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left', paddingTop: '24px' }}>
+            <div className="pl-hero__main pl-reveal" style={{ textAlign: 'left' }}>
               <span className="pl-badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16, background: '#eef6fc', color: '#0071bc', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
                 🎓 Cổng Xác thực Nghiên cứu Khoa học
               </span>
 
-              <h1 className="pl-hero__title" style={{ fontSize: '2.5rem', lineHeight: 1.2, marginBottom: 16 }}>
+              <h1 className="pl-hero__title">
                 Đăng nhập vào <br />
                 <span className="pl-hero__highlight">Không gian Học thuật</span>
               </h1>
 
-              <p className="pl-hero__desc" style={{ fontSize: '1.05rem', color: '#4b5563', lineHeight: 1.6, marginBottom: 28, maxWidth: 520 }}>
+              <p className="pl-hero__desc">
                 Hệ thống lưu trữ và bình duyệt sớm cho sinh viên. Đăng nhập để nộp bản thảo khoa học, theo dõi phản hồi phản biện và liên kết hướng dẫn cùng giảng viên.
               </p>
 
@@ -427,7 +451,7 @@ export default function LoginPage() {
             {/* Cột phải: Form Đăng nhập bọc Suspense */}
             <div className="pl-hero__form-wrap pl-reveal" style={{ '--delay': '120ms' } as React.CSSProperties}>
               <Suspense fallback={
-                <div className="auth-card" style={{ maxWidth: 480, margin: '0 auto', textAlign: 'center', padding: '40px' }}>
+                <div className="auth-card" style={{ width: '100%', margin: '0 auto', textAlign: 'center', padding: '40px' }}>
                   <p style={{ color: '#647381' }}>Đang tải biểu mẫu đăng nhập...</p>
                 </div>
               }>

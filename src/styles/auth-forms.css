@@ -63,12 +63,12 @@
 
 .auth-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 540px;
   background: #ffffff;
   border-radius: 20px;
   box-shadow: 0 20px 48px rgba(0, 113, 188, 0.08), 0 2px 8px rgba(18, 35, 49, 0.04);
   border: 1px solid #e2e8f0;
-  padding: 32px 28px;
+  padding: 36px 32px;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
 }
 
@@ -616,4 +616,63 @@
   color: #0071bc;
   margin-top: 14px;
 }
+
+/* ==========================================================================
+   Mobile Responsive Enhancements for Authentication & Login Pages
+   ========================================================================== */
+@media (max-width: 768px) {
+  .auth-page .pl-hero {
+    padding: 24px 0 48px !important;
+  }
+  .auth-page .pl-hero__grid {
+    gap: 32px !important;
+  }
+  .auth-page .pl-hero__main {
+    text-align: center !important;
+  }
+  .auth-page .pl-hero__title {
+    font-size: clamp(24px, 6vw, 32px) !important;
+    text-align: center;
+  }
+  .auth-page .pl-hero__desc {
+    margin-inline: auto;
+    font-size: 14.5px !important;
+    text-align: center;
+  }
+  .auth-bullet-item {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .auth-card {
+    padding: 26px 20px;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 113, 188, 0.08), 0 2px 6px rgba(18, 35, 49, 0.04);
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 20px 16px;
+    border-radius: 14px;
+  }
+  .auth-title {
+    font-size: 19px;
+  }
+  .auth-subtitle {
+    font-size: 12.5px;
+    margin-bottom: 16px;
+  }
+  .auth-input {
+    height: 42px;
+    font-size: 13.5px;
+  }
+  .auth-btn {
+    padding: 11px 16px !important;
+    font-size: 14px !important;
+  }
+  .auth-bullet-item {
+    font-size: 12.5px !important;
+  }
+}
+
 

@@ -529,6 +529,7 @@ export default function PublicPreprintLanding() {
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<{ username: string; email: string; name: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -647,6 +648,31 @@ export default function PublicPreprintLanding() {
             <a href="#register-section" onClick={scrollToRegister} className="pl-header-action pl-header-action--primary">
               Đăng Ký Ngay
             </a>
+          </div>
+
+          <div className="pl-mobile-nav" id="pl-mobile-menu">
+            <button
+              type="button"
+              className="pl-mobile-nav__toggle"
+              aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu điều hướng'}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              )}
+            </button>
+            <div className={`pl-mobile-nav__panel ${mobileMenuOpen ? 'pl-mobile-nav__panel--open' : ''}`}>
+              <a href="#register-section" onClick={(e) => { setMobileMenuOpen(false); scrollToRegister(e); }} className="pl-mobile-nav__link pl-mobile-nav__link--cta">
+                🎓 Đăng Ký Sinh Viên
+              </a>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link" style={{ color: '#0071bc', fontWeight: 800 }}>Đăng Nhập</Link>
+              <a href="#portal" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Cổng Lưu Trữ</a>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Tính Năng</a>
+              <a href="#workflow" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Quy Trình</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Hỏi Đáp</a>
+            </div>
           </div>
         </div>
       </header>
