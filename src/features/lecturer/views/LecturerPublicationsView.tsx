@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { LecturerShell } from '../components';
 import {
   lecturerPublicationApi,
@@ -49,14 +50,40 @@ function generateCitations(pub: LecturerPublication) {
 
 export function LecturerPublicationsView() {
   const { t, locale } = useTranslation();
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<LecturerPublication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedScope, setSelectedScope] = useState<LecturerPublicationScope>('ALL');
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || searchParams?.get('q') || '');
   const [sortBy, setSortBy] = useState<'NEWEST' | 'TITLE' | 'CITATIONS'>('NEWEST');
+
+  // 1. Sync from URL
+  useEffect(() => {
+    const q = searchParams?.get('search') || searchParams?.get('q') || '';
+    setSearchQuery(q);
+  }, [searchParams]);
+
+  // 2. Bi-directional sync with Topbar
+  useEffect(() => {
+    const handleSearchChange = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (typeof customEvent.detail === 'string') {
+        setSearchQuery(customEvent.detail);
+      }
+    };
+    window.addEventListener('lecturer-search-change', handleSearchChange);
+    return () => window.removeEventListener('lecturer-search-change', handleSearchChange);
+  }, []);
+
+  const handleToolbarSearchChange = (val: string) => {
+    setSearchQuery(val);
+    window.dispatchEvent(new CustomEvent('lecturer-search-change', { detail: val }));
+    const newUrl = val.trim() ? `/lecturer/publications?search=${encodeURIComponent(val.trim())}` : '/lecturer/publications';
+    window.history.replaceState(null, '', newUrl);
+  };
 
   // Citation Modal State
   const [citeModalPub, setCiteModalPub] = useState<LecturerPublication | null>(null);
@@ -566,7 +593,7 @@ export function LecturerPublicationsView() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleToolbarSearchChange(e.target.value)}
               placeholder={t('lecturer.searchPlaceholder') || 'Tìm theo tiêu đề, tác giả, DOI, từ khóa...'}
               style={{
                 width: '100%',
@@ -581,7 +608,7 @@ export function LecturerPublicationsView() {
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => handleToolbarSearchChange('')}
                 style={{
                   position: 'absolute',
                   right: '10px',

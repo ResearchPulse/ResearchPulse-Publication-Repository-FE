@@ -12,7 +12,7 @@ export function oidcConfig() {
 
 
 export function preprintApiBaseUrl() {
-  return process.env.PREPRINT_API_BASE_URL ?? process.env.NEXT_PUBLIC_PREPRINT_API_BASE_URL ?? 'http://localhost:3002';
+  return process.env.PREPRINT_API_BASE_URL ?? process.env.NEXT_PUBLIC_PREPRINT_API_BASE_URL ?? 'http://127.0.0.1:3002';
 }
 
 

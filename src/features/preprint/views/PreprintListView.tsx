@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { StudentShell } from '../components';
 import { TableSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
@@ -23,9 +24,36 @@ function formatUpdatedDate(value: string) {
 
 export function PreprintListView() {
   const { t, locale } = useTranslation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { items, loading, error, apiPending } = usePreprintList();
   const [selectedTab, setSelectedTab] = useState<'ALL' | PreprintStatus>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || searchParams?.get('q') || '');
+
+  // 1. Sync from URL
+  useEffect(() => {
+    const q = searchParams?.get('search') || searchParams?.get('q') || '';
+    setSearchQuery(q);
+  }, [searchParams]);
+
+  // 2. Bi-directional sync: listen to search changes from Topbar
+  useEffect(() => {
+    const handleSearchChange = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (typeof customEvent.detail === 'string') {
+        setSearchQuery(customEvent.detail);
+      }
+    };
+    window.addEventListener('student-search-change', handleSearchChange);
+    return () => window.removeEventListener('student-search-change', handleSearchChange);
+  }, []);
+
+  const handleLocalSearchChange = (val: string) => {
+    setSearchQuery(val);
+    window.dispatchEvent(new CustomEvent('student-search-change', { detail: val }));
+    const newUrl = val.trim() ? `/student/my-preprints?search=${encodeURIComponent(val.trim())}` : '/student/my-preprints';
+    window.history.replaceState(null, '', newUrl);
+  };
   
   const [sortBy, setSortBy] = useState('UPDATED');
   const safeSortBy = sortBy;
@@ -214,14 +242,19 @@ export function PreprintListView() {
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
-              type="search"
+              type="text"
               placeholder={t('common.searchPreprints')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleLocalSearchChange(e.target.value)}
               className="student-search-input"
             />
             {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="student-search-clear">
+              <button
+                type="button"
+                onClick={() => handleLocalSearchChange('')}
+                className="student-search-clear"
+                aria-label="Xóa tìm kiếm"
+              >
                 ×
               </button>
             )}

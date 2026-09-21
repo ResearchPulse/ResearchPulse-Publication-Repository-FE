@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { StudentShell } from '../components';
 import { SortDropdown } from '@/components/sort-dropdown';
@@ -44,16 +45,43 @@ export type PublicPublication = {
 
 export function StudentPublishedView() {
   const { t, locale } = useTranslation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<PublicPublication[]>([]);
   const [selected, setSelected] = useState<PublicPublication | null>(null);
   const [modalTab, setModalTab] = useState<'overview' | 'pdf'>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || searchParams?.get('q') || '');
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [citationFormat, setCitationFormat] = useState<'APA' | 'IEEE' | 'BibTeX'>('APA');
   const [citationCopied, setCitationCopied] = useState(false);
+
+  // 1. Sync from URL
+  useEffect(() => {
+    const q = searchParams?.get('search') || searchParams?.get('q') || '';
+    setSearchQuery(q);
+  }, [searchParams]);
+
+  // 2. Bi-directional sync: listen to search changes from Topbar
+  useEffect(() => {
+    const handleSearchChange = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (typeof customEvent.detail === 'string') {
+        setSearchQuery(customEvent.detail);
+      }
+    };
+    window.addEventListener('student-search-change', handleSearchChange);
+    return () => window.removeEventListener('student-search-change', handleSearchChange);
+  }, []);
+
+  const handleLocalSearchChange = (val: string) => {
+    setSearchQuery(val);
+    window.dispatchEvent(new CustomEvent('student-search-change', { detail: val }));
+    const newUrl = val.trim() ? `/student/published?search=${encodeURIComponent(val.trim())}` : '/student/published';
+    window.history.replaceState(null, '', newUrl);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -259,14 +287,19 @@ export function StudentPublishedView() {
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
-              type="search"
+              type="text"
               placeholder={locale === 'vi' ? 'Tìm bài báo, tác giả, từ khóa...' : 'Search title, author, keyword...'}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleLocalSearchChange(e.target.value)}
               className="student-search-input"
             />
             {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="student-search-clear">
+              <button
+                type="button"
+                onClick={() => handleLocalSearchChange('')}
+                className="student-search-clear"
+                aria-label="Xóa tìm kiếm"
+              >
                 ×
               </button>
             )}

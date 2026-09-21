@@ -3980,6 +3980,15 @@
   width: 100%;
 }
 
+.student-topbar__search-input::-webkit-search-cancel-button,
+.student-topbar__search-input::-webkit-search-decoration,
+.student-search-input::-webkit-search-cancel-button,
+.student-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 .student-topbar__view-toggle {
   display: inline-flex;
   align-items: center;
