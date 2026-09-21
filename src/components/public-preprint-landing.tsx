@@ -125,8 +125,11 @@ function PublishedCatalogue() {
     }
   };
 
+  const PAGE_SIZE = 6;
+  const [currentPage, setCurrentPage] = useState(1);
+
   useEffect(() => {
-    fetch('/api/publications/public', { cache: 'no-store' })
+    fetch('/api/publications/public?limit=100', { cache: 'no-store' })
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body?.error?.message || 'Unable to load published papers.');
@@ -152,6 +155,30 @@ function PublishedCatalogue() {
       return true;
     });
   }, [items, activeCategory, searchQuery]);
+
+  // Reset to page 1 whenever filter or search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(displayItems.length / PAGE_SIZE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return displayItems.slice(start, start + PAGE_SIZE);
+  }, [displayItems, currentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+    setCurrentPage(newPage);
+    const el = document.getElementById('published');
+    if (el) {
+      if (globalLenis) {
+        globalLenis.scrollTo(el, { offset: -80, duration: 0.8 });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   const categories = ['Tất cả', 'Khoa học Máy tính & Trí tuệ nhân tạo', 'Hệ thống Thông tin', 'Kỹ thuật Phần mềm', 'Khoa học Dữ liệu', 'Kinh tế & Quản lý'];
 
@@ -229,7 +256,7 @@ function PublishedCatalogue() {
             ) : (
               <>
                 <div className="pl-published-grid">
-                  {displayItems.map((item) => (
+                  {paginatedItems.map((item) => (
                     <div key={item.id} className="pl-published-card" onClick={() => handleSelectPaper(item)} role="button" tabIndex={0}>
                       <div>
                         <div className="pl-published-card-meta-row">
@@ -261,6 +288,48 @@ function PublishedCatalogue() {
                     </div>
                   ))}
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="pl-pagination-container">
+                    <div className="pl-pagination-info">
+                      Hiển thị {((currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(currentPage * PAGE_SIZE, displayItems.length)} trong tổng số {displayItems.length} bài báo
+                    </div>
+                    <div className="pl-pagination-controls">
+                      <button
+                        type="button"
+                        className="pl-pagination-btn"
+                        disabled={currentPage <= 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        aria-label="Trang trước"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                        <span>Trước</span>
+                      </button>
+                      <div className="pl-pagination-pages">
+                        {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`pl-pagination-page-btn ${currentPage === p ? 'pl-pagination-page-btn--active' : ''}`}
+                            onClick={() => handlePageChange(p)}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="pl-pagination-btn"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        aria-label="Trang sau"
+                      >
+                        <span>Sau</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ textAlign: 'center', marginTop: 44 }}>
                   <a href="#register-section" onClick={scrollToRegister} className="pl-published-btn-primary" style={{ padding: '12px 24px', fontSize: 14.5 }}>
