@@ -71,7 +71,7 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
     : isLecturer
     ? '/lecturer/submissions'
     : '/student/my-preprints';
-  const editPath = isLecturer ? `${workspacePath}/new?id=${id}` : `${workspacePath}/${id}/edit`;
+  const editPath = `${workspacePath}/${id}/edit`;
   const versionsPath = `${workspacePath}/${id}/versions`;
 
   const { item, loading, error } = usePreprintDetail(id);

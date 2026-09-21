@@ -351,15 +351,16 @@ export function LecturerSubmissionsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Faculty manuscripts repository list">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
+                <th style={{ width: '40%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
                 <th>{locale === 'vi' ? 'Chuyên ngành' : 'Discipline'}</th>
                 <th>{locale === 'vi' ? 'Phiên bản' : 'Version'}</th>
                 <th>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
                 <th>{locale === 'vi' ? 'Cập nhật' : 'Updated'}</th>
+                <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
-              <TableSkeleton rows={5} type="submissions" />
+              <TableSkeleton rows={5} columns={6} type="submissions" />
             </tbody>
           </table>
         </div>
@@ -404,11 +405,12 @@ export function LecturerSubmissionsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Faculty manuscripts repository list">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
+                <th style={{ width: '40%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
                 <th>{locale === 'vi' ? 'Chuyên ngành' : 'Discipline'}</th>
                 <th>{locale === 'vi' ? 'Phiên bản' : 'Version'}</th>
                 <th>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
                 <th>{locale === 'vi' ? 'Cập nhật' : 'Updated'}</th>
+                <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -417,7 +419,7 @@ export function LecturerSubmissionsView() {
                   <td className="dashboard-table__title-cell">
                     <div className="dashboard-table__title-group">
                       <Link
-                        href={item.status === 'DRAFT' ? `${ROUTES.LECTURER.NEW_SUBMISSION}?id=${item.id}` : ROUTES.LECTURER.SUBMISSION_DETAIL(item.id)}
+                        href={item.status === 'DRAFT' ? ROUTES.LECTURER.SUBMISSION_EDIT(item.id) : ROUTES.LECTURER.SUBMISSION_DETAIL(item.id)}
                         className="dashboard-table__title-link"
                       >
                         {item.title}
@@ -438,6 +440,76 @@ export function LecturerSubmissionsView() {
                   </td>
                   <td className="dashboard-table__date">
                     {formatUpdatedDate(item.updated_at, locale)}
+                  </td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {(item.status === 'PUBLISHED' || item.status === 'APPROVED') && (
+                      <Link
+                        href={ROUTES.LECTURER.SUBMISSION_EDIT(item.id)}
+                        className="student-btn student-btn--secondary student-btn--sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          fontSize: '12.5px',
+                          borderColor: '#0071bc',
+                          color: '#0071bc',
+                          fontWeight: 600,
+                        }}
+                        title={locale === 'vi' ? 'Cập nhật nội dung hoặc nộp file bản thảo mới' : 'Update paper or upload new file'}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        <span>{locale === 'vi' ? 'Cập nhật' : 'Update'}</span>
+                      </Link>
+                    )}
+                    {item.status === 'NEEDS_REVISION' && (
+                      <Link
+                        href={ROUTES.LECTURER.SUBMISSION_EDIT(item.id)}
+                        className="student-btn student-btn--warning student-btn--sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          fontSize: '12.5px',
+                        }}
+                      >
+                        <span>{locale === 'vi' ? 'Chỉnh sửa' : 'Revise'}</span>
+                      </Link>
+                    )}
+                    {item.status === 'DRAFT' && (
+                      <Link
+                        href={ROUTES.LECTURER.SUBMISSION_EDIT(item.id)}
+                        className="student-btn student-btn--primary student-btn--sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          fontSize: '12.5px',
+                        }}
+                      >
+                        <span>{locale === 'vi' ? 'Tiếp tục' : 'Continue'}</span>
+                      </Link>
+                    )}
+                    {(item.status === 'UNDER_REVIEW' || item.status === 'REJECTED' || item.status === 'WITHDRAWN') && (
+                      <Link
+                        href={ROUTES.LECTURER.SUBMISSION_DETAIL(item.id)}
+                        className="student-btn student-btn--ghost student-btn--sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          fontSize: '12.5px',
+                        }}
+                      >
+                        <span>{locale === 'vi' ? 'Chi tiết' : 'Details'}</span>
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}

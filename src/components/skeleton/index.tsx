@@ -115,6 +115,12 @@ export function TableSkeleton({ rows = 5, columns = 5, type = 'generic' }: Table
             <td>
               <Skeleton variant="pill" width={85} height={24} />
             </td>
+            {/* Action (Optional 6th column) */}
+            {columns >= 6 && (
+              <td style={{ textAlign: 'right' }}>
+                <Skeleton variant="btn" width={75} height={28} />
+              </td>
+            )}
           </tr>
         ))}
       </>
