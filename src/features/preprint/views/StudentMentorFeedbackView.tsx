@@ -61,7 +61,12 @@ export function StudentMentorFeedbackView() {
 
   const reviewedManuscripts = useMemo(() => {
     return items.filter(
-      (record) => (record.reviews && record.reviews.length > 0) || record.status === 'UNDER_REVIEW' || record.status === 'NEEDS_REVISION',
+      (record) =>
+        (record.reviews && record.reviews.length > 0) ||
+        record.status === 'UNDER_REVIEW' ||
+        record.status === 'NEEDS_REVISION' ||
+        record.status === 'APPROVED' ||
+        record.status === 'PUBLISHED'
     );
   }, [items]);
   const reviewsLoading = listLoading;
@@ -318,13 +323,19 @@ export function StudentMentorFeedbackView() {
               }
               if (latestReview) {
                 const needsRevision = manuscript.status === 'NEEDS_REVISION' || latestReview.decision === 'NEEDS_REVISION';
-                const isApproved = manuscript.status === 'APPROVED' || latestReview.decision === 'APPROVED';
+                const isApproved = manuscript.status === 'APPROVED' || manuscript.status === 'PUBLISHED' || latestReview.decision === 'APPROVED';
                 const isRejected = manuscript.status === 'REJECTED' || latestReview.decision === 'REJECTED';
                 return (
                   <span className={`user-badge ${needsRevision ? 'user-badge--revision' : isApproved ? 'user-badge--approved' : isRejected ? 'user-badge--withdrawn' : 'user-badge--review'}`}>
-                    {needsRevision ? 'CẦN CHỈNH SỬA' : isApproved ? 'ĐÃ DUYỆT' : isRejected ? 'ĐÃ TỪ CHỐI' : 'ĐANG THẨM ĐỊNH'}
+                    {needsRevision ? 'CẦN CHỈNH SỬA' : isApproved ? (manuscript.status === 'PUBLISHED' ? 'ĐÃ XUẤT BẢN' : 'ĐÃ DUYỆT') : isRejected ? 'ĐÃ TỪ CHỐI' : 'ĐANG THẨM ĐỊNH'}
                   </span>
                 );
+              }
+              if (manuscript.status === 'PUBLISHED') {
+                return <span className="user-badge user-badge--approved">ĐÃ XUẤT BẢN</span>;
+              }
+              if (manuscript.status === 'APPROVED') {
+                return <span className="user-badge user-badge--approved">ĐÃ DUYỆT</span>;
               }
               return <span className="user-badge user-badge--review">ĐANG THẨM ĐỊNH</span>;
             };
@@ -633,6 +644,47 @@ export function StudentMentorFeedbackView() {
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+
+                    {/* State 4: Approved/Published without separate review cards */}
+                    {!isAwaitingAssignment && !isCurrentRoundEvaluating && submittedReviews.length === 0 && (
+                      <div className="mentor-version-sections">
+                        <div className="mentor-version-section mentor-version-section--active" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
+                          <div className="mentor-version-section__header">
+                            <div className="mentor-version-section__info">
+                              <div className="reviewer-avatar-circle" style={{ width: '32px', height: '32px', fontSize: '12px', background: '#10b981' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              </div>
+                              <div>
+                                <h4 className="mentor-feedback-card__name">
+                                  {manuscript.status === 'PUBLISHED' ? 'Bản thảo đã xuất bản thành công' : 'Bản thảo đã được phê duyệt'}
+                                </h4>
+                                <p className="mentor-feedback-card__meta">
+                                  {manuscript.status === 'PUBLISHED' ? 'Đã công bố trên kho bài báo' : 'Sẵn sàng để xuất bản'}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="mentor-version-tag" style={{ color: '#047857', background: '#d1fae5', fontWeight: 700 }}>
+                              Phiên bản v{manuscript.current_version} · {manuscript.status === 'PUBLISHED' ? 'ĐÃ XUẤT BẢN' : 'ĐÃ DUYỆT'}
+                            </span>
+                          </div>
+                          <p className="mentor-version-section__desc" style={{ marginTop: '12px', color: '#475569', fontSize: '13.5px', lineHeight: '1.6' }}>
+                            {manuscript.status === 'PUBLISHED'
+                              ? 'Bản thảo nghiên cứu của bạn đã hoàn thành quy trình thẩm định chuyên môn và đã được xuất bản chính thức.'
+                              : 'Bản thảo nghiên cứu của bạn đã được giảng viên thẩm định thông qua và chấp thuận.'}
+                          </p>
+                          <div className="mentor-feedback-card__actions" style={{ marginTop: '14px' }}>
+                            <Link
+                              href={`/student/my-preprints/${manuscript.id}`}
+                              className="student-btn student-btn--secondary student-btn--sm"
+                            >
+                              Xem chi tiết bản thảo →
+                            </Link>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

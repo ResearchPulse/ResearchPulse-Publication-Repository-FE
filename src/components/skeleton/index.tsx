@@ -115,6 +115,12 @@ export function TableSkeleton({ rows = 5, columns = 5, type = 'generic' }: Table
             <td>
               <Skeleton variant="pill" width={85} height={24} />
             </td>
+            {/* Action (Optional 6th column) */}
+            {columns >= 6 && (
+              <td style={{ textAlign: 'right' }}>
+                <Skeleton variant="btn" width={75} height={28} />
+              </td>
+            )}
           </tr>
         ))}
       </>
@@ -170,6 +176,56 @@ export function TableSkeleton({ rows = 5, columns = 5, type = 'generic' }: Table
             </td>
           ))}
         </tr>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Published Paper Card Skeleton for StudentPublishedView and Public Landing Page
+ */
+export function PublishedPaperCardSkeleton({ count = 6 }: { count?: number }) {
+  const items = Array.from({ length: count }, (_, i) => i);
+  return (
+    <>
+      {items.map((i) => (
+        <div key={i} className="student-pub-card" style={{ cursor: 'default', pointerEvents: 'none' }} aria-hidden="true">
+          <div>
+            <div className="student-pub-card__header">
+              <Skeleton variant="pill" width={110} height={22} />
+              <Skeleton variant="pill" width={42} height={22} />
+            </div>
+
+            <div style={{ margin: '14px 0 10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <Skeleton height={16} width={`${80 + (i % 3) * 8}%`} />
+              <Skeleton height={16} width={`${55 + (i % 2) * 15}%`} />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Skeleton variant="circle" width={16} height={16} />
+              <Skeleton height={12} width={130} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+              <Skeleton height={12} width="100%" />
+              <Skeleton height={12} width="92%" />
+              <Skeleton height={12} width="70%" />
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
+              <Skeleton variant="pill" width={68} height={22} />
+              <Skeleton variant="pill" width={82} height={22} />
+              <Skeleton variant="pill" width={56} height={22} />
+            </div>
+
+            <div className="student-pub-card__footer">
+              <Skeleton height={12} width={80} />
+              <Skeleton height={13} width={105} />
+            </div>
+          </div>
+        </div>
       ))}
     </>
   );

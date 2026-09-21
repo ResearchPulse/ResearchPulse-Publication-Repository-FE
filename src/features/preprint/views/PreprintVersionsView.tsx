@@ -50,7 +50,7 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
   const { user } = useAuth();
   const isLecturer = user?.role === 'LECTURER' || (pathname?.startsWith('/lecturer/') ?? false);
   const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
-  const editPath = isLecturer ? `${workspacePath}/new?id=${id}` : `${workspacePath}/${id}/edit`;
+  const editPath = `${workspacePath}/${id}/edit`;
   const detailPath = `${workspacePath}/${id}`;
 
   const [item, setItem] = useState<StudentPreprint | null>(null);
@@ -97,6 +97,26 @@ export function PreprintVersionsView({ id }: PreprintVersionsViewProps) {
             {(item.status === 'NEEDS_REVISION' || item.status === 'DRAFT') && (
               <Link href={editPath} className="student-btn student-btn--warning">
                 <span>Nộp phiên bản mới →</span>
+              </Link>
+            )}
+            {(item.status === 'PUBLISHED' || item.status === 'APPROVED') && (
+              <Link
+                href={editPath}
+                className="student-btn student-btn--secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: '#0071bc',
+                  color: '#0071bc',
+                  fontWeight: 700,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>{locale === 'vi' ? 'Cập nhật bài báo' : 'Update Paper'}</span>
               </Link>
             )}
             <Link href={detailPath} className="student-btn student-btn--secondary">

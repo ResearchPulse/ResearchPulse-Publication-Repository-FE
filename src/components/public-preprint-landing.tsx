@@ -8,6 +8,7 @@ import { HyperdataLogo } from './hyperdata-logo';
 import { PublicPortalShowcase } from './public-portal-showcase';
 import { ScrollRevealObserver } from './scroll-reveal';
 import { ExpandableAbstract } from '@/shared/components';
+import { Skeleton } from '@/components/skeleton';
 import { useTranslation } from '@/i18n';
 import dynamic from 'next/dynamic';
 
@@ -226,11 +227,30 @@ function PublishedCatalogue() {
         {loading ? (
           <div className="pl-published-grid">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="pl-published-card" style={{ height: 240, opacity: 0.6 }}>
-                <div className="skeleton-line" style={{ width: '40%', marginBottom: 16 }}></div>
-                <div className="skeleton-line" style={{ width: '90%', height: 24, marginBottom: 12 }}></div>
-                <div className="skeleton-line" style={{ width: '70%', height: 24, marginBottom: 24 }}></div>
-                <div className="skeleton-line" style={{ width: '100%', height: 60 }}></div>
+              <div key={i} className="pl-published-card" style={{ cursor: 'default', pointerEvents: 'none' }} aria-hidden="true">
+                <div className="pl-published-card-meta-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Skeleton variant="pill" width={110} height={22} />
+                  <Skeleton variant="pill" width={42} height={22} />
+                </div>
+                <div style={{ margin: '14px 0 10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <Skeleton height={18} width={`${85 + (i % 2) * 10}%`} />
+                  <Skeleton height={18} width={`${60 + (i % 3) * 15}%`} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <Skeleton variant="circle" width={16} height={16} />
+                  <Skeleton height={12} width={130} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+                  <Skeleton height={12} width="100%" />
+                  <Skeleton height={12} width="90%" />
+                </div>
+                <div className="pl-published-card-footer" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <Skeleton variant="pill" width={65} height={20} />
+                    <Skeleton variant="pill" width={75} height={20} />
+                  </div>
+                  <Skeleton height={13} width={90} />
+                </div>
               </div>
             ))}
           </div>
@@ -529,6 +549,7 @@ export default function PublicPreprintLanding() {
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<{ username: string; email: string; name: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -647,6 +668,31 @@ export default function PublicPreprintLanding() {
             <a href="#register-section" onClick={scrollToRegister} className="pl-header-action pl-header-action--primary">
               Đăng Ký Ngay
             </a>
+          </div>
+
+          <div className="pl-mobile-nav" id="pl-mobile-menu">
+            <button
+              type="button"
+              className="pl-mobile-nav__toggle"
+              aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu điều hướng'}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              )}
+            </button>
+            <div className={`pl-mobile-nav__panel ${mobileMenuOpen ? 'pl-mobile-nav__panel--open' : ''}`}>
+              <a href="#register-section" onClick={(e) => { setMobileMenuOpen(false); scrollToRegister(e); }} className="pl-mobile-nav__link pl-mobile-nav__link--cta">
+                🎓 Đăng Ký Sinh Viên
+              </a>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link" style={{ color: '#0071bc', fontWeight: 800 }}>Đăng Nhập</Link>
+              <a href="#portal" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Cổng Lưu Trữ</a>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Tính Năng</a>
+              <a href="#workflow" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Quy Trình</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="pl-mobile-nav__link">Hỏi Đáp</a>
+            </div>
           </div>
         </div>
       </header>

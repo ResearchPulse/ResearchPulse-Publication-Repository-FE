@@ -27,6 +27,7 @@ export const ROUTES = {
     REVIEW_DETAIL: (id: string | number) => `/lecturer/reviews/${id}`,
     SUBMISSIONS: '/lecturer/submissions',
     SUBMISSION_DETAIL: (id: string | number) => `/lecturer/submissions/${id}`,
+    SUBMISSION_EDIT: (id: string | number) => `/lecturer/submissions/${id}/edit`,
     NEW_SUBMISSION: '/lecturer/submissions/new',
     PUBLICATIONS: '/lecturer/publications',
     PUBLICATION_DETAIL: (id: string | number) => `/lecturer/publications/${id}`,
