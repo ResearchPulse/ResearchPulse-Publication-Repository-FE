@@ -21,6 +21,9 @@ export interface AdminShellProps {
   children: ReactNode;
 }
 
+let globalPendingCountCache: number | undefined = undefined;
+let lastPendingCountFetchTime = 0;
+
 export function AdminSidebar({
   active,
   pendingCount,
@@ -34,7 +37,9 @@ export function AdminSidebar({
 }) {
   const { user } = useAuth();
   const { t, locale } = useTranslation();
-  const [internalPendingCount, setInternalPendingCount] = useState<number | undefined>(pendingCount);
+  const [internalPendingCount, setInternalPendingCount] = useState<number | undefined>(
+    () => pendingCount ?? globalPendingCountCache
+  );
 
   useEffect(() => {
     if (pendingCount !== undefined) {
@@ -43,21 +48,31 @@ export function AdminSidebar({
   }, [pendingCount]);
 
   useEffect(() => {
-    adminApi
-      .listPendingUsers({ limit: 1 })
-      .then((res) => {
-        setInternalPendingCount(res.pagination?.total ?? res.users.length);
-      })
-      .catch(() => {});
+    const now = Date.now();
+    // If recently fetched within 15 seconds, don't hit the DB again
+    if (now - lastPendingCountFetchTime >= 15000 || globalPendingCountCache === undefined) {
+      lastPendingCountFetchTime = now;
+      adminApi
+        .listPendingUsers({ limit: 1 })
+        .then((res) => {
+          const count = res.pagination?.total ?? res.users.length;
+          globalPendingCountCache = count;
+          setInternalPendingCount(count);
+        })
+        .catch(() => {});
+    }
 
     let es: EventSource | null = null;
     try {
       es = new EventSource('/api/admin/registrations/stream');
       es.addEventListener('registration:new', () => {
+        lastPendingCountFetchTime = Date.now();
         adminApi
           .listPendingUsers({ limit: 1 })
           .then((res) => {
-            setInternalPendingCount(res.pagination?.total ?? res.users.length);
+            const count = res.pagination?.total ?? res.users.length;
+            globalPendingCountCache = count;
+            setInternalPendingCount(count);
           })
           .catch(() => {});
       });

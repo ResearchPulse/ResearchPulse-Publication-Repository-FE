@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
 import { adminApi, type AdminUser, type AdminOverview } from '../api';
@@ -112,7 +112,12 @@ export function AdminUsersView() {
   }, [roleTab, page, activeFilter]);
 
   // Debounced search for accounts
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       setPage(1);
       refreshAccounts(1);

@@ -46,6 +46,7 @@ function displayTitle(item: AdminPublication) {
 export function AdminSubmissionsView() {
   const { t, locale } = useTranslation();
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [page, setPage] = useState(1);
@@ -61,7 +62,14 @@ export function AdminSubmissionsView() {
   useEffect(() => {
     setSelectedIds([]);
     setOpenAudienceMenu(false);
-  }, [page, query, status, roleFilter]);
+  }, [page, debouncedQuery, status, roleFilter]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [query]);
 
   // Close audience popover when clicking outside
   useEffect(() => {
@@ -209,7 +217,7 @@ export function AdminSubmissionsView() {
       .listSubmissions({
         page,
         limit: 20,
-        search: query.trim() || undefined,
+        search: debouncedQuery.trim() || undefined,
         status: status === 'ALL' ? undefined : status,
         uploaderRole: roleFilter === 'ALL' ? undefined : roleFilter,
       })
@@ -226,7 +234,7 @@ export function AdminSubmissionsView() {
     return () => {
       active = false;
     };
-  }, [page, query, status, roleFilter]);
+  }, [page, debouncedQuery, status, roleFilter]);
 
   const displayMetrics = metrics || {
     submitted: 0,
