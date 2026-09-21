@@ -89,6 +89,7 @@ export function StudentAccountView() {
         {/* Success Alert Banner */}
         {successMessage && (
           <div
+            className="student-account-alert"
             style={{
               padding: '12px 16px',
               borderRadius: '8px',
@@ -120,7 +121,7 @@ export function StudentAccountView() {
 
         {/* Profile Header Card */}
         <div
-          className="student-section-card"
+          className="student-section-card student-account-card"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -132,6 +133,7 @@ export function StudentAccountView() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
             <div
+              className="student-account-avatar"
               style={{
                 width: '64px',
                 height: '64px',
@@ -170,7 +172,7 @@ export function StudentAccountView() {
                 setIsEditing(!isEditing);
                 setErrorMessage(null);
               }}
-              className="student-btn student-btn--secondary student-btn--sm"
+              className="student-btn student-btn--secondary student-btn--sm student-account-btn"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -183,7 +185,7 @@ export function StudentAccountView() {
             <button
               type="button"
               onClick={() => authApi.logout()}
-              className="student-btn student-btn--secondary student-btn--sm"
+              className="student-btn student-btn--secondary student-btn--sm student-account-btn"
             >
               {t('common.logout')}
             </button>
@@ -193,7 +195,7 @@ export function StudentAccountView() {
         {/* In-place Profile Edit Form */}
         {isEditing && (
           <div
-            className="student-section-card"
+            className="student-section-card student-account-edit-card"
             style={{
               padding: '24px',
               border: '1px solid #93c5fd',
@@ -260,6 +262,7 @@ export function StudentAccountView() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Nguyễn Văn A"
+                    className="student-account-input"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -282,6 +285,7 @@ export function StudentAccountView() {
                     value={formData.studentId}
                     onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
                     placeholder="Ví dụ: 2026-STEM-089"
+                    className="student-account-input"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -304,6 +308,7 @@ export function StudentAccountView() {
                     value={formData.major}
                     onChange={(e) => setFormData({ ...formData, major: e.target.value })}
                     placeholder="Ví dụ: Kỹ thuật phần mềm, Khoa học dữ liệu"
+                    className="student-account-input"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -325,6 +330,7 @@ export function StudentAccountView() {
                     type="text"
                     disabled
                     value={displayEmail}
+                    className="student-account-input"
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -345,14 +351,14 @@ export function StudentAccountView() {
                   type="button"
                   onClick={() => setIsEditing(false)}
                   disabled={isSaving}
-                  className="student-btn student-btn--secondary student-btn--sm"
+                  className="student-btn student-btn--secondary student-btn--sm student-account-btn"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="student-btn student-btn--primary student-btn--sm"
+                  className="student-btn student-btn--primary student-btn--sm student-account-btn"
                   style={{ minWidth: '110px' }}
                 >
                   {isSaving ? t('common.saving') : t('common.save')}
@@ -363,7 +369,7 @@ export function StudentAccountView() {
         )}
 
         {/* Academic Details Card */}
-        <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
+        <div className="student-section-card student-account-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
               {t('student.account.tabProfile')}
@@ -385,7 +391,7 @@ export function StudentAccountView() {
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 {t('student.account.fullName')}
               </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div className="student-account-field-value" style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayName}
               </div>
             </div>
@@ -394,7 +400,7 @@ export function StudentAccountView() {
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 {t('student.account.email')}
               </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div className="student-account-field-value" style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayEmail}
               </div>
             </div>
@@ -403,7 +409,7 @@ export function StudentAccountView() {
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 {t('student.account.role')}
               </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0071bc', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div className="student-account-field-value" style={{ fontSize: '14px', fontWeight: 600, color: '#0071bc', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayRole}
               </div>
             </div>
@@ -412,7 +418,7 @@ export function StudentAccountView() {
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 {t('student.account.studentId')}
               </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div className="student-account-field-value" style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayStudentId}
               </div>
             </div>
@@ -421,7 +427,7 @@ export function StudentAccountView() {
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 {t('student.account.major')}
               </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div className="student-account-field-value" style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {displayMajor}
               </div>
             </div>
@@ -430,8 +436,8 @@ export function StudentAccountView() {
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 {t('student.account.status')}
               </span>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }} />
+              <div className="student-account-field-value" style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', padding: '10px 14px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="student-account-status-dot" />
                 {t('student.account.active')}
               </div>
             </div>
@@ -439,7 +445,7 @@ export function StudentAccountView() {
         </div>
 
         {/* Security & Access Card */}
-        <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
+        <div className="student-section-card student-account-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
           <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
             {t('student.account.tabSecurity')}
           </h3>
@@ -452,6 +458,7 @@ export function StudentAccountView() {
             }}
           >
             <div
+              className="student-account-interactive-item"
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -476,6 +483,7 @@ export function StudentAccountView() {
             </div>
 
             <div
+              className="student-account-interactive-item"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -503,12 +511,13 @@ export function StudentAccountView() {
         </div>
 
         {/* Preferences & Language Card */}
-        <div className="student-section-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
+        <div className="student-section-card student-account-card" style={{ padding: '24px', width: '100%', boxSizing: 'border-box' }}>
           <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
             {locale === 'vi' ? 'Cài đặt hệ thống & Tùy chọn' : 'System Preferences & Settings'}
           </h3>
 
           <div
+            className="student-account-interactive-item"
             style={{
               display: 'flex',
               justifyContent: 'space-between',

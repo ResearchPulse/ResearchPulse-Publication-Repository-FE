@@ -600,17 +600,17 @@ body:has(.public-landing) {
 
 .pl-hero__grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1.25fr 0.75fr;
   align-items: center;
   gap: var(--ds-space-12);
 }
 
 .pl-hero__title {
   margin: 0 0 var(--ds-space-4);
-  font-size: clamp(36px, 4.4vw, 54px);
+  font-size: clamp(34px, 4vw, 48px);
   font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.04em;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
   color: var(--color-text);
 }
 
@@ -1987,7 +1987,7 @@ body:has(.public-landing) {
 /* Impeccable refinement: layout, typesetting, and a quieter visual system. */
 .public-landing {
   --ds-section-space: clamp(64px, 8vw, 96px);
-  --ds-display-size: clamp(40px, 5.2vw, 60px);
+  --ds-display-size: clamp(36px, 4.4vw, 50px);
   --ds-section-title-size: clamp(28px, 3vw, 38px);
   text-rendering: optimizeLegibility;
 }
@@ -2027,10 +2027,10 @@ body:has(.public-landing) {
 }
 
 .public-landing .pl-hero__title {
-  max-width: 22ch;
+  max-width: 25ch;
   font-size: var(--ds-display-size);
-  line-height: 1.1;
-  letter-spacing: -0.04em;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
 }
 
 .public-landing .pl-hero__desc--centered {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
@@ -51,8 +52,20 @@ export function StudentPublishedView() {
   const [items, setItems] = useState<PublicPublication[]>([]);
   const [selected, setSelected] = useState<PublicPublication | null>(null);
   const [modalTab, setModalTab] = useState<'overview' | 'pdf'>('overview');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: serverItems = [], isLoading: loading, error: queryError } = useQuery<PublicPublication[], Error>({
+    queryKey: ['public-publications'],
+    queryFn: async () => {
+      const response = await fetch('/api/publications/public');
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error?.message || 'Unable to load published papers.');
+      return Array.isArray(body.data) ? body.data : (body.data?.items || []);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes fresh
+    gcTime: 15 * 60 * 1000,
+  });
+
+  const error = queryError ? queryError.message : null;
+
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || searchParams?.get('q') || '');
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [citationFormat, setCitationFormat] = useState<'APA' | 'IEEE' | 'BibTeX'>('APA');
@@ -99,32 +112,8 @@ export function StudentPublishedView() {
   }, [selected]);
 
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(null);
-    fetch('/api/publications/public', { cache: 'no-store' })
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok) throw new Error(body?.error?.message || 'Unable to load published papers.');
-        return body;
-      })
-      .then((body) => {
-        if (!active) return;
-        const serverItems = Array.isArray(body.data) ? body.data : (body.data?.items || []);
-        setItems(serverItems);
-      })
-      .catch((err) => {
-        if (!active) return;
-        setError(err instanceof Error ? err.message : 'Unable to load papers.');
-        setItems([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+    if (serverItems.length > 0) setItems(serverItems);
+  }, [serverItems]);
 
   const handleSelectPaper = async (paper: PublicPublication) => {
     setSelected(paper);

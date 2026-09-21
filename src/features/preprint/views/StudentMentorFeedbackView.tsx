@@ -50,9 +50,6 @@ export function StudentMentorFeedbackView() {
   const [filter, setFilter] = useState<FeedbackFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
-  const [reviewedManuscripts, setReviewedManuscripts] = useState<StudentPreprint[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsError, setReviewsError] = useState<Error | null>(null);
   const [expandedManuscripts, setExpandedManuscripts] = useState<Record<string, boolean>>({});
 
   const toggleManuscript = (id: string) => {
@@ -62,42 +59,13 @@ export function StudentMentorFeedbackView() {
     }));
   };
 
-  useEffect(() => {
-    let active = true;
-    if (listLoading) {
-      return;
-    }
-
-    if (items.length === 0) {
-      setReviewedManuscripts((prev) => (prev.length === 0 ? prev : []));
-      setReviewsLoading(false);
-      return () => {
-        active = false;
-      };
-    }
-
-    setReviewsLoading(true);
-    setReviewsError(null);
-    Promise.all(items.map((item) => studentPreprintApi.get(item.id)))
-      .then((records) => {
-        if (active) {
-          // Include manuscripts that have feedback records or are currently under review
-          setReviewedManuscripts(
-            records.filter((record) => (record.reviews && record.reviews.length > 0) || record.status === 'UNDER_REVIEW'),
-          );
-        }
-      })
-      .catch((reason: unknown) => {
-        if (active) setReviewsError(reason instanceof Error ? reason : new Error('Không thể tải phản hồi của người phản biện.'));
-      })
-      .finally(() => {
-        if (active) setReviewsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [items, listLoading]);
+  const reviewedManuscripts = useMemo(() => {
+    return items.filter(
+      (record) => (record.reviews && record.reviews.length > 0) || record.status === 'UNDER_REVIEW' || record.status === 'NEEDS_REVISION',
+    );
+  }, [items]);
+  const reviewsLoading = listLoading;
+  const reviewsError = listError;
 
   // Counts for filter pills
   const actionCount = useMemo(

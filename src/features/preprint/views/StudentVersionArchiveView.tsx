@@ -1,6 +1,7 @@
 'use client';
-
-import { useEffect, useMemo, useState } from 'react';
+ 
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { StudentShell } from '../components';
 import { TimelineSkeleton } from '@/components/skeleton';
@@ -13,42 +14,33 @@ import { useTranslation } from '@/i18n';
 export function StudentVersionArchiveView() {
   const { t, locale } = useTranslation();
   const { items, loading: listLoading } = usePreprintList();
-  const [versionsByPublication, setVersionsByPublication] = useState<Record<string, PreprintVersionInfo[]>>({});
-  const [versionsLoading, setVersionsLoading] = useState(false);
-  const [versionsError, setVersionsError] = useState<string | null>(null);
   const [selectedManuscriptId, setSelectedManuscriptId] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [expandedManuscripts, setExpandedManuscripts] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    if (listLoading || items.length === 0) {
-      setVersionsByPublication((prev) => (Object.keys(prev).length === 0 ? prev : {}));
-      return;
-    }
+  const {
+    data: versionsByPublication = {},
+    isLoading: versionsLoading,
+    error: versionsQueryError,
+  } = useQuery<Record<string, PreprintVersionInfo[]>>({
+    queryKey: ['student-all-versions', items.map((i) => i.id).join(',')],
+    queryFn: async () => {
+      if (items.length === 0) return {};
+      const results = await Promise.allSettled(
+        items.map(async (item) => [item.id, await studentPreprintApi.versions(item.id)] as const),
+      );
+      const entries = results
+        .filter((result): result is PromiseFulfilledResult<readonly [string, PreprintVersionInfo[]]> => result.status === 'fulfilled')
+        .map((result) => result.value);
+      return Object.fromEntries(entries);
+    },
+    enabled: !listLoading && items.length > 0,
+    staleTime: 3 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
-    let active = true;
-    setVersionsLoading(true);
-    setVersionsError(null);
-    void Promise.allSettled(items.map(async (item) => [item.id, await studentPreprintApi.versions(item.id)] as const))
-      .then((results) => {
-        if (!active) return;
-        const entries = results
-          .filter((result): result is PromiseFulfilledResult<readonly [string, PreprintVersionInfo[]]> => result.status === 'fulfilled')
-          .map((result) => result.value);
-        setVersionsByPublication(Object.fromEntries(entries));
-        if (results.some((result) => result.status === 'rejected')) {
-          setVersionsError('Không thể tải lịch sử một số phiên bản. Vui lòng mở bản thảo để thử lại.');
-        }
-      })
-      .finally(() => {
-        if (active) setVersionsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [items, listLoading]);
+  const versionsError = versionsQueryError ? (versionsQueryError as Error).message : null;
 
   const toggleManuscript = (id: string) => {
     setExpandedManuscripts((prev) => ({

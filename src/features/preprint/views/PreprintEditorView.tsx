@@ -543,8 +543,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setEditingAuthorIndex(null);
   };
 
+  const isPublished = originalItem?.status === 'PUBLISHED' || originalItem?.status === 'APPROVED';
   const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
-  const isReadOnly = Boolean(originalItem && originalItem.status !== 'DRAFT' && !isRevisionMode);
+  const isReadOnly = Boolean(originalItem && (originalItem.status === 'UNDER_REVIEW' || originalItem.status === 'REJECTED' || originalItem.status === 'WITHDRAWN'));
   const latestReview = originalItem?.reviews?.[0];
 
   const showError = (msg: string) => {
@@ -669,7 +670,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
 
       await studentPreprintApi.update(publicationId, {
         ...metadata,
-        changeSummary: isRevisionMode ? changeSummary.trim() || undefined : undefined,
+        changeSummary: (isRevisionMode || (isPublished && file)) ? changeSummary.trim() || undefined : undefined,
       });
       if (submitNow) {
         if (useMockSubmit) await studentPreprintApi.mockSubmit(publicationId);
@@ -731,13 +732,15 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       title={
         isReadOnly
           ? `${t('student.preprints.manuscriptPrefix')}: ${originalItem?.status === 'UNDER_REVIEW' ? t('student.preprints.underReview') : (originalItem?.status || '')}`
-          : isRevisionMode
-            ? `${t('student.preprints.submitRevision')}: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
-            : isEditing
-              ? t('student.preprints.editDraft')
-              : t('student.topbar.newPreprintButton')
+          : isPublished
+            ? `Cập nhật bài báo: ${originalItem?.title || ''}`
+            : isRevisionMode
+              ? `${t('student.preprints.submitRevision')}: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
+              : isEditing
+                ? t('student.preprints.editDraft')
+                : t('student.topbar.newPreprintButton')
       }
-      kicker={isReadOnly ? t('student.preprints.submittedManuscript') : isRevisionMode ? t('student.preprints.submitRevision') : t('student.preprints.registerManuscript')}
+      kicker={isReadOnly ? t('student.preprints.submittedManuscript') : isPublished ? 'CẬP NHẬT BÀI BÁO' : isRevisionMode ? t('student.preprints.submitRevision') : t('student.preprints.registerManuscript')}
     >
       {loadingInitial ? (
         <FormSkeleton />
@@ -845,6 +848,31 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               >
                 Xem chi tiết bản thảo →
               </Link>
+            </div>
+          )}
+
+          {/* Published Preprint Update Notice */}
+          {isPublished && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '14px 18px',
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '10px',
+              marginBottom: '20px',
+              color: '#0369a1',
+              fontSize: '13.5px',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <div>
+                <strong>Quy trình cập nhật bài báo đã xuất bản:</strong> Khi bạn nộp bản cập nhật (thay đổi thông tin hoặc PDF mới), bài báo sẽ chuyển sang vòng xét duyệt mới để giảng viên/quản trị viên phê duyệt. Trong suốt quá trình xét duyệt, phiên bản cũ của bài báo <strong>vẫn được giữ nguyên và công khai bình thường</strong>.
+              </div>
             </div>
           )}
 
@@ -1021,7 +1049,32 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </div>
             )}
 
-            {/* Step 02: Authorship & Attribution */}
+            {/* If Published & New File Uploaded: Summary of Changes */}
+            {isPublished && Boolean(file) && (
+              <div className="student-form-section student-form-section--highlight">
+                <div className="student-form-section__header">
+                  <span className="student-step-number student-step-number--amber">★</span>
+                  <div>
+                    <h3 className="student-form-section__title">Ghi chú phiên bản sửa đổi mới</h3>
+                  </div>
+                </div>
+
+                <div className="student-field">
+                  <label htmlFor="field-changes-published" className="student-field__label">
+                    Mô tả các thay đổi trong tệp PDF mới (Tùy chọn)
+                  </label>
+                  <textarea
+                    id="field-changes-published"
+                    className="student-textarea"
+                    rows={3}
+                    placeholder="Ví dụ: Đã cập nhật bổ sung số liệu biểu đồ và chỉnh sửa định dạng theo chuẩn..."
+                    value={changeSummary}
+                    onChange={(e) => setChangeSummary(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="student-form-section">
               <div className="student-form-section__header">
                 <span className="student-step-number">02</span>
@@ -1396,14 +1449,16 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   </Link>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => handleSubmit(false)}
-                      disabled={isSubmitting || isAnalyzing}
-                      className="student-btn student-btn--secondary"
-                    >
-                      {isAnalyzing ? 'Đang phân tích…' : isSubmitting ? 'Đang lưu…' : 'Lưu bản nháp'}
-                    </button>
+                    {!isPublished && (
+                      <button
+                        type="button"
+                        onClick={() => handleSubmit(false)}
+                        disabled={isSubmitting || isAnalyzing}
+                        className="student-btn student-btn--secondary"
+                      >
+                        {isAnalyzing ? 'Đang phân tích…' : isSubmitting ? 'Đang lưu…' : 'Lưu bản nháp'}
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -1411,14 +1466,20 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                       disabled={isSubmitting || isAnalyzing}
                       className="student-btn student-btn--primary"
                     >
-                      <span>{isAnalyzing ? 'Đang phân tích…' : isSubmitting ? 'Đang nộp…' : isRevisionMode ? 'Nộp bản sửa đổi' : 'Nộp bản thảo để xét duyệt'}</span>
+                      <span>
+                        {isAnalyzing ? 'Đang phân tích…' 
+                          : isSubmitting ? (isPublished ? 'Đang gửi cập nhật…' : 'Đang nộp…')
+                          : isPublished ? 'Gửi bản cập nhật để xét duyệt'
+                          : isRevisionMode ? 'Nộp bản sửa đổi' 
+                          : 'Nộp bản thảo để xét duyệt'}
+                      </span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
                       </svg>
                     </button>
 
-                    {devMockSubmitEnabled && (
+                    {devMockSubmitEnabled && !isPublished && (
                       <button
                         type="button"
                         onClick={() => handleSubmit(true, true)}

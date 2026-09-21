@@ -15,6 +15,7 @@ export function usePreprintList() {
     },
     staleTime: 3 * 60 * 1000, // 3 minutes fresh cache
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    placeholderData: (previousData) => previousData,
   });
 
   return {

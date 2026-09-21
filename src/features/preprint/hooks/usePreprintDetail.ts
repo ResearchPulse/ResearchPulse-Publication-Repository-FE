@@ -1,26 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { studentPreprintApi, ApiUnavailableError } from '../api';
 import type { StudentPreprint } from '../types';
 
 export function usePreprintDetail(id: string) {
-  const [item, setItem] = useState<StudentPreprint | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(null);
-    studentPreprintApi.get(id)
-      .then((result) => { if (active) setItem(result); })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason : new Error('Unable to load preprint.')); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [id]);
+  const { data, isLoading, error } = useQuery<StudentPreprint, Error>({
+    queryKey: ['preprint-detail', id],
+    queryFn: () => studentPreprintApi.get(id),
+    initialData: () => {
+      const cachedList = queryClient.getQueryData<StudentPreprint[]>(['preprints', 'mine']);
+      return cachedList?.find((p) => p.id === id);
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes fresh cache
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+  });
 
-  return { item, loading, error, apiPending: error instanceof ApiUnavailableError };
+  return {
+    item: data ?? null,
+    loading: isLoading,
+    error: error ?? null,
+    apiPending: error instanceof ApiUnavailableError,
+  };
 }
 
 export default usePreprintDetail;
