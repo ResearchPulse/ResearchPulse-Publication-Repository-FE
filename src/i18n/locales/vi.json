@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Hyperdata Lab",
+    "appName": "HYPERDATA LAB",
     "search": "Tìm kiếm...",
     "save": "Lưu thay đổi",
     "saving": "Đang lưu...",
@@ -347,6 +347,7 @@
     "preprints": {
       "totalCount": "Tổng số bản thảo",
       "underReview": "Đang thẩm định",
+      "inReview": "Đang thẩm định",
       "needsRevision": "Cần chỉnh sửa",
       "approved": "Đã duyệt",
       "published": "Đã xuất bản",

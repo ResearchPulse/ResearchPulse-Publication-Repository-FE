@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Hyperdata Lab",
+    "appName": "HYPERDATA LAB",
     "search": "Search...",
     "save": "Save changes",
     "saving": "Saving...",
@@ -347,6 +347,7 @@
     "preprints": {
       "totalCount": "Total Manuscripts",
       "underReview": "Under Review",
+      "inReview": "Under Review",
       "needsRevision": "Needs Revision",
       "approved": "Approved",
       "published": "Published",

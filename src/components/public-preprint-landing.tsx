@@ -126,8 +126,11 @@ function PublishedCatalogue() {
     }
   };
 
+  const PAGE_SIZE = 6;
+  const [currentPage, setCurrentPage] = useState(1);
+
   useEffect(() => {
-    fetch('/api/publications/public', { cache: 'no-store' })
+    fetch('/api/publications/public?limit=100', { cache: 'no-store' })
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body?.error?.message || 'Unable to load published papers.');
@@ -154,6 +157,30 @@ function PublishedCatalogue() {
     });
   }, [items, activeCategory, searchQuery]);
 
+  // Reset to page 1 whenever filter or search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(displayItems.length / PAGE_SIZE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return displayItems.slice(start, start + PAGE_SIZE);
+  }, [displayItems, currentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+    setCurrentPage(newPage);
+    const el = document.getElementById('published');
+    if (el) {
+      if (globalLenis) {
+        globalLenis.scrollTo(el, { offset: -80, duration: 0.8 });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
   const categories = ['Tất cả', 'Khoa học Máy tính & Trí tuệ nhân tạo', 'Hệ thống Thông tin', 'Kỹ thuật Phần mềm', 'Khoa học Dữ liệu', 'Kinh tế & Quản lý'];
 
   const getFormattedCitation = (pub: PublicPublication, format: 'APA' | 'IEEE' | 'BibTeX') => {
@@ -174,7 +201,7 @@ function PublishedCatalogue() {
   return (
     <section id="published" className="pl-published-section pl-reveal">
       <div className="pl-container">
-        
+
         <div className="pl-published-head">
           <span className="pl-published-pill">
             <span style={{ fontSize: 16 }}>📚</span> Kho lưu trữ nghiên cứu mở · Open Access
@@ -185,8 +212,8 @@ function PublishedCatalogue() {
 
         <div className="pl-published-category-tabs">
           {categories.map(cat => (
-            <button 
-              key={cat} 
+            <button
+              key={cat}
               className={`pl-published-tab-btn ${activeCategory === cat ? 'pl-published-tab-btn--active' : ''}`}
               onClick={() => setActiveCategory(cat)}
             >
@@ -230,7 +257,7 @@ function PublishedCatalogue() {
             ) : (
               <>
                 <div className="pl-published-grid">
-                  {displayItems.map((item) => (
+                  {paginatedItems.map((item) => (
                     <div key={item.id} className="pl-published-card" onClick={() => handleSelectPaper(item)} role="button" tabIndex={0}>
                       <div>
                         <div className="pl-published-card-meta-row">
@@ -238,7 +265,7 @@ function PublishedCatalogue() {
                           <span className="pl-published-version-tag">{item.currentVersion?.versionLabel || 'v1.0'}</span>
                         </div>
                         <h3 className="pl-published-card-title">{item.title || 'Bản thảo chưa có tiêu đề'}</h3>
-                        
+
                         <div className="pl-published-card-authors">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
                           <span>{item.authors?.map((a) => a.name).join(' · ') || 'Tác giả'}</span>
@@ -246,7 +273,7 @@ function PublishedCatalogue() {
 
                         <p className="pl-published-card-abstract">{item.abstract}</p>
                       </div>
-                      
+
                       <div className="pl-published-card-footer">
                         <div style={{ display: 'flex', gap: 6, overflow: 'hidden' }}>
                           {item.keywords?.slice(0, 2).map(kw => (
@@ -256,12 +283,54 @@ function PublishedCatalogue() {
                         </div>
                         <span style={{ fontSize: 13, color: '#0071bc', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                           Xem bài báo
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                         </span>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="pl-pagination-container">
+                    <div className="pl-pagination-info">
+                      Hiển thị {((currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(currentPage * PAGE_SIZE, displayItems.length)} trong tổng số {displayItems.length} bài báo
+                    </div>
+                    <div className="pl-pagination-controls">
+                      <button
+                        type="button"
+                        className="pl-pagination-btn"
+                        disabled={currentPage <= 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        aria-label="Trang trước"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                        <span>Trước</span>
+                      </button>
+                      <div className="pl-pagination-pages">
+                        {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`pl-pagination-page-btn ${currentPage === p ? 'pl-pagination-page-btn--active' : ''}`}
+                            onClick={() => handlePageChange(p)}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="pl-pagination-btn"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        aria-label="Trang sau"
+                      >
+                        <span>Sau</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ textAlign: 'center', marginTop: 44 }}>
                   <a href="#register-section" onClick={scrollToRegister} className="pl-published-btn-primary" style={{ padding: '12px 24px', fontSize: 14.5 }}>
@@ -294,19 +363,19 @@ function PublishedCatalogue() {
               overscrollBehavior: 'contain',
             }}
           >
-            <button 
-              type="button" 
-              onClick={() => setSelected(null)} 
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
               style={{ position: 'absolute', top: 20, right: 20, background: '#f1f5f9', border: 'none', width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569', transition: 'all 0.15s ease' }}
               title="Đóng"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
-            
+
             <div style={{ marginBottom: 20 }}>
               <span className="pl-published-tag" style={{ marginBottom: 12, display: 'inline-block' }}>{selected.discipline}</span>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0', lineHeight: 1.35 }}>{selected.title}</h2>
-              
+
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, color: '#64748b', fontSize: 13.5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -338,7 +407,7 @@ function PublishedCatalogue() {
                 <div style={{ background: '#f8fafc', padding: 20, borderRadius: 14, marginBottom: 20, border: '1px solid #eef2f6' }}>
                   <h4 style={{ fontSize: 12.5, textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>Tóm tắt nghiên cứu (Abstract)</h4>
                   <ExpandableAbstract text={selected.abstract} locale="vi" />
-                  
+
                   {selected.keywords && selected.keywords.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
                       {selected.keywords.map(kw => (
@@ -354,9 +423,9 @@ function PublishedCatalogue() {
                       <span>📖 Trích dẫn công trình này:</span>
                       <div style={{ display: 'inline-flex', gap: 4, marginLeft: 6 }}>
                         {(['APA', 'IEEE', 'BibTeX'] as const).map(fmt => (
-                          <button 
-                            key={fmt} 
-                            type="button" 
+                          <button
+                            key={fmt}
+                            type="button"
                             onClick={() => setCitationFormat(fmt)}
                             style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6, border: citationFormat === fmt ? '1px solid #16a34a' : '1px solid #cbd5e1', background: citationFormat === fmt ? '#16a34a' : '#ffffff', color: citationFormat === fmt ? '#ffffff' : '#475569', cursor: 'pointer' }}
                           >
@@ -366,8 +435,8 @@ function PublishedCatalogue() {
                       </div>
                     </div>
 
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => copyCitation(selected)}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: citationCopied ? '#15803d' : '#0071bc', background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}
                     >
@@ -456,7 +525,7 @@ export default function PublicPreprintLanding() {
       const href = anchor.getAttribute('href');
       // Skip empty hash or '#register-section' which is handled by scrollToRegister explicitly in many places
       if (!href || href === '#' || href.length < 2 || href === '#register-section') return;
-      
+
       const targetEl = document.querySelector(href);
       if (targetEl) {
         e.preventDefault();
@@ -876,9 +945,9 @@ export default function PublicPreprintLanding() {
               </div>
               <div>
                 <p className="pl-trust-text">
-                  &ldquo;Hyperdata Lab mang đến cho sinh viên một nền tảng minh bạch để đánh dấu thời gian nghiên cứu và trao đổi học thuật trực tiếp với hội đồng giảng viên.&rdquo;
+                  &ldquo;Từ một ý tưởng ban đầu đến một công trình hoàn chỉnh, HyperData Lab đồng hành cùng sinh viên và giảng viên trong từng bước của quá trình nghiên cứu.&rdquo;
                 </p>
-                <span className="pl-trust-author">Hội đồng Cố vấn Học thuật • Chương trình Nghiên cứu Khoa học Sinh viên</span>
+                <span className="pl-trust-author">HỌC TẬP • NGHIÊN CỨU • CÔNG BỐ</span>
               </div>
             </div>
             <div className="pl-trust-labels">
@@ -896,7 +965,7 @@ export default function PublicPreprintLanding() {
           <div id="workflow" className="pl-workflow-section-wrap pl-reveal" style={{ '--delay': '80ms' } as React.CSSProperties}>
             <div className="pl-workflow-head">
               <span className="pl-workflow-pill">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                 Lộ trình xuất bản khép kín
               </span>
               <h2 className="pl-workflow-title">Quy trình đăng bài trong hệ thống</h2>
@@ -906,6 +975,17 @@ export default function PublicPreprintLanding() {
             </div>
 
             <div className="pl-workflow-timeline-wrapper">
+              {/* Transition Divider: Giai đoạn 1 */}
+              <div className="pl-workflow-divider" style={{ marginBottom: '16px' }}>
+                <div className="pl-workflow-divider-line"></div>
+                <div className="pl-workflow-divider-pill">
+                  <span className="pl-workflow-divider-dot"></span>
+                  <span>Giai đoạn 1: Khởi tạo &amp; Kích hoạt tài khoản tác giả</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+                </div>
+                <div className="pl-workflow-divider-line"></div>
+              </div>
+
               {/* Row 1: Giai đoạn 1 - Khởi tạo & Kích hoạt */}
               <div className="pl-workflow-row pl-workflow-row--1">
                 {/* Step 01 */}
@@ -928,7 +1008,7 @@ export default function PublicPreprintLanding() {
                   </p>
                   <a href="#register-section" onClick={scrollToRegister} className="pl-workflow-card-action" style={{ textDecoration: 'none' }}>
                     <span>Khởi tạo hồ sơ trực tuyến</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </a>
                 </div>
 
@@ -936,7 +1016,7 @@ export default function PublicPreprintLanding() {
                 <div className="pl-workflow-connector-inline" aria-hidden="true">
                   <div className="pl-workflow-connector-line"></div>
                   <div className="pl-workflow-connector-arrow">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
 
@@ -953,13 +1033,13 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">Giảng viên liên hệ</h3>
+                  <h3 className="pl-workflow-card-title">HyperData Lab liên hệ</h3>
                   <p className="pl-workflow-card-desc">
-                    Giảng viên hướng dẫn hoặc Ban cố vấn khoa học kết nối trực tiếp với sinh viên nhằm xác minh thông tin và định hướng phạm vi đề tài nghiên cứu.
+                    HyperData Lab hoặc Ban cố vấn khoa học kết nối trực tiếp với sinh viên nhằm xác minh thông tin và định hướng phạm vi đề tài nghiên cứu.
                   </p>
                   <div className="pl-workflow-card-action">
                     <span>Tư vấn &amp; Thẩm định sơ bộ</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
 
@@ -967,7 +1047,7 @@ export default function PublicPreprintLanding() {
                 <div className="pl-workflow-connector-inline" aria-hidden="true">
                   <div className="pl-workflow-connector-line"></div>
                   <div className="pl-workflow-connector-arrow">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
 
@@ -991,7 +1071,7 @@ export default function PublicPreprintLanding() {
                   </p>
                   <div className="pl-workflow-card-action">
                     <span>Kích hoạt quyền tác giả</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
               </div>
@@ -1002,7 +1082,7 @@ export default function PublicPreprintLanding() {
                 <div className="pl-workflow-divider-pill">
                   <span className="pl-workflow-divider-dot"></span>
                   <span>Giai đoạn 2: Nộp bản thảo &amp; Bình duyệt học thuật</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
                 <div className="pl-workflow-divider-line"></div>
               </div>
@@ -1032,7 +1112,7 @@ export default function PublicPreprintLanding() {
                   </p>
                   <div className="pl-workflow-card-action">
                     <span>Bóc tách PDF &amp; Đóng dấu hash</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
 
@@ -1040,7 +1120,7 @@ export default function PublicPreprintLanding() {
                 <div className="pl-workflow-connector-inline" aria-hidden="true">
                   <div className="pl-workflow-connector-line"></div>
                   <div className="pl-workflow-connector-arrow">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
 
@@ -1058,13 +1138,13 @@ export default function PublicPreprintLanding() {
                       </svg>
                     </div>
                   </div>
-                  <h3 className="pl-workflow-card-title">Giảng viên review</h3>
+                  <h3 className="pl-workflow-card-title">HyperData Lab review</h3>
                   <p className="pl-workflow-card-desc">
-                    Giảng viên chuyên môn trực tiếp thẩm định phương pháp luận, cho điểm phản biện và hỗ trợ sinh viên sửa đổi, nâng cấp phiên bản (v2.0, v3.0).
+                    Hội đồng chuyên môn HyperData Lab trực tiếp thẩm định phương pháp luận, cho điểm phản biện và hỗ trợ sinh viên sửa đổi, nâng cấp phiên bản (v2.0, v3.0).
                   </p>
                   <div className="pl-workflow-card-action">
                     <span>Bình duyệt &amp; Hướng dẫn sửa đổi</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
 
@@ -1072,7 +1152,7 @@ export default function PublicPreprintLanding() {
                 <div className="pl-workflow-connector-inline" aria-hidden="true">
                   <div className="pl-workflow-connector-line pl-workflow-connector-line--success"></div>
                   <div className="pl-workflow-connector-arrow pl-workflow-connector-arrow--success">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                   </div>
                 </div>
 
@@ -1097,7 +1177,7 @@ export default function PublicPreprintLanding() {
                   </p>
                   <div className="pl-workflow-card-action pl-workflow-card-action--final">
                     <span>Lưu trữ mở &amp; Trích dẫn toàn cầu</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                   </div>
                 </div>
               </div>
@@ -1111,7 +1191,7 @@ export default function PublicPreprintLanding() {
               </div>
               <a href="#register-section" onClick={scrollToRegister} className="pl-workflow-banner-btn">
                 <span>Đăng ký tham gia ngay</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
               </a>
             </div>
           </div>
@@ -1190,7 +1270,6 @@ export default function PublicPreprintLanding() {
               <h4>Truy cập</h4>
               <a href="#register-section" onClick={scrollToRegister} className="pl-link">Tạo tài khoản</a>
               <Link href="/login" className="pl-link">Đăng nhập</Link>
-              <Link href="/admin/dashboard" className="pl-link">Trang Quản trị Admin</Link>
             </div>
           </div>
         </div>

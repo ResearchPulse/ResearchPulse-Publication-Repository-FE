@@ -762,7 +762,6 @@ export default function ForgotPasswordPage() {
               <h4>Truy cập</h4>
               <Link href="/#register-section" className="pl-link">Tạo tài khoản</Link>
               <Link href="/login" className="pl-link">Đăng nhập</Link>
-              <Link href="/admin/dashboard" className="pl-link">Trang Quản trị Admin</Link>
             </div>
           </div>
         </div>

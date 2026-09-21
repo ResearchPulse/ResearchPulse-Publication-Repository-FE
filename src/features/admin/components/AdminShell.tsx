@@ -103,7 +103,7 @@ export function AdminSidebar({
               style={{ borderRadius: '6px', objectFit: 'contain' }}
               priority
             />
-            <span className="student-sidebar__brand-name">Hyperdata Lab</span>
+            <span className="student-sidebar__brand-name">HYPERDATA LAB</span>
           </div>
         </Link>
 

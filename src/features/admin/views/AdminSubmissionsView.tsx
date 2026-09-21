@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { StatusBadge } from '@hyperdata/design-system';
 import { AdminPageHeader, AdminShell } from '../components';
-import { adminApi, type AdminPublication, type AdminPublicationStatus, type AdminOverview } from '../api';
+import { adminApi, type AdminPublication, type AdminPublicationStatus, type AdminOverview, type AdminPublicationAudience } from '../api';
 import { TableSkeleton } from '@/components/skeleton';
 import type { PreprintStatus } from '@/shared/types';
 import { ROUTES } from '@/app/router';
@@ -53,6 +53,132 @@ export function AdminSubmissionsView() {
   const [metrics, setMetrics] = useState<AdminOverview['metrics'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [openAudienceMenu, setOpenAudienceMenu] = useState(false);
+  const [updatingAudience, setUpdatingAudience] = useState(false);
+
+  // Clear selections when filters or pagination change
+  useEffect(() => {
+    setSelectedIds([]);
+    setOpenAudienceMenu(false);
+  }, [page, query, status, roleFilter]);
+
+  // Close audience popover when clicking outside
+  useEffect(() => {
+    if (!openAudienceMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.admin-audience-toolbar-wrapper')) {
+        setOpenAudienceMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openAudienceMenu]);
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (!result?.items.length) return;
+    if (selectedIds.length === result.items.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(result.items.map((it) => it.id));
+    }
+  };
+
+  const toggleAudience = async (item: AdminPublication, targetAudience: AdminPublicationAudience) => {
+    const currentList = item.audiences || [];
+    const isCurrentlySet = currentList.includes(targetAudience);
+    const nextAudiences = isCurrentlySet
+      ? currentList.filter((a) => a !== targetAudience)
+      : [...currentList, targetAudience];
+
+    // Optimistic UI update
+    setResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((pub) =>
+          pub.id === item.id ? { ...pub, audiences: nextAudiences, updatedAt: new Date().toISOString() } : pub
+        ),
+      };
+    });
+
+    setUpdatingAudience(true);
+    try {
+      await adminApi.updateVisibility(item.id, nextAudiences);
+    } catch (err: unknown) {
+      // Revert optimistic update on failure
+      setResult((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((pub) =>
+            pub.id === item.id ? { ...pub, audiences: currentList } : pub
+          ),
+        };
+      });
+      setError(err instanceof Error ? err.message : 'Unable to update audience visibility.');
+    } finally {
+      setUpdatingAudience(false);
+    }
+  };
+
+  const toggleBatchAudience = async (targetAudience: AdminPublicationAudience) => {
+    if (selectedIds.length === 0 || !result?.items) return;
+    const targetItems = result.items.filter((it) => selectedIds.includes(it.id));
+    const allHaveIt = targetItems.every((it) => it.audiences?.includes(targetAudience));
+    const nextAction = !allHaveIt; // true = add to all, false = remove from all
+
+    // Optimistic UI update
+    setResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((pub) => {
+          if (!selectedIds.includes(pub.id)) return pub;
+          const cur = pub.audiences || [];
+          const next = nextAction
+            ? Array.from(new Set([...cur, targetAudience]))
+            : cur.filter((a) => a !== targetAudience);
+          return { ...pub, audiences: next, updatedAt: new Date().toISOString() };
+        }),
+      };
+    });
+
+    setUpdatingAudience(true);
+    try {
+      await Promise.all(
+        targetItems.map((item) => {
+          const cur = item.audiences || [];
+          const next = nextAction
+            ? Array.from(new Set([...cur, targetAudience]))
+            : cur.filter((a) => a !== targetAudience);
+          return adminApi.updateVisibility(item.id, next);
+        })
+      );
+    } catch (err: unknown) {
+      // Revert optimistic update on failure
+      setResult((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((pub) => {
+            const original = targetItems.find((t) => t.id === pub.id);
+            return original ? { ...pub, audiences: original.audiences } : pub;
+          }),
+        };
+      });
+      setError(err instanceof Error ? err.message : 'Unable to batch update audience visibility.');
+    } finally {
+      setUpdatingAudience(false);
+    }
+  };
 
   // Fetch overview metrics for top cards & status pills count
   useEffect(() => {
@@ -115,6 +241,11 @@ export function AdminSubmissionsView() {
   };
 
   const pagination = result?.pagination;
+
+  const selectedItems = (result?.items || []).filter((it) => selectedIds.includes(it.id));
+  const isGuestActive = selectedItems.length > 0 && selectedItems.every((it) => it.audiences?.includes('GUEST'));
+  const isStudentActive = selectedItems.length > 0 && selectedItems.every((it) => it.audiences?.includes('STUDENT'));
+  const isLecturerActive = selectedItems.length > 0 && selectedItems.every((it) => it.audiences?.includes('LECTURER'));
 
   return (
     <AdminShell active="submissions" title="Submissions" pendingCount={displayMetrics.underReview}>
@@ -321,6 +452,148 @@ export function AdminSubmissionsView() {
         </div>
 
         <div className="student-search-sort-group">
+          {/* Select Choice on the LEFT of Search Box */}
+          {status === 'PUBLISHED' && (
+            <div className="admin-audience-toolbar-wrapper admin-audience-popover-container">
+              <button
+                type="button"
+                className={`admin-toolbar-audience-btn ${openAudienceMenu ? 'admin-toolbar-audience-btn--open' : ''} ${selectedIds.length > 0 ? 'admin-toolbar-audience-btn--active' : ''}`}
+                onClick={() => setOpenAudienceMenu((prev) => !prev)}
+                title={locale === 'vi' ? 'Thiết lập quyền hiển thị cho các bài đã chọn' : 'Configure audience visibility for selected manuscripts'}
+              >
+                <span>
+                  {selectedIds.length > 0
+                    ? `${locale === 'vi' ? 'Hiển thị' : 'Audience'} (${selectedIds.length})`
+                    : (locale === 'vi' ? 'Hiển thị' : 'Audience')}
+                </span>
+                <svg
+                  className="admin-toolbar-audience-arrow"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {openAudienceMenu && (
+                <div className="admin-audience-popover-menu admin-audience-popover-menu--toolbar">
+                  <div className="admin-audience-popover-header">
+                    {locale === 'vi' ? 'Hiển thị' : 'Audience'}
+                  </div>
+                  <div className="admin-audience-popover-sub">
+                    {selectedIds.length === 0
+                      ? (locale === 'vi'
+                          ? '💡 Hãy tích chọn checkbox ở cột bên trái của bài viết để thiết lập quyền truy cập.'
+                          : '💡 Check the boxes on the left of manuscripts to configure access.')
+                      : selectedIds.length === 1
+                        ? (locale === 'vi'
+                            ? 'Tích chọn để cập nhật ngay cho 1 bài viết đã chọn:'
+                            : 'Toggle options to update the selected manuscript:')
+                        : (locale === 'vi'
+                            ? `Áp dụng thay đổi cho ${selectedIds.length} bài viết đã chọn:`
+                            : `Apply changes to ${selectedIds.length} selected manuscripts:`)}
+                  </div>
+
+                  <div className="admin-audience-popover-list">
+                    {/* GUEST Option */}
+                    <label className={`admin-audience-popover-item ${isGuestActive ? 'admin-audience-popover-item--selected' : ''}`} style={selectedIds.length === 0 ? { opacity: 0.6, cursor: 'not-allowed' } : {}}>
+                      <input
+                        type="checkbox"
+                        className="admin-audience-popover-checkbox"
+                        checked={isGuestActive}
+                        disabled={selectedIds.length === 0 || updatingAudience}
+                        onChange={() => {
+                          if (selectedIds.length === 1) {
+                            const item = result?.items.find((it) => it.id === selectedIds[0]);
+                            if (item) toggleAudience(item, 'GUEST');
+                          } else {
+                            toggleBatchAudience('GUEST');
+                          }
+                        }}
+                      />
+                      <div className="admin-audience-popover-text">
+                        <span className="admin-audience-popover-title">
+                          Public Landing (Guest)
+                        </span>
+                        <span className="admin-audience-popover-desc">
+                          {locale === 'vi' ? 'Hiển thị bài báo ra trang chủ cho khách đọc (tự động đưa lên đầu)' : 'Exposed to public visitors on landing page'}
+                        </span>
+                      </div>
+                    </label>
+
+                    {/* STUDENT Option */}
+                    <label className={`admin-audience-popover-item ${isStudentActive ? 'admin-audience-popover-item--selected' : ''}`} style={selectedIds.length === 0 ? { opacity: 0.6, cursor: 'not-allowed' } : {}}>
+                      <input
+                        type="checkbox"
+                        className="admin-audience-popover-checkbox"
+                        checked={isStudentActive}
+                        disabled={selectedIds.length === 0 || updatingAudience}
+                        onChange={() => {
+                          if (selectedIds.length === 1) {
+                            const item = result?.items.find((it) => it.id === selectedIds[0]);
+                            if (item) toggleAudience(item, 'STUDENT');
+                          } else {
+                            toggleBatchAudience('STUDENT');
+                          }
+                        }}
+                      />
+                      <div className="admin-audience-popover-text">
+                        <span className="admin-audience-popover-title">
+                          Sinh viên (Student)
+                        </span>
+                        <span className="admin-audience-popover-desc">
+                          {locale === 'vi' ? 'Cho phép sinh viên đã đăng nhập đọc' : 'University students with active accounts'}
+                        </span>
+                      </div>
+                    </label>
+
+                    {/* LECTURER Option */}
+                    <label className={`admin-audience-popover-item ${isLecturerActive ? 'admin-audience-popover-item--selected' : ''}`} style={selectedIds.length === 0 ? { opacity: 0.6, cursor: 'not-allowed' } : {}}>
+                      <input
+                        type="checkbox"
+                        className="admin-audience-popover-checkbox"
+                        checked={isLecturerActive}
+                        disabled={selectedIds.length === 0 || updatingAudience}
+                        onChange={() => {
+                          if (selectedIds.length === 1) {
+                            const item = result?.items.find((it) => it.id === selectedIds[0]);
+                            if (item) toggleAudience(item, 'LECTURER');
+                          } else {
+                            toggleBatchAudience('LECTURER');
+                          }
+                        }}
+                      />
+                      <div className="admin-audience-popover-text">
+                        <span className="admin-audience-popover-title">
+                          Giảng viên (Lecturer)
+                        </span>
+                        <span className="admin-audience-popover-desc">
+                          {locale === 'vi' ? 'Cho phép giảng viên và ban biên tập đọc' : 'Faculty members and reviewers'}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {selectedIds.length > 0 && (
+                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedIds([])}
+                        style={{ fontSize: '11.5px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+                      >
+                        {locale === 'vi' ? 'Bỏ chọn tất cả' : 'Clear selection'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="student-search-box">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
@@ -395,19 +668,51 @@ export function AdminSubmissionsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Editorial submissions queue">
             <thead>
               <tr>
-                <th style={{ width: '45%' }}>{t('admin.titleAndVersion')}</th>
+                {status === 'PUBLISHED' && (
+                  <th style={{ width: '44px', textAlign: 'center', padding: '0 8px' }}>
+                    <input
+                      type="checkbox"
+                      className="admin-table-checkbox"
+                      checked={result.items.length > 0 && selectedIds.length === result.items.length}
+                      onChange={toggleSelectAll}
+                      title={selectedIds.length === result.items.length ? (locale === 'vi' ? 'Bỏ chọn tất cả' : 'Deselect all') : (locale === 'vi' ? 'Chọn tất cả' : 'Select all')}
+                      aria-label="Select all published manuscripts"
+                    />
+                  </th>
+                )}
+                <th style={{ width: status === 'PUBLISHED' ? '32%' : '45%' }}>{t('admin.titleAndVersion')}</th>
                 <th>{t('admin.author')}</th>
                 <th>{t('nav.versions')}</th>
                 <th>{t('admin.submittedDate')}</th>
                 <th>{t('common.status')}</th>
+                {status === 'PUBLISHED' && (
+                  <th style={{ width: '130px', textAlign: 'center' }}>
+                    {locale === 'vi' ? 'Hiển thị' : 'Audience'}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
               {result.items.map((item) => {
                 const authorName = item.uploader?.name || item.uploader?.email || (locale === 'vi' ? 'Không có tên tác giả' : 'Author unavailable');
+                const isSelected = selectedIds.includes(item.id);
 
                 return (
-                  <tr key={item.id}>
+                  <tr key={item.id} className={isSelected ? 'dashboard-table__row--selected' : ''}>
+                    {/* Item Checkbox on the LEFT */}
+                    {status === 'PUBLISHED' && (
+                      <td style={{ width: '44px', textAlign: 'center', padding: '0 8px' }}>
+                        <input
+                          type="checkbox"
+                          className="admin-table-checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectItem(item.id)}
+                          title={isSelected ? (locale === 'vi' ? 'Bỏ chọn bài này' : 'Deselect') : (locale === 'vi' ? 'Chọn bài này' : 'Select')}
+                          aria-label={`Select ${displayTitle(item)}`}
+                        />
+                      </td>
+                    )}
+
                     {/* Manuscript Column - Clickable Title */}
                     <td className="dashboard-table__title-cell">
                       <Link
@@ -460,6 +765,40 @@ export function AdminSubmissionsView() {
                     <td>
                       <StatusBadge status={badgeStatus(item.status)} />
                     </td>
+
+                    {/* Audience Visibility Badges (Clean display) */}
+                    {/* Audience Visibility (Clean text display) */}
+                    {status === 'PUBLISHED' && (
+                      <td style={{ textAlign: 'center' }}>
+                        {(item.audiences || []).length === 0 ? (
+                          <span className="admin-audience-badge admin-audience-badge--empty">
+                            {locale === 'vi' ? 'Chưa cấu hình' : 'Default'}
+                          </span>
+                        ) : (
+                          <div style={{ display: 'inline-flex', gap: '3px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            {[
+                              item.audiences?.includes('GUEST') ? (
+                                <span key="guest" className="admin-audience-badge admin-audience-badge--guest" title="Hiển thị Landing">
+                                  Landing
+                                </span>
+                              ) : null,
+                              item.audiences?.includes('STUDENT') ? (
+                                <span key="student" className="admin-audience-badge admin-audience-badge--student" title="Sinh viên">
+                                  SV
+                                </span>
+                              ) : null,
+                              item.audiences?.includes('LECTURER') ? (
+                                <span key="lecturer" className="admin-audience-badge admin-audience-badge--lecturer" title="Giảng viên">
+                                  GV
+                                </span>
+                              ) : null,
+                            ]
+                              .filter(Boolean)
+                              .reduce<React.ReactNode[]>((acc, node, idx) => (idx === 0 ? [node] : [...acc, <span key={`sep-${idx}`} style={{ color: '#94a3b8' }}>, </span>, node]), [])}
+                          </div>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}

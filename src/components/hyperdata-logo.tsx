@@ -23,7 +23,7 @@ export function HyperdataLogo({
         className="pl-brand-logo-img"
         priority
       />
-      {showText && <span className="pl-brand-name">Hyperdata Lab</span>}
+      {showText && <span className="pl-brand-name">HyperData Lab</span>}
     </span>
   );
 }
