@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { StudentShell } from '../components';
 import { SortDropdown } from '@/components/sort-dropdown';
 import { useTranslation } from '@/i18n';
+import { ExpandableAbstract } from '@/shared/components';
 import dynamic from 'next/dynamic';
 
 const NativePdfViewer = dynamic(
@@ -475,12 +476,10 @@ export function StudentPublishedView() {
             ) : (
               <>
                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#0f172a', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
+                  <h4 style={{ fontSize: '12.5px', textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
                     {locale === 'vi' ? 'Tóm tắt nghiên cứu (Abstract)' : 'Abstract'}
                   </h4>
-                  <p style={{ color: '#334155', fontSize: '14px', lineHeight: 1.65, margin: 0 }}>
-                    {selected.abstract || (locale === 'vi' ? 'Không có tóm tắt.' : 'No abstract provided.')}
-                  </p>
+                  <ExpandableAbstract text={selected.abstract} locale={locale} fontSize="14.5px" />
 
                   {selected.keywords && selected.keywords.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>

@@ -7,6 +7,7 @@ import Lenis from 'lenis';
 import { HyperdataLogo } from './hyperdata-logo';
 import { PublicPortalShowcase } from './public-portal-showcase';
 import { ScrollRevealObserver } from './scroll-reveal';
+import { ExpandableAbstract } from '@/shared/components';
 import dynamic from 'next/dynamic';
 
 const NativePdfViewer = dynamic(
@@ -336,7 +337,7 @@ function PublishedCatalogue() {
               <>
                 <div style={{ background: '#f8fafc', padding: 20, borderRadius: 14, marginBottom: 20, border: '1px solid #eef2f6' }}>
                   <h4 style={{ fontSize: 12.5, textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>Tóm tắt nghiên cứu (Abstract)</h4>
-                  <p style={{ color: '#334155', fontSize: 14.5, lineHeight: 1.65, margin: 0 }}>{selected.abstract}</p>
+                  <ExpandableAbstract text={selected.abstract} locale="vi" />
                   
                   {selected.keywords && selected.keywords.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>

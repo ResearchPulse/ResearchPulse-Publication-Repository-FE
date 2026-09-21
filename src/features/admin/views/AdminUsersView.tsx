@@ -260,36 +260,36 @@ export function AdminUsersView() {
     switch (role) {
       case 'STUDENT':
         return (
-          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {locale === 'vi' ? 'SINH VIÊN' : 'STUDENT'}
           </span>
         );
       case 'LECTURER':
         return (
-          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {locale === 'vi' ? 'GIẢNG VIÊN' : 'LECTURER'}
           </span>
         );
       case 'ADMIN':
         return (
-          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {locale === 'vi' ? 'QUẢN TRỊ VIÊN' : 'ADMIN'}
           </span>
         );
       default:
-        return <span>{role}</span>;
+        return <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{role}</span>;
     }
   };
 
   const renderStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, border: '1px solid #a7f3d0' }}>
-        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, border: '1px solid #a7f3d0', whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
         {locale === 'vi' ? 'Hoạt động' : 'Active'}
       </span>
     ) : (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#fef2f2', color: '#b91c1c', padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, border: '1px solid #fecaca' }}>
-        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} />
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#fef2f2', color: '#b91c1c', padding: '3px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, border: '1px solid #fecaca', whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
         {locale === 'vi' ? 'Đã khóa' : 'Suspended'}
       </span>
     );
@@ -440,12 +440,12 @@ export function AdminUsersView() {
           <table className="data-table admin-users-table">
             <thead>
               <tr>
-                <th>{locale === 'vi' ? 'Tài khoản / Người dùng' : 'Account / User'}</th>
-                <th>{locale === 'vi' ? 'Vai trò' : 'Role'}</th>
-                <th>{locale === 'vi' ? 'MSSV / Khoa ngành' : 'Student ID / Major'}</th>
-                <th>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
-                <th>{locale === 'vi' ? 'Ngày tham gia' : 'Joined'}</th>
-                <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
+                <th style={{ width: '28%' }}>{locale === 'vi' ? 'Tài khoản / Người dùng' : 'Account / User'}</th>
+                <th style={{ width: '20%' }}>{locale === 'vi' ? 'Vai trò' : 'Role'}</th>
+                <th style={{ width: '18%' }}>{locale === 'vi' ? 'MSSV / Khoa ngành' : 'Student ID / Major'}</th>
+                <th style={{ width: '12%' }}>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
+                <th style={{ width: '10%' }}>{locale === 'vi' ? 'Ngày tham gia' : 'Joined'}</th>
+                <th style={{ width: '12%', textAlign: 'right' }}>{locale === 'vi' ? 'Thao tác' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -463,10 +463,10 @@ export function AdminUsersView() {
                           <div className="admin-user-name">
                             {user.name || (locale === 'vi' ? 'Chưa đặt tên' : 'Unnamed User')}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
-                            <span className="admin-user-email">{user.email}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', minWidth: 0 }}>
+                            <span className="admin-user-email" title={user.email}>{user.email}</span>
                             {user.phone && (
-                              <span style={{ fontSize: '11.5px', color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, border: '1px solid #bae6fd' }}>
+                              <span style={{ fontSize: '11.5px', color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, border: '1px solid #bae6fd', flexShrink: 0 }}>
                                 📞 {user.phone}
                               </span>
                             )}
@@ -475,10 +475,10 @@ export function AdminUsersView() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {renderRoleBadge(user.role)}
                         {/* Role Switcher Dropdown */}
-                        <div style={{ width: '130px' }}>
+                        <div style={{ width: '115px' }}>
                           <SortDropdown
                             value={user.role}
                             onChange={(val) => handleChangeRole(user, val as AdminUser['role'])}
@@ -500,18 +500,18 @@ export function AdminUsersView() {
                         {!user.studentId && !user.major && <span style={{ color: '#94a3b8' }}>—</span>}
                       </div>
                     </td>
-                    <td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
                       {renderStatusBadge(user.isActive)}
                     </td>
-                    <td>
-                      <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '12.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
                         {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                          ? new Date(user.createdAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : locale === 'vi' ? 'Gần đây' : 'Recently'}
                       </span>
                     </td>
-                    <td>
-                      <div className="review-actions" style={{ justifyContent: 'flex-end', gap: '6px' }}>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <div className="review-actions" style={{ justifyContent: 'flex-end', gap: '6px', flexWrap: 'nowrap' }}>
                         <Button
                           variant="secondary"
                           disabled={busyId === user.id}
@@ -519,6 +519,8 @@ export function AdminUsersView() {
                           style={{
                             fontSize: '12px',
                             padding: '5px 10px',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
                             color: user.isActive ? '#b91c1c' : '#047857',
                             borderColor: user.isActive ? '#fecaca' : '#a7f3d0',
                             background: user.isActive ? '#fef2f2' : '#ecfdf5',
@@ -534,6 +536,7 @@ export function AdminUsersView() {
                             fontSize: '12px',
                             padding: '5px 8px',
                             color: '#64748b',
+                            flexShrink: 0,
                           }}
                           title={locale === 'vi' ? 'Xóa tài khoản' : 'Delete user'}
                         >

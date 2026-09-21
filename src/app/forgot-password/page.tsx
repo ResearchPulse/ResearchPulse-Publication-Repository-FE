@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Lenis from 'lenis';
 import { HyperdataLogo } from '@/components/hyperdata-logo';
-import { LanguageSwitcher } from '@/i18n';
 import '@/styles/public-landing.css';
 import '@/styles/auth-forms.css';
 
@@ -671,7 +670,6 @@ export default function ForgotPasswordPage() {
           </nav>
 
           <div className="pl-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <LanguageSwitcher variant="toggle" />
             <Link href="/login" className="pl-header-action pl-header-action--primary">
               Đăng nhập
             </Link>

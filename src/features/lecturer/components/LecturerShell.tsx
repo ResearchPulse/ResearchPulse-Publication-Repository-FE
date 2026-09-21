@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
-import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { useTranslation } from '@/i18n';
 import { NotificationBell } from '@/shared/components/NotificationBell';
 
 export type LecturerNavKey = 'reviews' | 'submissions' | 'profile' | 'publications';
@@ -239,8 +239,6 @@ export function LecturerShell({ active, title, pendingCount, children }: Lecture
             </div>
 
             <NotificationBell />
-
-            <LanguageSwitcher variant="toggle" />
 
             <Link href={ROUTES.LECTURER.NEW_SUBMISSION} className="student-topbar__cta">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
