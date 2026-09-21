@@ -91,7 +91,17 @@ export function I18nProvider({
   }, [locale]);
 
   const t = useCallback(
-    (key: string, variables?: Record<string, string | number>): string => {
+    (key: string, fallbackOrVars?: string | Record<string, string | number>, variables?: Record<string, string | number>): string => {
+      let fallback: string | undefined = undefined;
+      let vars: Record<string, string | number> | undefined = undefined;
+
+      if (typeof fallbackOrVars === 'string') {
+        fallback = fallbackOrVars;
+        vars = variables;
+      } else {
+        vars = fallbackOrVars;
+      }
+
       const dict = dictionaries[locale] || dictionaries.vi;
       let text = getNestedValue(dict, key);
 
@@ -100,12 +110,12 @@ export function I18nProvider({
         text = getNestedValue(dictionaries.vi, key);
       }
 
-      // If still not found, fallback to key itself
+      // If still not found, fallback to provided fallback text or key itself
       if (text === undefined) {
-        return key;
+        return fallback !== undefined ? fallback : key;
       }
 
-      return interpolate(text, variables);
+      return interpolate(text, vars);
     },
     [locale]
   );

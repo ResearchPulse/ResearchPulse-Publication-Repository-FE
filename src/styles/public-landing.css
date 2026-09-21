@@ -2920,6 +2920,67 @@ body:has(.public-landing) {
   gap: 8px;
   padding-top: 14px;
   border-top: 1px solid #f1f5f9;
+  min-width: 0;
+}
+
+.pl-published-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+}
+
+.pl-published-card-tag {
+  font-size: 11px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 105px;
+  display: inline-block;
+  flex-shrink: 1;
+  min-width: 0;
+  line-height: 1.5;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pl-published-card-tag:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.pl-published-card-tag-more {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+.pl-published-card-cta {
+  font-size: 13px;
+  color: #0071bc;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.pl-published-card:hover .pl-published-card-cta {
+  color: #005b96;
+}
+
+.pl-published-card:hover .pl-published-card-cta svg {
+  transform: translateX(2px);
 }
 
 /* Published Catalogue Pagination */
