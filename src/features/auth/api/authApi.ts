@@ -50,6 +50,27 @@ export const authApi = {
     return data;
   },
 
+  async updateProfile(params: {
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    studentId?: string;
+    major?: string;
+    avatarUrl?: string;
+  }): Promise<{ success: boolean; message?: string; user?: User }> {
+    const res = await fetch('/api/auth/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      credentials: 'include',
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Cập nhật hồ sơ thất bại');
+    }
+    return data;
+  },
+
   async logout() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });

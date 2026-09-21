@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Lenis from 'lenis';
 import { HyperdataLogo } from '@/components/hyperdata-logo';
+import { LanguageSwitcher } from '@/i18n';
 import '@/styles/public-landing.css';
 import '@/styles/auth-forms.css';
 
@@ -17,6 +19,8 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [quickLoadingRole, setQuickLoadingRole] = useState<'admin' | 'lecturer' | 'student' | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +42,11 @@ function LoginForm() {
       }
 
       if (data.user.role === 'ADMIN') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else if (data.user.role === 'LECTURER') {
-        router.push('/lecturer/reviews');
+        window.location.href = '/lecturer/reviews';
       } else {
-        router.push(nextPath);
+        window.location.href = nextPath;
       }
     } catch {
       setError('Không thể kết nối đến máy chủ xác thực.');
@@ -50,10 +54,11 @@ function LoginForm() {
     }
   };
 
-  const handleQuickLogin = async (email: string) => {
+  const handleQuickLogin = async (email: string, role: 'admin' | 'lecturer' | 'student') => {
     setIdentifier(email);
     setPassword('Password@123');
     setError(null);
+    setQuickLoadingRole(role);
     setLoading(true);
 
     try {
@@ -67,19 +72,21 @@ function LoginForm() {
       if (!res.ok) {
         setError(data.error || 'Đăng nhập không thành công.');
         setLoading(false);
+        setQuickLoadingRole(null);
         return;
       }
 
       if (data.user.role === 'ADMIN') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else if (data.user.role === 'LECTURER') {
-        router.push('/lecturer/reviews');
+        window.location.href = '/lecturer/reviews';
       } else {
-        router.push(nextPath);
+        window.location.href = nextPath;
       }
     } catch {
       setError('Không thể kết nối đến máy chủ xác thực.');
       setLoading(false);
+      setQuickLoadingRole(null);
     }
   };
 
@@ -95,31 +102,34 @@ function LoginForm() {
       </div>
 
       {/* 3 Nút Đăng nhập nhanh để Test (Dev Quick Test) */}
-      <div style={{
-        marginBottom: 20,
-        padding: '12px 14px',
-        background: '#f8fafc',
-        borderRadius: 10,
-        border: '1px dashed #cbd5e1',
-        textAlign: 'left'
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-          ⚡ Đăng nhập nhanh để test:
-        </div>
+      {(process.env.NEXT_PUBLIC_ENABLE_QUICK_LOGIN !== undefined 
+        ? process.env.NEXT_PUBLIC_ENABLE_QUICK_LOGIN === 'true' 
+        : process.env.NODE_ENV !== 'production') && (
+        <div style={{
+          marginBottom: 20,
+          padding: '12px 14px',
+          background: '#f8fafc',
+          borderRadius: 10,
+          border: '1px dashed #cbd5e1',
+          textAlign: 'left'
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+            ⚡ Đăng nhập nhanh để test:
+          </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <button
             type="button"
-            onClick={() => handleQuickLogin('admin@researchpulse.com')}
+            onClick={() => handleQuickLogin('admin@hyperdata.org', 'admin')}
             disabled={loading}
             style={{
               padding: '7px 8px',
               fontSize: 12,
               fontWeight: 700,
-              color: '#0f172a',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              color: quickLoadingRole === 'admin' ? '#0071bc' : '#0f172a',
+              background: quickLoadingRole === 'admin' ? '#f0f7fc' : '#ffffff',
+              border: `1px solid ${quickLoadingRole === 'admin' ? '#0071bc' : '#cbd5e1'}`,
               borderRadius: 6,
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -127,24 +137,33 @@ function LoginForm() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
-            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+            onMouseOver={(e) => { if (!loading) e.currentTarget.style.borderColor = '#0071bc'; }}
+            onMouseOut={(e) => { if (!loading && quickLoadingRole !== 'admin') e.currentTarget.style.borderColor = '#cbd5e1'; }}
           >
-            👑 Admin
+            {quickLoadingRole === 'admin' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+                Đang vào...
+              </>
+            ) : (
+              <>👑 Admin</>
+            )}
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('lecturer@researchpulse.com')}
+            onClick={() => handleQuickLogin('lecturer@hyperdata.org', 'lecturer')}
             disabled={loading}
             style={{
               padding: '7px 8px',
               fontSize: 12,
               fontWeight: 700,
-              color: '#0f172a',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              color: quickLoadingRole === 'lecturer' ? '#0071bc' : '#0f172a',
+              background: quickLoadingRole === 'lecturer' ? '#f0f7fc' : '#ffffff',
+              border: `1px solid ${quickLoadingRole === 'lecturer' ? '#0071bc' : '#cbd5e1'}`,
               borderRadius: 6,
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -152,24 +171,33 @@ function LoginForm() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
-            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+            onMouseOver={(e) => { if (!loading) e.currentTarget.style.borderColor = '#0071bc'; }}
+            onMouseOut={(e) => { if (!loading && quickLoadingRole !== 'lecturer') e.currentTarget.style.borderColor = '#cbd5e1'; }}
           >
-            🎓 Lecturer
+            {quickLoadingRole === 'lecturer' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+                Đang vào...
+              </>
+            ) : (
+              <>🎓 Lecturer</>
+            )}
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('student@researchpulse.com')}
+            onClick={() => handleQuickLogin('student@hyperdata.org', 'student')}
             disabled={loading}
             style={{
               padding: '7px 8px',
               fontSize: 12,
               fontWeight: 700,
-              color: '#0f172a',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              color: quickLoadingRole === 'student' ? '#0071bc' : '#0f172a',
+              background: quickLoadingRole === 'student' ? '#f0f7fc' : '#ffffff',
+              border: `1px solid ${quickLoadingRole === 'student' ? '#0071bc' : '#cbd5e1'}`,
               borderRadius: 6,
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -177,13 +205,23 @@ function LoginForm() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => (e.currentTarget.style.borderColor = '#0071bc')}
-            onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
+            onMouseOver={(e) => { if (!loading) e.currentTarget.style.borderColor = '#0071bc'; }}
+            onMouseOut={(e) => { if (!loading && quickLoadingRole !== 'student') e.currentTarget.style.borderColor = '#cbd5e1'; }}
           >
-            📖 Student
+            {quickLoadingRole === 'student' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+                Đang vào...
+              </>
+            ) : (
+              <>📖 Student</>
+            )}
           </button>
         </div>
       </div>
+      )}
 
       {error && (
         <div className="auth-alert-box" role="alert" style={{ marginBottom: 18 }}>
@@ -219,27 +257,32 @@ function LoginForm() {
             <label className="auth-label" htmlFor="password" style={{ fontSize: 13, fontWeight: 700, color: '#122331' }}>
               Mật khẩu *
             </label>
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#0071bc',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                padding: '2px 4px',
-                borderRadius: 4,
-                transition: 'color 0.2s, background 0.2s',
-              }}
-            >
-              {showPassword ? 'Ẩn' : 'Hiện'} mật khẩu
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Link href="/forgot-password" className="auth-forgot-link">
+                Quên mật khẩu?
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#0071bc',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  borderRadius: 4,
+                  transition: 'color 0.2s, background 0.2s',
+                }}
+              >
+                {showPassword ? 'Ẩn' : 'Hiện'}
+              </button>
+            </div>
           </div>
           <input
             id="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             className="auth-input"
             placeholder="Nhập mật khẩu của bạn"
@@ -285,6 +328,30 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+    });
+
+    let rafId: number;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, []);
+
   return (
     <div className="public-landing pl-page auth-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
       {/* Hiệu ứng Ambient Orbs nền phát sáng mờ ảo */}
@@ -304,7 +371,8 @@ export default function LoginPage() {
             <Link href="/#faq" className="pl-nav__link">Hỏi đáp</Link>
           </nav>
 
-          <div className="pl-header__actions">
+          <div className="pl-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSwitcher variant="toggle" />
             <Link href="/#register-section" className="pl-header-action pl-header-action--primary">
               Đăng ký sinh viên
             </Link>
@@ -314,20 +382,19 @@ export default function LoginPage() {
 
 
       {/* Body: 2 Cột chuẩn như Landing Page Hero */}
-      <main className="pl-hero" style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '60px 0', position: 'relative', zIndex: 1 }}>
-        <div className="pl-container">
-          <div className="pl-hero__grid" style={{ alignItems: 'center', gap: '48px' }}>
+      <main className="pl-hero" style={{ flex: 1, display: 'flex', padding: '60px 0', position: 'relative', zIndex: 1 }}>
+        <div className="pl-container" style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="pl-hero__grid" style={{ alignItems: 'flex-start', gap: '48px', width: '100%' }}>
             
             {/* Cột trái: Giới thiệu & Cổng đăng nhập học thuật */}
-            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left' }}>
-              <div className="pl-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-                <span className="pl-badge__dot" />
-                Cổng Xác thực Nghiên cứu Khoa học
-              </div>
+            <div className="pl-hero__content pl-reveal" style={{ textAlign: 'left', paddingTop: '24px' }}>
+              <span className="pl-badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16, background: '#eef6fc', color: '#0071bc', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
+                🎓 Cổng Xác thực Nghiên cứu Khoa học
+              </span>
 
               <h1 className="pl-hero__title" style={{ fontSize: '2.5rem', lineHeight: 1.2, marginBottom: 16 }}>
                 Đăng nhập vào <br />
-                <span className="pl-gradient-text">Không gian Học thuật</span>
+                <span className="pl-hero__highlight">Không gian Học thuật</span>
               </h1>
 
               <p className="pl-hero__desc" style={{ fontSize: '1.05rem', color: '#4b5563', lineHeight: 1.6, marginBottom: 28, maxWidth: 520 }}>
@@ -405,7 +472,7 @@ export default function LoginPage() {
         </div>
 
         <div className="pl-container pl-footer__bottom">
-          <p>© {new Date().getFullYear()} ResearchPulse. Tất cả các quyền được bảo lưu.</p>
+          <p>© {new Date().getFullYear()} Hyperdata Lab. Tất cả các quyền được bảo lưu.</p>
           <p className="pl-footer__disclaimer">
             Nền tảng công bố học thuật phi lợi nhuận phục vụ sinh viên và nhà nghiên cứu trẻ.
           </p>

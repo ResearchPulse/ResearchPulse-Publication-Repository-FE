@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/app/router';
 import { LecturerShell } from '../components';
+import { SortDropdown } from '@/components/sort-dropdown';
+import { TableSkeleton } from '@/components/skeleton';
 import { lecturerReviewApi, type LecturerReviewItem } from '../api';
 
 type QueueFilter = 'ALL' | 'AWAITING_REVIEW' | 'COMPLETED';
@@ -23,27 +25,83 @@ function displayTitle(item: LecturerReviewItem) {
   return raw;
 }
 
-function displayDate(value?: string) {
-  if (!value) return 'Date unavailable';
-  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+function displayDate(value?: string, locale: string = 'en') {
+  if (!value) return locale === 'vi' ? 'Chưa có ngày' : 'Date unavailable';
+  return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 }
 
+function getSlaDetails(item: LecturerReviewItem, locale: string) {
+  if (item.reviewStatus === 'COMPLETED') {
+    return {
+      isOverdue: false,
+      badgeColor: '#16a34a',
+      bg: '#f0fdf4',
+      border: '#bbf7d0',
+      label: locale === 'vi' ? 'Đã hoàn thành' : 'Completed',
+      tooltip: locale === 'vi' ? 'Đã hoàn thành đánh giá thẩm định' : 'Evaluation submitted',
+      iconType: 'check' as const,
+    };
+  }
+
+  const assignTime = new Date(item.myReview?.createdAt || item.updatedAt || item.createdAt).getTime();
+  const deadline = assignTime + 48 * 60 * 60 * 1000;
+  const now = Date.now();
+  const diffMs = deadline - now;
+
+  if (diffMs > 0) {
+    const hoursLeft = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60)));
+    const isUrgent = hoursLeft <= 12;
+    return {
+      isOverdue: false,
+      badgeColor: isUrgent ? '#d97706' : '#0284c7',
+      bg: isUrgent ? '#fffbeb' : '#f0f9ff',
+      border: isUrgent ? '#fde68a' : '#bae6fd',
+      label: locale === 'vi' ? `Còn ${hoursLeft}h (SLA)` : `${hoursLeft}h left (SLA)`,
+      tooltip: locale === 'vi'
+        ? `Thời hạn phản hồi trong vòng 48h (còn khoảng ${hoursLeft} giờ)`
+        : `Standard 48-hour response window (~${hoursLeft} hours remaining)`,
+      iconType: 'clock' as const,
+    };
+  } else {
+    const overdueHours = Math.max(1, Math.floor(Math.abs(diffMs) / (1000 * 60 * 60)));
+    return {
+      isOverdue: true,
+      badgeColor: '#dc2626',
+      bg: '#fef2f2',
+      border: '#fecaca',
+      label: locale === 'vi' ? `Quá hạn ${overdueHours}h` : `Overdue by ${overdueHours}h`,
+      tooltip: locale === 'vi'
+        ? `Nhiệm vụ đã vượt quá hạn cam kết 48 giờ khoảng ${overdueHours} tiếng`
+        : `Task has exceeded the 48-hour SLA window by ~${overdueHours} hours`,
+      iconType: 'alert' as const,
+    };
+  }
+}
+
+
+
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from '@/i18n';
+
 export function LecturerReviewsView() {
-  const [items, setItems] = useState<LecturerReviewItem[]>([]);
+  const { t, locale } = useTranslation();
   const [filter, setFilter] = useState<QueueFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('UPDATED');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const [sortBy, setSortBy] = useState('UPDATED');
+  const safeSortBy = sortBy;
 
-  useEffect(() => {
-    let active = true;
-    lecturerReviewApi.list()
-      .then((result) => { if (active) setItems(result.items); })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load the review queue.'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['lecturer', 'reviews'],
+    queryFn: async () => {
+      const result = await lecturerReviewApi.list();
+      return result.items || [];
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
+  const items = data || [];
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Unable to load the review queue.') : null;
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.reviewStatus === 'AWAITING_REVIEW').length,
@@ -81,10 +139,10 @@ export function LecturerReviewsView() {
       }
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [filter, items, searchQuery, sortBy]);
+  }, [filter, items, searchQuery, safeSortBy]);
 
   return (
-    <LecturerShell active="reviews" title="Review queue" pendingCount={pendingCount}>
+    <LecturerShell active="reviews" title={locale === 'vi' ? 'Hàng đợi thẩm định' : 'Review queue'} pendingCount={pendingCount}>
       {/* Filter Toolbar with Integrated Counts, Search, and Sort */}
       <div className="student-filter-toolbar">
         {/* Status Tab Pills */}
@@ -94,21 +152,21 @@ export function LecturerReviewsView() {
             className={`student-tab-pill ${filter === 'ALL' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('ALL')}
           >
-            All <span className="student-tab-pill__count">{items.length}</span>
+            {t('common.all')} <span className="student-tab-pill__count">{items.length}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'AWAITING_REVIEW' ? 'student-tab-pill--active student-tab-pill--alert' : ''}`}
             onClick={() => setFilter('AWAITING_REVIEW')}
           >
-            Awaiting Review <span className="student-tab-pill__count">{pendingCount}</span>
+            {locale === 'vi' ? 'Chờ thẩm định' : 'Awaiting Review'} <span className="student-tab-pill__count">{pendingCount}</span>
           </button>
           <button
             type="button"
             className={`student-tab-pill ${filter === 'COMPLETED' ? 'student-tab-pill--active' : ''}`}
             onClick={() => setFilter('COMPLETED')}
           >
-            Completed <span className="student-tab-pill__count">{completedCount}</span>
+            {locale === 'vi' ? 'Đã hoàn thành' : 'Completed'} <span className="student-tab-pill__count">{completedCount}</span>
           </button>
         </div>
 
@@ -121,7 +179,7 @@ export function LecturerReviewsView() {
             </svg>
             <input
               type="search"
-              placeholder="Search manuscript, author..."
+              placeholder={t('common.searchManuscriptAuthor')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -134,25 +192,38 @@ export function LecturerReviewsView() {
           </div>
 
           <div className="student-sort-box">
-            <span className="student-sort-label">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="student-sort-select"
-            >
-              <option value="UPDATED">Recently Updated</option>
-              <option value="TITLE">Title (A-Z)</option>
-              <option value="STATUS">Review Status</option>
-            </select>
+            <span className="student-sort-label">{t('common.sortBy')}</span>
+            <SortDropdown
+              value={safeSortBy}
+              onChange={(val) => setSortBy(val as SortOption)}
+              options={[
+                { value: 'UPDATED', label: t('common.recentlyUpdated') },
+                { value: 'TITLE', label: t('common.titleAZ') },
+                { value: 'STATUS', label: locale === 'vi' ? 'Trạng thái thẩm định' : 'Review Status' },
+              ]}
+              style={{ width: '160px' }}
+            />
           </div>
         </div>
       </div>
 
       {/* 3. Loading, Error, Empty & Table States */}
       {loading && (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading manuscripts from the faculty review queue…</p>
+        <div className="dashboard-table-card dashboard-table-wrapper">
+          <table className="dashboard-table dashboard-table--repository" aria-label="Available review manuscripts list">
+            <thead>
+              <tr>
+                <th style={{ width: '44%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
+                <th>{locale === 'vi' ? 'Tác giả' : 'Author'}</th>
+                <th>{locale === 'vi' ? 'Phiên bản' : 'Version'}</th>
+                <th>{locale === 'vi' ? 'Thời hạn SLA' : 'Review SLA'}</th>
+                <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TableSkeleton rows={5} type="reviews" />
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -172,19 +243,19 @@ export function LecturerReviewsView() {
           </div>
           <h3>
             {searchQuery
-              ? 'No matching manuscripts found'
+              ? (locale === 'vi' ? `Không tìm thấy bản thảo nào khớp với "${searchQuery}"` : 'No matching manuscripts found')
               : filter === 'AWAITING_REVIEW'
-              ? 'No manuscripts awaiting review'
+              ? (locale === 'vi' ? 'Không có bản thảo nào đang chờ thẩm định' : 'No manuscripts awaiting review')
               : filter === 'COMPLETED'
-              ? 'No completed reviews recorded'
-              : 'No manuscripts currently available for review'}
+              ? (locale === 'vi' ? 'Chưa có bản thảo nào đã hoàn thành thẩm định' : 'No completed reviews recorded')
+              : (locale === 'vi' ? 'Hiện không có bản thảo nào trong hàng đợi' : 'No manuscripts currently available for review')}
           </h3>
           <p>
             {searchQuery
-              ? `No available manuscripts match "${searchQuery}". Try a different keyword.`
+              ? (locale === 'vi' ? 'Thử tìm kiếm với từ khóa khác.' : `No available manuscripts match "${searchQuery}". Try a different keyword.`)
               : filter === 'AWAITING_REVIEW'
-              ? 'All available reviews have been submitted. Thank you for your thorough peer mentorship!'
-              : 'Submitted preprints in REVIEWING status will appear here for faculty review.'}
+              ? (locale === 'vi' ? 'Tất cả các bản thảo được phân công đã được gửi đánh giá thành công.' : 'All available reviews have been submitted. Thank you for your thorough peer mentorship!')
+              : (locale === 'vi' ? 'Các bản thảo ở trạng thái Đang thẩm định sẽ xuất hiện ở đây khi được phân công.' : 'Submitted preprints in REVIEWING status will appear here for faculty review.')}
           </p>
         </div>
       )}
@@ -194,19 +265,18 @@ export function LecturerReviewsView() {
           <table className="dashboard-table dashboard-table--repository" aria-label="Available review manuscripts list">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>Manuscript</th>
-                <th>Student Author</th>
-                <th>Version</th>
-                <th>Review SLA</th>
-                <th style={{ textAlign: 'right' }}>Status</th>
+                <th style={{ width: '44%' }}>{locale === 'vi' ? 'Bản thảo' : 'Manuscript'}</th>
+                <th>{locale === 'vi' ? 'Tác giả' : 'Author'}</th>
+                <th>{locale === 'vi' ? 'Phiên bản' : 'Version'}</th>
+                <th>{locale === 'vi' ? 'Thời hạn SLA' : 'Review SLA'}</th>
+                <th style={{ textAlign: 'right' }}>{locale === 'vi' ? 'Trạng thái' : 'Status'}</th>
               </tr>
             </thead>
             <tbody>
               {visibleItems.map((item) => {
                 const isPending = item.reviewStatus === 'AWAITING_REVIEW';
                 const cleanTitle = displayTitle(item);
-                const authorName = item.uploader?.name || item.authors?.[0]?.name || 'Student Researcher';
-                const authorInitial = (authorName[0] || 'S').toUpperCase();
+                const authorName = item.uploader?.name || (locale === 'vi' ? 'Tác giả ẩn danh' : 'Anonymous Author');
 
                 return (
                   <tr key={item.id}>
@@ -222,11 +292,41 @@ export function LecturerReviewsView() {
                       </Link>
                     </td>
 
-                    {/* Student Author */}
+                    {/* Author (Student visible, Faculty Double-Blind) */}
                     <td>
-                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1e293b' }}>
-                        {authorName}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
+                          {authorName}
+                        </span>
+                        {item.uploader?.role === 'LECTURER' ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              background: '#f1f5f9',
+                              color: '#64748b',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            {locale === 'vi' ? 'Ẩn danh đôi' : 'Double-Blind'}
+                          </span>
+                        ) : item.uploader?.email ? (
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: '#64748b',
+                              fontWeight: 400,
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {item.uploader.email}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     {/* Version */}
@@ -238,31 +338,59 @@ export function LecturerReviewsView() {
 
                     {/* Review SLA / Updated */}
                     <td>
-                      {isPending ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#d97706', fontSize: '12.5px', fontWeight: 600 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
-                          <span>48h SLA Active</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontSize: '12.5px', fontWeight: 600 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          <span>Completed</span>
-                        </div>
-                      )}
-                      <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                        Updated {displayDate(item.updatedAt)}
-                      </span>
+                      {(() => {
+                        const sla = getSlaDetails(item, locale);
+                        return (
+                          <div>
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                color: sla.badgeColor,
+                                background: sla.bg,
+                                border: `1px solid ${sla.border}`,
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                              }}
+                              title={sla.tooltip}
+                            >
+                              {sla.iconType === 'check' && (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                              {sla.iconType === 'clock' && (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                              )}
+                              {sla.iconType === 'alert' && (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="12" y1="8" x2="12" y2="12" />
+                                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                              )}
+                              <span>{sla.label}</span>
+                            </div>
+                            <span style={{ display: 'block', fontSize: '11.5px', color: '#64748b', marginTop: '3px' }}>
+                              {locale === 'vi' ? 'Cập nhật' : 'Updated'} {displayDate(item.updatedAt, locale)}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Status Badge */}
                     <td style={{ textAlign: 'right' }}>
                       <span className={`user-badge ${isPending ? 'user-badge--revision' : 'user-badge--approved'}`}>
-                        {isPending ? 'AWAITING REVIEW' : 'COMPLETED'}
+                        {isPending
+                          ? (locale === 'vi' ? 'CHỜ THẨM ĐỊNH' : 'AWAITING REVIEW')
+                          : (locale === 'vi' ? 'ĐÃ HOÀN THÀNH' : 'COMPLETED')}
                       </span>
                     </td>
                   </tr>

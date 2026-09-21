@@ -3,10 +3,12 @@ export type LecturerRecommendation = 'PUBLISH' | 'NEEDS_REVISION' | 'REJECT';
 export type LecturerReview = {
   id: string;
   reviewerId: string;
+  reviewer?: { id: string; name?: string | null; email: string };
   versionId?: string;
   round: number;
   comment?: string | null;
   recommendation?: LecturerRecommendation | null;
+  assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'LEGACY';
   submittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -30,8 +32,17 @@ export type LecturerPublication = {
     fileName: string;
     submittedAt?: string | null;
   } | null;
-  uploader?: { id: string; email: string; name?: string | null };
+  uploader?: {
+    id: string;
+    email: string;
+    name?: string | null;
+    role?: 'LECTURER' | 'STUDENT' | 'ADMIN';
+    studentId?: string | null;
+  };
   authors?: Array<{ id?: string; name: string; email?: string | null; affiliation?: string | null }>;
+  discipline?: string | null;
+  isPrivate?: boolean;
+  audiences?: Array<'GUEST' | 'STUDENT' | 'LECTURER'>;
   downloadUrl?: string;
   myReview?: LecturerReview;
 };
@@ -92,16 +103,28 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 function withReviewStatus(publication: LecturerPublication, review?: LecturerReview): LecturerReviewItem {
+  const isAwaiting = publication.status === 'REVIEWING' && (!review || !review.submittedAt);
   return {
     ...publication,
-    reviewStatus: review?.submittedAt ? 'COMPLETED' : 'AWAITING_REVIEW',
+    reviewStatus: isAwaiting ? 'AWAITING_REVIEW' : 'COMPLETED',
     myReview: review,
   };
 }
 
+export type LecturerStats = {
+  completedReviews: number;
+  reviewQueue: number;
+  turnaroundSla: number;
+  turnaroundSlaFormatted: string;
+  totalAssigned?: number;
+  onTimeReviews?: number;
+};
+
 export const lecturerReviewApi = {
+  getStats: () => request<LecturerStats>('/lecturer-stats'),
+
   async list(): Promise<{ items: LecturerReviewItem[]; total: number }> {
-    const publications = await request<LecturerPublication[]>('/?status=REVIEWING&limit=50');
+    const publications = await request<LecturerPublication[]>('/?assignedToMe=true&limit=50');
     const items = publications.map((publication) => withReviewStatus(publication, publication.myReview));
     return { items, total: items.length };
   },
@@ -122,4 +145,43 @@ export const lecturerReviewApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  changeStatus: (id: string, status: 'PUBLISHED' | 'DRAFTING' | 'REJECTED', reason?: string) =>
+    request<Pick<LecturerPublication, 'id' | 'title' | 'status' | 'updatedAt'>>(`/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, reason }),
+    }),
 };
+
+export type LecturerPublicationScope = 'ALL' | 'PUBLIC' | 'FACULTY_ONLY' | 'CAMPUS' | 'ASSIGNED' | 'MINE';
+
+export interface ListPublicationsParams {
+  scope?: LecturerPublicationScope | string;
+  discipline?: string;
+  search?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export const lecturerPublicationApi = {
+  async list(params?: ListPublicationsParams): Promise<{ items: LecturerPublication[]; total: number }> {
+    const query = new URLSearchParams();
+    if (params?.scope && params.scope !== 'ALL') query.set('scope', params.scope);
+    if (params?.discipline && params.discipline !== 'ALL') query.set('discipline', params.discipline);
+    if (params?.search) query.set('search', params.search);
+    if (params?.status) query.set('status', params.status);
+    if (params?.page) query.set('page', String(params.page));
+    query.set('limit', String(params?.limit || 100));
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const publications = await request<LecturerPublication[]>(`/${queryString}`);
+    return { items: publications, total: publications.length };
+  },
+
+  async get(id: string): Promise<LecturerPublication> {
+    const encodedId = encodeURIComponent(id);
+    return request<LecturerPublication>(`/${encodedId}`);
+  },
+};
+

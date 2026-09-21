@@ -11,7 +11,7 @@ function allowedPath(path: string[]) {
   if (path.some((segment) => !safeSegment(segment))) return false;
   if (!path.length) return true;
   if (path.length === 1) return path[0] === 'upload-direct' || path[0].length >= 2;
-  if (path.length === 2) return ['status', 'reviews', 'versions', 'timeline', 'dev-submit'].includes(path[1]);
+  if (path.length === 2) return ['status', 'reviews', 'versions', 'timeline', 'private', 'dev-submit', 'stats'].includes(path[1]) || path[0] === 'lecturer';
   if (path.length === 3) return path[1] === 'revisions' && path[2] === 'upload-direct';
   return false;
 }

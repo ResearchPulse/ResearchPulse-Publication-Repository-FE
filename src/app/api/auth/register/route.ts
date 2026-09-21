@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, studentId, major } = body;
+    const { firstName, lastName, email, phone, studentId, major } = body;
 
     if (!firstName || !lastName || !email || !studentId || !major) {
       return NextResponse.json(
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const beResponse = await fetch(`${preprintApiBaseUrl()}/api/v1/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, email, studentId, major }),
+      body: JSON.stringify({ firstName, lastName, email, phone, studentId, major }),
       cache: 'no-store',
     });
 

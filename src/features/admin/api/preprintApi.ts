@@ -4,17 +4,32 @@ const baseUrl = '/api/admin';
 
 export type AdminPublicationStatus = 'PROCESSING' | 'DRAFTING' | 'REVIEWING' | 'PUBLISHED' | 'REJECTED';
 export type AdminDecisionStatus = 'PUBLISHED' | 'REJECTED' | 'DRAFTING';
+export type AdminPublicationAudience = 'GUEST' | 'STUDENT' | 'LECTURER';
 
 export type AdminUser = {
   id: string;
   email: string;
   name?: string | null;
+  phone?: string | null;
+  studentId?: string | null;
+  major?: string | null;
   avatarUrl?: string | null;
   role: 'ADMIN' | 'LECTURER' | 'STUDENT';
   isActive: boolean;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  mustChangePassword?: boolean;
   lastLoginAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  attemptNumber?: number;
+  rejectionHistory?: Array<{
+    id: string;
+    studentId?: string | null;
+    name?: string | null;
+    major?: string | null;
+    attemptNumber: number;
+    rejectedAt: string;
+  }>;
 };
 
 export type AdminPublication = {
@@ -28,8 +43,23 @@ export type AdminPublication = {
   fileSize?: number | null;
   downloadUrl?: string | null;
   status: AdminPublicationStatus;
-  uploader?: { id: string; name?: string | null; email: string };
-  authors?: Array<{ id?: string; name: string; email?: string | null; affiliation?: string | null; orderIndex?: number }>;
+  reviewRound?: number;
+  audiences: AdminPublicationAudience[];
+  isPrivate: boolean;
+  uploader?: {
+    id: string;
+    name?: string | null;
+    email: string;
+    role?: 'ADMIN' | 'LECTURER' | 'STUDENT' | string;
+    studentId?: string | null;
+  };
+  authors?: Array<{
+    id?: string;
+    name: string;
+    email?: string | null;
+    affiliation?: string | null;
+    orderIndex?: number;
+  }>;
   currentVersion?: {
     id: string;
     version: number;
@@ -49,6 +79,7 @@ export type AdminReview = {
   round: number;
   comment?: string | null;
   recommendation?: 'PUBLISH' | 'NEEDS_REVISION' | 'REJECT' | null;
+  assignmentRole?: 'PRIMARY' | 'SECONDARY' | 'LEGACY';
   submittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -58,7 +89,13 @@ export type AdminReview = {
     title?: string | null;
     status: AdminPublicationStatus;
     currentVersionLabel?: string;
-    uploader?: { id: string; name?: string | null; email: string };
+    uploader?: {
+      id: string;
+      name?: string | null;
+      email: string;
+      role?: 'ADMIN' | 'LECTURER' | 'STUDENT' | string;
+      studentId?: string | null;
+    };
   };
 };
 
@@ -102,6 +139,8 @@ export type AdminOverview = {
     published: number;
     rejected: number;
     processing: number;
+    facultySubmissions?: number;
+    studentSubmissions?: number;
     total: number;
   };
   byStatus: Record<string, number>;
@@ -116,7 +155,13 @@ export type AdminOverview = {
     status: string;
     createdAt: string;
     updatedAt: string;
-    uploader?: { id: string; name?: string | null; email: string };
+    uploader?: {
+      id: string;
+      name?: string | null;
+      email: string;
+      role?: 'ADMIN' | 'LECTURER' | 'STUDENT' | string;
+      studentId?: string | null;
+    };
   }>;
 };
 
@@ -159,7 +204,7 @@ function queryString(params: Record<string, string | number | boolean | undefine
 
 export const preprintApi = {
   overview: () => request<AdminOverview>('/api/v1/admin/overview'),
-  listSubmissions: (params: { page?: number; limit?: number; status?: AdminPublicationStatus; search?: string } = {}) =>
+  listSubmissions: (params: { page?: number; limit?: number; status?: AdminPublicationStatus; search?: string; uploaderRole?: 'LECTURER' | 'STUDENT' } = {}) =>
     requestResponse<AdminPublication[]>(`/api/v1/publications${queryString(params)}`).then((body) => ({
       items: body.data || [],
       pagination: body.pagination || { page: params.page || 1, limit: params.limit || 20, total: 0, totalPages: 1 },
@@ -170,20 +215,39 @@ export const preprintApi = {
       items: body.data || [],
       pagination: body.pagination || { page: params.page || 1, limit: params.limit || 20, total: (body.data || []).length, totalPages: 1 },
     })),
-  getReviews: (id: string) => request<AdminReview[]>(`/api/v1/publications/${id}/reviews`),
+  getReviews: (id: string, round?: 'current' | 'all' | number) =>
+    request<AdminReview[]>(`/api/v1/publications/${id}/reviews${round ? `?round=${round}` : ''}`),
   getVersions: (id: string) => request<AdminVersion[]>(`/api/v1/publications/${id}/versions`),
   getTimeline: (id: string) => request<AdminTimelineEvent[]>(`/api/v1/publications/${id}/timeline`),
   listLecturers: () => request<AdminUsersResponse>('/api/v1/admin/users?role=LECTURER&isActive=true&limit=100'),
-  assignReviewers: (id: string, reviewerIds: string[]) => request<AdminReview[]>(`/api/v1/publications/${id}/reviews/assign`, {
+  assignReviewers: (id: string, primaryReviewerId: string, secondaryReviewerIds: string[]) => request<AdminReview[]>(`/api/v1/publications/${id}/reviews/assign`, {
     method: 'POST',
-    body: JSON.stringify({ reviewerIds }),
+    body: JSON.stringify({ primaryReviewerId, secondaryReviewerIds }),
   }),
-  changeStatus: (id: string, status: AdminDecisionStatus) => request<Pick<AdminPublication, 'id' | 'title' | 'status' | 'updatedAt'>>(`/api/v1/publications/${id}/status`, {
+  changeStatus: (id: string, status: AdminDecisionStatus, reason: string) => request<Pick<AdminPublication, 'id' | 'title' | 'status' | 'updatedAt'>>(`/api/v1/publications/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, reason }),
+  }),
+  updateVisibility: (id: string, audiences: AdminPublicationAudience[]) => request<Pick<AdminPublication, 'id' | 'status' | 'audiences' | 'isPrivate' | 'updatedAt'>>(`/api/v1/publications/${id}/visibility`, {
+    method: 'PATCH',
+    body: JSON.stringify({ audiences }),
   }),
   listUsers: (params: { page?: number; limit?: number; role?: AdminUser['role']; search?: string; isActive?: boolean } = {}) =>
     request<AdminUsersResponse>(`/api/v1/admin/users${queryString(params)}`),
+  getUser: (id: string) => request<AdminUser>(`/api/v1/admin/users/${id}`),
+  createUser: (input: { email: string; name?: string | null; username?: string | null; studentId?: string | null; major?: string | null; password?: string; role?: AdminUser['role'] }) =>
+    request<AdminUser>('/api/v1/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  updateUser: (id: string, input: Partial<{ email: string; name: string | null; username: string | null; studentId: string | null; major: string | null; role: AdminUser['role']; password: string }>) =>
+    request<AdminUser>(`/api/v1/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  deleteUser: (id: string) => request<AdminUser>(`/api/v1/admin/users/${id}`, {
+    method: 'DELETE',
+  }),
   updateUserRole: (id: string, role: AdminUser['role']) => requestResponse<never>(`/api/v1/admin/users/${id}/role`, {
     method: 'PATCH',
     body: JSON.stringify({ role }),
@@ -192,6 +256,10 @@ export const preprintApi = {
     method: 'PATCH',
     body: JSON.stringify({ isActive }),
   }).then((body) => body.user as AdminUser),
+  listPendingUsers: (params: { page?: number; limit?: number } = {}) =>
+    request<{ users: AdminUser[]; pagination: AdminPagination }>(`/api/v1/admin/pending-users${queryString(params)}`),
+  approveUser: (id: string) => requestResponse<never>(`/api/v1/admin/users/${id}/approve`, { method: 'POST' }).then((body) => body.user as AdminUser),
+  rejectUser: (id: string) => requestResponse<never>(`/api/v1/admin/users/${id}/reject`, { method: 'POST' }).then((body) => body.user as AdminUser),
 };
 
 export const adminApi = preprintApi;

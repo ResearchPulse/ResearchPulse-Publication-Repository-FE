@@ -12,7 +12,7 @@ interface StudentDashboardLayoutProps {
 }
 
 export function StudentDashboardLayout({
-  title = 'Research Dashboard',
+  title,
   children,
   revisionCount = 0,
   totalCount = 0,

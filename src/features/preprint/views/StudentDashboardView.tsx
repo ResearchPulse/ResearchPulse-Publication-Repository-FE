@@ -4,10 +4,13 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks';
 import { StudentDashboardLayout } from '../components';
+import { Skeleton, TableSkeleton } from '@/components/skeleton';
 import { usePreprintList } from '../hooks';
 import type { PreprintStatus } from '@/shared/types';
+import { useTranslation } from '@/i18n';
 
 export function StudentDashboardView() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const displayName = user?.name || user?.email || 'Scholar';
   const { items, loading, error } = usePreprintList();
@@ -34,7 +37,7 @@ export function StudentDashboardView() {
 
   return (
     <StudentDashboardLayout
-      title="Research Dashboard"
+      title={t('student.topbar.academicDashboard')}
       revisionCount={metrics.needsRevision}
       totalCount={metrics.total}
     >
@@ -52,11 +55,11 @@ export function StudentDashboardView() {
           </div>
           <div className="dashboard-alert-banner__content">
             <div className="dashboard-alert-banner__header">
-              <strong className="dashboard-alert-banner__title">Action Required: Revision Requested</strong>
-              <span className="dashboard-alert-banner__badge">Version {revisionItem.current_version}</span>
+              <strong className="dashboard-alert-banner__title">Hành động khẩn: Yêu cầu chỉnh sửa</strong>
+              <span className="dashboard-alert-banner__badge">Phiên bản {revisionItem.current_version}</span>
             </div>
             <p className="dashboard-alert-banner__desc">
-              Faculty reviewer <strong>{revisionItem.reviews?.[0]?.reviewer_name || 'Advisory Reviewer'}</strong> requested methodological updates on <em>&ldquo;{revisionItem.title}&rdquo;</em>.
+              Giảng viên hướng dẫn <strong>{revisionItem.reviews?.[0]?.reviewer_name || 'Người thẩm định'}</strong> đã gửi nhận xét và yêu cầu cập nhật bản thảo <em>&ldquo;{revisionItem.title}&rdquo;</em>.
             </p>
           </div>
           <div className="dashboard-alert-banner__action">
@@ -64,7 +67,7 @@ export function StudentDashboardView() {
               href={`/student/my-preprints/${revisionItem.id}?tab=reviews`}
               className="dashboard-alert-banner__btn"
             >
-              Review Comments &amp; Revise →
+              Xem nhận xét &amp; Chỉnh sửa →
             </Link>
           </div>
         </div>
@@ -74,7 +77,7 @@ export function StudentDashboardView() {
       <div className="dashboard-metrics-grid">
         <div className="dashboard-metric-card">
           <div className="dashboard-metric-card__header">
-            <span className="dashboard-metric-card__label">Total Manuscripts</span>
+            <span className="dashboard-metric-card__label">Tổng số bản thảo</span>
             <div className="dashboard-metric-card__icon dashboard-metric-card__icon--blue">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -82,15 +85,15 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.total}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.total}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--neutral">
-            <span>Registered in repository</span>
+            <span>Đã đăng ký trong kho lưu trữ</span>
           </div>
         </div>
 
         <div className="dashboard-metric-card">
           <div className="dashboard-metric-card__header">
-            <span className="dashboard-metric-card__label">In Faculty Review</span>
+            <span className="dashboard-metric-card__label">Đang thẩm định</span>
             <div className="dashboard-metric-card__icon dashboard-metric-card__icon--sky">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
@@ -98,15 +101,15 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.underReview}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.underReview}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--sky">
-            <span>Under advisory evaluation</span>
+            <span>Đang trong quy trình đánh giá</span>
           </div>
         </div>
 
         <div className="dashboard-metric-card dashboard-metric-card--alert">
           <div className="dashboard-metric-card__header">
-            <span className="dashboard-metric-card__label">Action Required</span>
+            <span className="dashboard-metric-card__label">Cần chỉnh sửa</span>
             <div className="dashboard-metric-card__icon dashboard-metric-card__icon--amber">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
@@ -115,15 +118,15 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.needsRevision}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.needsRevision}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--amber">
-            <span>Needs student response</span>
+            <span>Đang chờ sinh viên phản hồi</span>
           </div>
         </div>
 
         <div className="dashboard-metric-card">
           <div className="dashboard-metric-card__header">
-            <span className="dashboard-metric-card__label">Approved &amp; Verified</span>
+            <span className="dashboard-metric-card__label">Đã duyệt</span>
             <div className="dashboard-metric-card__icon dashboard-metric-card__icon--green">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -131,9 +134,9 @@ export function StudentDashboardView() {
               </svg>
             </div>
           </div>
-          <div className="dashboard-metric-card__value">{metrics.approved}</div>
+          <div className="dashboard-metric-card__value">{loading ? <Skeleton width={32} height={28} style={{ display: 'inline-block' }} /> : metrics.approved}</div>
           <div className="dashboard-metric-card__trend dashboard-metric-card__trend--green">
-            <span>Camera-ready / Public</span>
+            <span>Sẵn sàng lưu trữ / Công khai</span>
           </div>
         </div>
       </div>
@@ -142,8 +145,8 @@ export function StudentDashboardView() {
       <div className="dashboard-card">
         <div className="dashboard-card__header">
           <div>
-            <h2 className="dashboard-card__title">Recent Manuscripts</h2>
-            <p className="dashboard-card__desc">Review submission progress and cryptographic validation</p>
+            <h2 className="dashboard-card__title">Bản thảo gần đây</h2>
+            <p className="dashboard-card__desc">Theo dõi tiến trình nộp bản thảo và xác thực mật mã</p>
           </div>
           <div className="dashboard-card__filters">
             <button
@@ -151,79 +154,102 @@ export function StudentDashboardView() {
               className={`dashboard-filter-btn ${filterStatus === 'ALL' ? 'dashboard-filter-btn--active' : ''}`}
               onClick={() => setFilterStatus('ALL')}
             >
-              All ({metrics.total})
+              Tất cả ({metrics.total})
             </button>
             <button
               type="button"
               className={`dashboard-filter-btn ${filterStatus === 'NEEDS_REVISION' ? 'dashboard-filter-btn--active' : ''}`}
               onClick={() => setFilterStatus('NEEDS_REVISION')}
             >
-              Action ({metrics.needsRevision})
+              Cần chỉnh sửa ({metrics.needsRevision})
             </button>
             <button
               type="button"
               className={`dashboard-filter-btn ${filterStatus === 'UNDER_REVIEW' ? 'dashboard-filter-btn--active' : ''}`}
               onClick={() => setFilterStatus('UNDER_REVIEW')}
             >
-              In Review ({metrics.underReview})
+              Đang thẩm định ({metrics.underReview})
             </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="dashboard-loading">Loading manuscripts…</div>
+          <div className="dashboard-table-wrapper">
+            <table className="dashboard-table dashboard-table--repository">
+              <thead>
+                <tr>
+                  <th style={{ width: '48%' }}>Bản thảo</th>
+                  <th>Lĩnh vực nghiên cứu</th>
+                  <th>Phiên bản</th>
+                  <th>Trạng thái</th>
+                  <th>Cập nhật</th>
+                </tr>
+              </thead>
+              <tbody>
+                <TableSkeleton rows={4} type="submissions" />
+              </tbody>
+            </table>
+          </div>
         ) : error ? (
-          <div className="dashboard-error">Error: {error.message}</div>
+          <div className="dashboard-error">Lỗi: {error.message}</div>
         ) : displayedItems.length === 0 ? (
-          <div className="dashboard-empty">No manuscripts found for this filter.</div>
+          <div className="dashboard-empty">Không tìm thấy bản thảo nào cho bộ lọc này.</div>
         ) : (
           <div className="dashboard-table-wrapper">
             <table className="dashboard-table dashboard-table--repository">
               <thead>
                 <tr>
-                  <th style={{ width: '48%' }}>Manuscript</th>
-                  <th>Discipline</th>
-                  <th>Version</th>
-                  <th>Status</th>
-                  <th>Updated</th>
+                  <th style={{ width: '48%' }}>Bản thảo</th>
+                  <th>Lĩnh vực nghiên cứu</th>
+                  <th>Phiên bản</th>
+                  <th>Trạng thái</th>
+                  <th>Cập nhật</th>
                 </tr>
               </thead>
               <tbody>
                 {displayedItems.map((item) => (
                   <tr key={item.id}>
                     <td className="dashboard-table__title-cell">
-                      <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
-                        {item.title}
-                      </Link>
-                      <span className="dashboard-table__sha">
-                        {item.sha256 ? `SHA-256: ${item.sha256.substring(0, 16)}…` : 'Cryptographic timestamp pending'}
-                      </span>
+                      <div className="dashboard-table__title-group">
+                        <Link href={`/student/my-preprints/${item.id}`} className="dashboard-table__title-link">
+                          {item.title}
+                        </Link>
+                        {item.is_private && (
+                          <span className="dashboard-private-pill">Riêng tư</span>
+                        )}
+                      </div>
                     </td>
                     <td>
-                      <span className="dashboard-badge-tag">{item.discipline || 'General'}</span>
+                      <span className="dashboard-badge-tag">{item.discipline || 'Tổng quát'}</span>
                     </td>
                     <td>
                       <span className="dashboard-version-pill">v{item.current_version}</span>
                     </td>
                     <td>
                       {item.status === 'NEEDS_REVISION' && (
-                        <span className="user-badge user-badge--revision">NEEDS REVISION</span>
+                        <span className="user-badge user-badge--revision">CẦN CHỈNH SỬA</span>
                       )}
                       {item.status === 'UNDER_REVIEW' && (
-                        <span className="user-badge user-badge--review">UNDER REVIEW</span>
+                        <span className="user-badge user-badge--review">ĐANG THẨM ĐỊNH</span>
                       )}
-                      {(item.status === 'APPROVED' || item.status === 'PUBLISHED') && (
-                        <span className="user-badge user-badge--approved">APPROVED</span>
+                      {item.status === 'PUBLISHED' && (
+                        <span className="user-badge user-badge--approved">ĐÃ XUẤT BẢN</span>
+                      )}
+                      {item.status === 'APPROVED' && (
+                        <span className="user-badge user-badge--approved">ĐÃ DUYỆT</span>
                       )}
                       {item.status === 'DRAFT' && (
-                        <span className="user-badge user-badge--draft">DRAFT</span>
+                        <span className="user-badge user-badge--draft">BẢN NHÁP</span>
+                      )}
+                      {(item.status === 'REJECTED' || item.status === 'WITHDRAWN') && (
+                        <span className="user-badge user-badge--withdrawn">ĐÃ TỪ CHỐI</span>
                       )}
                     </td>
                     <td className="dashboard-table__date">
                       {(() => {
                         if (!item.updated_at) return '—';
                         const d = new Date(item.updated_at);
-                        return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
                       })()}
                     </td>
                   </tr>
@@ -235,7 +261,7 @@ export function StudentDashboardView() {
 
         <div className="dashboard-card__footer">
           <Link href="/student/my-preprints" className="dashboard-card__view-all">
-            View all manuscripts in repository →
+            Xem toàn bộ bản thảo trong kho lưu trữ →
           </Link>
         </div>
       </div>
@@ -245,23 +271,23 @@ export function StudentDashboardView() {
         {/* Faculty Review Feedback Feed */}
         <div className="dashboard-card">
           <div className="dashboard-card__header">
-            <h2 className="dashboard-card__title">Faculty Advisory Activity</h2>
+            <h2 className="dashboard-card__title">Hoạt động hướng dẫn của GVHD</h2>
           </div>
           <div className="dashboard-mentor-list">
             <div className="dashboard-mentor-item">
               <div className="dashboard-mentor-avatar">LT</div>
               <div className="dashboard-mentor-content">
                 <div className="dashboard-mentor-top">
-                  <strong>{revisionItem?.reviews?.[0]?.reviewer_name || 'No reviewer activity'}</strong>
-                  <span className="dashboard-mentor-badge">Loaded from publication API</span>
+                  <strong>{revisionItem?.reviews?.[0]?.reviewer_name || 'Chưa có hoạt động phản biện'}</strong>
+                  <span className="dashboard-mentor-badge">Tải từ API bản thảo</span>
                 </div>
                 <p className="dashboard-mentor-comment">
-                  {revisionItem?.reviews?.[0]?.comments || 'No reviewer comments have been returned yet.'}
+                  {revisionItem?.reviews?.[0]?.comments || 'Chưa có nhận xét phản biện nào được ghi nhận.'}
                 </p>
                 <div className="dashboard-mentor-meta">
-                  <span>{revisionItem?.title || 'No manuscript review activity'}</span>
+                  <span>{revisionItem?.title || 'Không có hoạt động phản biện bản thảo'}</span>
                   <Link href="/student/mentor-feedback" className="dashboard-mentor-link">
-                    Open feedback
+                    Xem phản hồi
                   </Link>
                 </div>
               </div>
@@ -271,14 +297,14 @@ export function StudentDashboardView() {
               <div className="dashboard-mentor-avatar dashboard-mentor-avatar--purple">NT</div>
               <div className="dashboard-mentor-content">
                 <div className="dashboard-mentor-top">
-                  <strong>Reviewer assignments</strong>
-                  <span className="dashboard-mentor-badge dashboard-mentor-badge--neutral">Publication API</span>
+                  <strong>Phân công người phản biện</strong>
+                  <span className="dashboard-mentor-badge dashboard-mentor-badge--neutral">API bản thảo</span>
                 </div>
                 <p className="dashboard-mentor-comment">
-                  Reviewer assignments and recommendations are managed in the admin workspace.
+                  Việc phân công và khuyến nghị của người phản biện được quản lý trong không gian quản trị.
                 </p>
                 <div className="dashboard-mentor-meta">
-                  <span>Review assignments are loaded from the publication API.</span>
+                  <span>Các phân công phản biện được tải tự động từ hệ thống.</span>
                 </div>
               </div>
             </div>
@@ -288,19 +314,19 @@ export function StudentDashboardView() {
         {/* Academic Guidance Card */}
         <div className="dashboard-card dashboard-card--accent">
           <div className="dashboard-card__header">
-            <h2 className="dashboard-card__title">Submission Guidance</h2>
+            <h2 className="dashboard-card__title">Hướng dẫn nộp bản thảo</h2>
           </div>
           <div className="dashboard-milestones">
             <div className="dashboard-milestone-item">
               <div className="dashboard-milestone-info">
-                <strong>Prepare your manuscript</strong>
-                <p>Upload a PDF, verify the extracted metadata, and submit it for lecturer review.</p>
+                <strong>Chuẩn bị bản thảo của bạn</strong>
+                <p>Tải lên tệp PDF, kiểm tra dữ liệu bản thảo và gửi để giảng viên hướng dẫn đánh giá.</p>
               </div>
             </div>
             <div className="dashboard-milestone-item">
               <div className="dashboard-milestone-info">
-                <strong>Track the decision</strong>
-                <p>Lecturers submit recommendations; only an administrator can publish the preprint.</p>
+                <strong>Theo dõi kết quả đánh giá</strong>
+                <p>Giảng viên gửi các ý kiến và đề xuất; chỉ quản trị viên mới có quyền phát hành chính thức preprint.</p>
               </div>
             </div>
           </div>

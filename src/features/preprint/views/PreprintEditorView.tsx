@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { StudentShell } from '../components';
+import { LecturerShell } from '@/features/lecturer/components';
+import { useTranslation } from '@/i18n';
 import { studentPreprintApi } from '../api';
 import type { StudentPreprint, PreprintAnalysis } from '../types';
+import { FormSkeleton } from '@/components/skeleton';
+import { usePreprintDraft } from '@/lib/hooks/use-preprint-draft';
 
 const DISCIPLINES = [
   'Computer Science & Artificial Intelligence',
@@ -73,7 +77,7 @@ function SearchableDisciplineSelect({ value, onChange }: SearchableDisciplineSel
         aria-expanded={isOpen}
       >
         <span className={value ? 'student-searchable-select__value' : 'student-searchable-select__placeholder'}>
-          {value || 'Select a research discipline'}
+          {value || 'Chọn chuyên ngành nghiên cứu'}
         </span>
         <svg
           className={`student-searchable-select__arrow ${isOpen ? 'student-searchable-select__arrow--open' : ''}`}
@@ -111,7 +115,7 @@ function SearchableDisciplineSelect({ value, onChange }: SearchableDisciplineSel
               ref={searchInputRef}
               type="text"
               className="student-searchable-select__search-input"
-              placeholder="Search discipline..."
+              placeholder="Tìm kiếm chuyên ngành..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -153,7 +157,7 @@ function SearchableDisciplineSelect({ value, onChange }: SearchableDisciplineSel
               })
             ) : (
               <li className="student-searchable-select__option--empty">
-                No research disciplines found
+                Không tìm thấy chuyên ngành phù hợp
               </li>
             )}
           </ul>
@@ -167,19 +171,41 @@ interface PreprintEditorViewProps {
   id?: string;
 }
 
+function PreprintWorkspaceShell({
+  isLecturer,
+  title,
+  kicker,
+  children,
+}: {
+  isLecturer: boolean;
+  title: string;
+  kicker: string;
+  children: React.ReactNode;
+}) {
+  return isLecturer
+    ? <LecturerShell active="submissions" title={title}>{children}</LecturerShell>
+    : <StudentShell title={title} kicker={kicker}>{children}</StudentShell>;
+}
+
 export function PreprintEditorView({ id }: PreprintEditorViewProps) {
+  const { t } = useTranslation();
   const router = useRouter();
-  const { user } = useAuth();
+  const pathname = usePathname();
+  const { user, loading: authLoading } = useAuth();
   const isEditing = Boolean(id);
+  const isLecturer = user?.role === 'LECTURER';
+  const isLecturerRoute = pathname?.startsWith('/lecturer/') ?? false;
+  const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
   const devMockSubmitEnabled = process.env.NEXT_PUBLIC_DEV_MOCK_SUBMIT === 'true';
 
   // Form states
   const [title, setTitle] = useState('');
   const [discipline, setDiscipline] = useState('');
   const [abstractText, setAbstractText] = useState('');
-  const [doi, setDoi] = useState('');
   const [keywordsInput, setKeywordsInput] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
   const [changeSummary, setChangeSummary] = useState('');
+  const [changeSummaryError, setChangeSummaryError] = useState<string | null>(null);
 
   // Authors are extracted from the uploaded PDF. New contributors can be added
   // before submission and are sent through the metadata update endpoint.
@@ -187,9 +213,18 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [newAuthorName, setNewAuthorName] = useState('');
   const [newAuthorEmail, setNewAuthorEmail] = useState('');
   const [newAuthorStudentId, setNewAuthorStudentId] = useState('');
-  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER' | 'ADMIN'>('STUDENT');
+  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
   const [newAuthorInst, setNewAuthorInst] = useState('');
   const [showAddAuthor, setShowAddAuthor] = useState(false);
+
+  // Edit Author Modal State
+  const [editingAuthorIndex, setEditingAuthorIndex] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editStudentId, setEditStudentId] = useState('');
+  const [editRole, setEditRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
+  const [editInstitution, setEditInstitution] = useState('');
+  const [editIsPrimary, setEditIsPrimary] = useState(false);
 
   // File Upload State
   const [file, setFile] = useState<File | null>(null);
@@ -217,13 +252,14 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         setTitle(item.titleNeedsInput ? '' : item.title || '');
         if (item.discipline) setDiscipline(item.discipline);
         setAbstractText(item.abstract || '');
-        setDoi(item.doi || '');
         if (item.keywords?.length) setKeywordsInput(item.keywords.join(', '));
+        setIsPrivate(Boolean((item as StudentPreprint & { is_private?: boolean }).is_private));
         if (item.file_name) {
           setFileName(item.file_name);
           setFileSize(item.file_size || null);
           setFileHash(item.sha256 || null);
         }
+        if (item.change_summary) setChangeSummary(item.change_summary);
         setAuthors(item.authors || []);
       })
       .catch((err) => {
@@ -237,6 +273,54 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       active = false;
     };
   }, [id]);
+
+  // Preprint Draft (Auto-save in Browser Storage)
+  const { draft, saveDraft, clearDraft, hasSavedDraft } = usePreprintDraft();
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [showDraftNotice, setShowDraftNotice] = useState(false);
+
+  // Restore draft if creating a new preprint and draft exists
+  useEffect(() => {
+    if (id || draftRestored || !draft) return;
+    if (hasSavedDraft()) {
+      if (draft.title && !title) setTitle(draft.title);
+      if (draft.discipline && !discipline) setDiscipline(draft.discipline);
+      if (draft.abstractText && !abstractText) setAbstractText(draft.abstractText);
+      if (draft.keywordsInput && !keywordsInput) setKeywordsInput(draft.keywordsInput);
+      if (draft.isPrivate !== undefined) setIsPrivate(Boolean(draft.isPrivate));
+      if (draft.authors && draft.authors.length > 0 && authors.length === 0) {
+        setAuthors(draft.authors as StudentPreprint['authors']);
+      }
+      setDraftRestored(true);
+      setShowDraftNotice(true);
+    }
+  }, [id, draftRestored, hasSavedDraft, draft, title, discipline, abstractText, keywordsInput, authors.length]);
+
+  // Auto-save draft on form change (debounced 600ms)
+  useEffect(() => {
+    if (id) return;
+    if (!title.trim() && !abstractText.trim() && !discipline && !keywordsInput.trim() && authors.length === 0) return;
+
+    const timer = setTimeout(() => {
+      saveDraft({
+        title,
+        discipline,
+        abstractText,
+        keywordsInput,
+        isPrivate,
+        authors: authors.map((a) => ({
+          name: a.name,
+          email: a.email,
+          studentId: a.studentId,
+          role: a.role as 'STUDENT' | 'LECTURER' | 'ADMIN',
+          institution: a.institution,
+          isPrimary: a.isPrimary ?? false,
+        })),
+      });
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [id, title, discipline, abstractText, keywordsInput, isPrivate, authors, saveDraft]);
 
   const handleFile = async (selectedFile: File) => {
     const isPdf = selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf');
@@ -268,10 +352,32 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       setAnalysis(result);
       setTitle(result.title || '');
       setAbstractText(result.abstract || '');
-      setDoi(result.doi || '');
       setKeywordsInput('');
       setDiscipline(isEditing ? discipline : '');
-      setAuthors(result.authors);
+
+      // Smart populate: automatically link uploader student profile to primary author
+      const rawAuthors = result.authors || [];
+      const updatedAuthors = rawAuthors.map((author, index) => {
+        const isSelf = user && (
+          (user.studentId && author.studentId && user.studentId.toUpperCase() === author.studentId.toUpperCase()) ||
+          (user.email && author.email && user.email.toLowerCase() === author.email.toLowerCase()) ||
+          (index === 0 && user.role === 'STUDENT')
+        );
+        if (isSelf && user) {
+          return {
+            ...author,
+            name: author.name || user.name || '',
+            email: author.email || user.email || '',
+            studentId: author.studentId || user.studentId || undefined,
+            role: (author.role || user.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN',
+            userId: user.id,
+            verificationStatus: 'VERIFIED' as const,
+          };
+        }
+        return author;
+      });
+
+      setAuthors(updatedAuthors);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Unable to analyze the selected PDF.');
     } finally {
@@ -312,40 +418,140 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setAuthors(authors.filter((_, authorIndex) => authorIndex !== index + 1));
   };
 
+  const openEditAuthorModal = (index: number) => {
+    const author = authors[index] || (index === 0 ? {
+      name: primaryAuthorName,
+      email: primaryAuthorEmail,
+      studentId: primaryAuthorStudentId,
+      role: isLecturer ? ('LECTURER' as const) : ('STUDENT' as const),
+      institution: primaryAuthorInst,
+      isPrimary: true,
+    } : null);
+
+    if (!author) return;
+    setEditingAuthorIndex(index);
+    setEditName(author.name || '');
+    setEditEmail(author.email || '');
+    setEditStudentId(author.studentId || '');
+    setEditRole(author.role === 'LECTURER' ? 'LECTURER' : (author.studentId ? 'STUDENT' : (author.role === 'STUDENT' ? 'STUDENT' : 'LECTURER')));
+    setEditInstitution(author.institution || '');
+    setEditIsPrimary(Boolean(author.isPrimary || index === 0));
+  };
+
+  const handleUseMyInfo = () => {
+    if (!user) return;
+    setEditName(user.name || '');
+    setEditEmail(user.email || '');
+    if (user.studentId) setEditStudentId(user.studentId);
+    setEditRole(user.role === 'LECTURER' ? 'LECTURER' : 'STUDENT');
+  };
+
+  const saveEditedAuthor = () => {
+    if (!editName.trim()) {
+      showError('Vui lòng nhập họ và tên tác giả.');
+      return;
+    }
+    if (editingAuthorIndex === null) return;
+
+    const currentList = authors.length > 0 ? [...authors] : [{
+      name: primaryAuthorName,
+      email: primaryAuthorEmail,
+      studentId: primaryAuthorStudentId,
+      role: isLecturer ? ('LECTURER' as const) : ('STUDENT' as const),
+      institution: primaryAuthorInst,
+      isPrimary: true,
+      isCorresponding: true,
+    }];
+
+    const targetAuthor = currentList[editingAuthorIndex] || {
+      name: editName.trim(),
+      email: editEmail.trim(),
+      institution: editInstitution.trim() || 'Institution unavailable',
+    };
+
+    const isMatchUser = user && (
+      (editStudentId && user.studentId && editStudentId.toUpperCase() === user.studentId.toUpperCase()) ||
+      (editEmail && user.email && editEmail.toLowerCase() === user.email.toLowerCase())
+    );
+
+    const updatedAuthor: StudentPreprint['authors'][number] = {
+      ...targetAuthor,
+      name: editName.trim(),
+      email: editEmail.trim(),
+      studentId: editStudentId.trim() || undefined,
+      role: editRole,
+      institution: editInstitution.trim() || 'Institution unavailable',
+      isPrimary: editIsPrimary,
+      userId: isMatchUser ? user.id : targetAuthor.userId,
+      verificationStatus: isMatchUser || editStudentId.trim() || editEmail.trim() ? 'VERIFIED' : 'MISSING_IDENTIFIER',
+    };
+
+    currentList[editingAuthorIndex] = updatedAuthor;
+
+    // If marked as primary author and wasn't at index 0, move to top
+    if (editIsPrimary && editingAuthorIndex > 0) {
+      const [promoted] = currentList.splice(editingAuthorIndex, 1);
+      currentList.forEach((a) => { a.isPrimary = false; });
+      promoted.isPrimary = true;
+      currentList.unshift(promoted);
+    }
+
+    setAuthors(currentList);
+    setEditingAuthorIndex(null);
+  };
+
+  const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
+  const isReadOnly = Boolean(originalItem && originalItem.status !== 'DRAFT' && !isRevisionMode);
+  const latestReview = originalItem?.reviews?.[0];
+
   const showError = (msg: string) => {
     setFormError(msg);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (submitNow: boolean, useMockSubmit = false) => {
+    if (isReadOnly) {
+      setFormError('Bản thảo đã nộp và đang trong quá trình xét duyệt, không thể chỉnh sửa.');
+      return;
+    }
+
     if (isAnalyzing) {
       showError('Please wait for GROBID extraction to finish before saving or submitting.');
       return;
     }
 
     setFormError(null);
+    setChangeSummaryError(null);
 
-    if (submitNow && !useMockSubmit) {
-      if (!isEditing && !file) {
-        showError('A PDF manuscript file is required before submitting for faculty review.');
+    if (submitNow) {
+      if (isRevisionMode && !changeSummary.trim()) {
+        const errorMsg = 'Vui lòng nhập tóm tắt các điểm chỉnh sửa (phản hồi người phản biện) trước khi nộp.';
+        setChangeSummaryError(errorMsg);
+        showError(errorMsg);
+        const el = document.getElementById('field-changes');
+        if (el) {
+          el.focus();
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         return;
       }
-      if ((originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required) && !changeSummary.trim()) {
-        showError('Please provide a Summary of Changes addressing the reviewer comments.');
+
+      if (!isEditing && !file) {
+        showError('Vui lòng đính kèm tệp bản thảo PDF trước khi gửi xét duyệt.');
         return;
       }
     }
 
     if (!isEditing && !file) {
-      showError('Attach a PDF manuscript before saving this draft.');
+      showError('Vui lòng đính kèm tệp bản thảo PDF trước khi lưu bản nháp.');
       return;
     }
 
     const basePrimaryAuthor = {
       name: primaryAuthorName,
       email: primaryAuthorEmail,
-      studentId: user?.studentId || '',
-      role: 'STUDENT' as const,
+      studentId: isLecturer ? undefined : (user?.studentId || ''),
+      role: isLecturer ? ('LECTURER' as const) : ('STUDENT' as const),
       institution: primaryAuthorInst,
       isPrimary: true,
       isCorresponding: true,
@@ -361,20 +567,20 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     if (submitNow) {
       if (!useMockSubmit) {
         const incompleteAuthors = uniqueAuthors.filter((author) => {
-        const role = author.role || (author.studentId ? 'STUDENT' : 'LECTURER');
-        return role === 'STUDENT' ? !author.studentId?.trim() : !author.email?.trim();
-      });
-      if (incompleteAuthors.length > 0) {
-        showError('Cần đăng ký thành viên (Các tác giả phải có MSSV hoặc Email).');
-        return;
-      }
+          const role = author.role || (author.studentId ? 'STUDENT' : (isLecturer ? 'LECTURER' : 'STUDENT'));
+          return role === 'STUDENT' ? !author.studentId?.trim() : !author.email?.trim();
+        });
+        if (incompleteAuthors.length > 0) {
+          showError('Cần đăng ký thành viên (Các tác giả phải có MSSV hoặc Email).');
+          return;
+        }
       }
       if (!discipline.trim()) {
-        showError('Research Discipline / Field is required before submitting.');
+        showError('Vui lòng chọn Lĩnh vực nghiên cứu trước khi nộp.');
         return;
       }
       if (!title.trim()) {
-        showError('Manuscript title is required before submitting.');
+        showError('Vui lòng nhập Tiêu đề bản thảo trước khi nộp.');
         return;
       }
     }
@@ -385,9 +591,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       const metadata = {
         title: title.trim() || undefined,
         abstract: abstractText.trim() || undefined,
-        doi: doi.trim() || undefined,
         discipline: discipline.trim() || undefined,
         keywords,
+        isPrivate: isLecturer ? isPrivate : undefined,
         authors: uniqueAuthors.map((author, index) => ({
           name: author.name.trim(),
           email: author.email?.trim() || undefined,
@@ -401,7 +607,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
       if (!isEditing) {
         const uploadedPublication = await studentPreprintApi.upload(file!, submitNow && !useMockSubmit ? 'SUBMIT' : 'DRAFT', metadata);
         if (useMockSubmit) await studentPreprintApi.mockSubmit(uploadedPublication.id);
-        router.push(`/student/my-preprints/${uploadedPublication.id}`);
+        router.push(`${workspacePath}/${uploadedPublication.id}`);
         router.refresh();
         return;
       }
@@ -414,49 +620,187 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         setFileHash(uploadedPublication.sha256 || fileHash);
       }
 
-      await studentPreprintApi.update(publicationId, metadata);
+      await studentPreprintApi.update(publicationId, {
+        ...metadata,
+        changeSummary: isRevisionMode ? changeSummary.trim() || undefined : undefined,
+      });
       if (submitNow) {
         if (useMockSubmit) await studentPreprintApi.mockSubmit(publicationId);
         else await studentPreprintApi.submit(publicationId);
       }
 
-      router.push(`/student/my-preprints/${publicationId}`);
+      if (!id) clearDraft();
+
+      router.push(`${workspacePath}/${publicationId}`);
       router.refresh();
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'An error occurred while saving the preprint.');
+      showError(error instanceof Error ? error.message : 'Đã xảy ra lỗi trong quá trình lưu bản thảo.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isRevisionMode = originalItem?.status === 'NEEDS_REVISION' || originalItem?.revision_required === true;
-  const latestReview = originalItem?.reviews?.[0];
+
 
   const primaryAuthor = authors[0] || originalItem?.authors?.[0];
-  const primaryAuthorName = primaryAuthor?.name || user?.name || user?.email?.split('@')[0] || 'Logged-in Student';
-  const primaryAuthorEmail = primaryAuthor?.email || user?.email || 'student@university.edu.vn';
+  const primaryAuthorName = primaryAuthor?.name || user?.name || user?.email?.split('@')[0] || (isLecturer ? 'Giảng viên' : 'Sinh viên');
+  const primaryAuthorEmail = primaryAuthor?.email || user?.email || (isLecturer ? 'lecturer@university.edu.vn' : 'student@university.edu.vn');
   const primaryAuthorStudentId = primaryAuthor?.studentId || user?.studentId || '';
-  const primaryAuthorInst = primaryAuthor?.institution || 'University Research Faculty';
+  const primaryAuthorInst = primaryAuthor?.institution || 'Khoa Nghiên cứu Đại học';
   const primaryInitials = primaryAuthorName
     .split(' ')
     .map((p) => p[0])
     .filter(Boolean)
     .slice(0, 2)
     .join('')
-    .toUpperCase() || 'ST';
+    .toUpperCase() || (isLecturer ? 'GV' : 'ST');
+
+  if (authLoading) {
+    return (
+      <main
+        role="status"
+        aria-live="polite"
+        style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px', color: '#64748b' }}
+      >
+        Đang tải không gian làm việc…
+      </main>
+    );
+  }
+
+  if (isLecturerRoute && user?.role !== 'LECTURER') {
+    return (
+      <main
+        role="alert"
+        style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px', color: '#b91c1c' }}
+      >
+        Không gian này yêu cầu tài khoản Giảng viên.
+      </main>
+    );
+  }
 
   return (
-    <StudentShell
-      title={isRevisionMode ? `Revise Manuscript: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}` : isEditing ? 'Edit Manuscript Draft' : 'Start a New Preprint'}
-      kicker={isRevisionMode ? 'Revision Submission' : 'Manuscript Registration'}
+    <PreprintWorkspaceShell
+      isLecturer={isLecturer}
+      title={
+        isReadOnly
+          ? `${t('student.preprints.manuscriptPrefix')}: ${originalItem?.status === 'UNDER_REVIEW' ? t('student.preprints.underReview') : (originalItem?.status || '')}`
+          : isRevisionMode
+            ? `${t('student.preprints.submitRevision')}: v${Number((originalItem?.current_version || 1) + 0.1).toFixed(1)}`
+            : isEditing
+              ? t('student.preprints.editDraft')
+              : t('student.topbar.newPreprintButton')
+      }
+      kicker={isReadOnly ? t('student.preprints.submittedManuscript') : isRevisionMode ? t('student.preprints.submitRevision') : t('student.preprints.registerManuscript')}
     >
       {loadingInitial ? (
-        <div className="student-loading-box">
-          <div className="student-spinner" />
-          <p>Loading manuscript details…</p>
-        </div>
+        <FormSkeleton />
       ) : (
         <div className="student-editor-container">
+          {showDraftNotice && !id && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              fontSize: '13px',
+              color: '#166534',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>💾</span>
+                <span>Bản nháp soạn thảo đã được tự động khôi phục từ trình duyệt.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearDraft();
+                    setTitle('');
+                    setDiscipline('');
+                    setAbstractText('');
+                    setKeywordsInput('');
+                    setIsPrivate(false);
+                    setAuthors([]);
+                    setShowDraftNotice(false);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    fontWeight: 600,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Xóa bản nháp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDraftNotice(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#166534',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    padding: '0',
+                    lineHeight: 1,
+                  }}
+                  title="Đóng thông báo"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Read-only Alert Banner */}
+          {isReadOnly && (
+            <div
+              className="student-editor-status-banner"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                padding: '16px 20px',
+                marginBottom: '20px',
+                backgroundColor: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '10px',
+                color: '#1e40af',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <div>
+                  <strong style={{ fontSize: '15px', display: 'block', marginBottom: '2px', color: '#1e3a8a' }}>
+                    Bản thảo đang trong trạng thái {originalItem?.status === 'UNDER_REVIEW' ? 'Đang xét duyệt (Under Review)' : originalItem?.status}
+                  </strong>
+                  <span style={{ fontSize: '13.5px', color: '#3b82f6' }}>
+                    Bản thảo đã nộp không thể chỉnh sửa trực tiếp. Dữ liệu bản thảo được khóa trong quá trình thẩm định.
+                  </span>
+                </div>
+              </div>
+              <Link
+                href={`${workspacePath}/${originalItem?.id || id}`}
+                className="student-btn student-btn--primary"
+                style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                Xem chi tiết bản thảo →
+              </Link>
+            </div>
+          )}
+
           {/* Reviewer Feedback Callout for Revisions */}
           {isRevisionMode && latestReview && (
             <div className="student-editor-revision-alert">
@@ -467,7 +811,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
                 <div>
-                  <h4>Feedback to Address from {latestReview.reviewer_name}</h4>
+                  <h4>Nhận xét cần chỉnh sửa từ {latestReview.reviewer_name}</h4>
                   <p className="student-subtext">{latestReview.reviewer_title}</p>
                 </div>
               </div>
@@ -476,7 +820,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               </blockquote>
               {latestReview.recommendations && latestReview.recommendations.length > 0 && (
                 <div className="student-editor-revision-alert__recs">
-                  <strong>Action Items:</strong>
+                  <strong>Các điểm cần khắc phục:</strong>
                   <ul>
                     {latestReview.recommendations.map((rec, i) => (
                       <li key={i}>{rec}</li>
@@ -503,18 +847,15 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
             className="student-form"
             onSubmit={(e) => {
               e.preventDefault();
-              handleSubmit(false);
+              if (!isReadOnly) handleSubmit(false);
             }}
           >
-            {/* Step 01: Upload Manuscript PDF (trên cùng) */}
+            {/* Step 01: Upload Manuscript PDF */}
             <div className="student-form-section">
               <div className="student-form-section__header">
                 <span className="student-step-number">01</span>
                 <div>
-                  <h3 className="student-form-section__title">Upload Manuscript PDF</h3>
-                  <p className="student-form-section__desc">
-                    Attach your camera-ready PDF document (up to 50MB). Once uploaded, GROBID automated extraction will parse the manuscript's metadata, title, and citations.
-                  </p>
+                  <h3 className="student-form-section__title">Tải lên bản thảo PDF</h3>
                 </div>
               </div>
 
@@ -545,8 +886,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                         <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                     </div>
-                    <strong className="student-dropzone__cta">Choose a PDF file or drag and drop here</strong>
-                    <span className="student-dropzone__specs">PDF up to 50MB. Includes figures, tables, and citations.</span>
+                    <strong className="student-dropzone__cta">Chọn tệp PDF hoặc kéo thả vào đây</strong>
+                    <span className="student-dropzone__specs">Tệp PDF dung lượng tối đa 50MB. Bao gồm hình vẽ, bảng biểu và tài liệu tham khảo.</span>
                   </label>
                 </div>
               ) : (
@@ -566,43 +907,26 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        {fileHash ? `SHA-256: ${fileHash.substring(0, 14)}…` : 'Checksum verified'}
+                        {fileHash ? `SHA-256: ${fileHash.substring(0, 14)}…` : 'Đã xác thực mã băm'}
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFile(null);
-                      setFileName(null);
-                      setFileSize(null);
-                      setFileHash(null);
-                    }}
-                    className="student-file-remove-btn"
-                  >
-                    Replace
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFile(null);
+                        setFileName(null);
+                        setFileSize(null);
+                        setFileHash(null);
+                      }}
+                      className="student-file-remove-btn"
+                    >
+                      Thay tệp khác
+                    </button>
+                  )}
                 </div>
               )}
-
-              <div className="student-upload-specs-strip">
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  PDF max 50MB (Camera-Ready)
-                </span>
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  Automated GROBID Parser
-                </span>
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  CC BY 4.0 Open Access
-                </span>
-                <span className="student-spec-pill">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  48–72h Faculty Review SLA
-                </span>
-              </div>
             </div>
 
             {/* If Revision: Summary of Revisions (Author Response) */}
@@ -611,26 +935,41 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 <div className="student-form-section__header">
                   <span className="student-step-number student-step-number--amber">★</span>
                   <div>
-                    <h3 className="student-form-section__title">Summary of Revisions (Author Response)</h3>
-                    <p className="student-form-section__desc">
-                      Explain explicitly how this version addresses the reviewer comments above.
-                    </p>
+                    <h3 className="student-form-section__title">Tóm tắt các điểm chỉnh sửa (Phản hồi tác giả)</h3>
                   </div>
                 </div>
 
-                <div className="student-field">
+                <div className={`student-field ${changeSummaryError ? 'student-field--error' : ''}`}>
                   <label htmlFor="field-changes" className="student-field__label">
-                    Response to Reviewers &amp; Change Notes <span className="student-required">*</span>
+                    Phản hồi người phản biện &amp; Ghi chú thay đổi <span className="student-required">*</span>
                   </label>
                   <textarea
                     id="field-changes"
-                    className="student-textarea"
+                    className={`student-textarea ${changeSummaryError ? 'student-textarea--error' : ''}`}
                     rows={4}
-                    placeholder="e.g., Added ANOVA verification table in Section 3.2, clarified OS benchmarking in Appendix A, and re-computed confidence intervals."
+                    placeholder="Ví dụ: Đã bổ sung bảng kiểm định ANOVA ở Mục 3.2, làm rõ phương pháp so sánh tại Phụ lục A và tính toán lại khoảng tin cậy."
                     value={changeSummary}
-                    onChange={(e) => setChangeSummary(e.target.value)}
+                    onChange={(e) => {
+                      setChangeSummary(e.target.value);
+                      if (changeSummaryError && e.target.value.trim()) {
+                        setChangeSummaryError(null);
+                      }
+                    }}
+                    aria-invalid={Boolean(changeSummaryError)}
+                    aria-describedby={changeSummaryError ? 'field-changes-error' : undefined}
+                    style={changeSummaryError ? { borderColor: '#ef4444', boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.15)' } : undefined}
                     required
                   />
+                  {changeSummaryError && (
+                    <div id="field-changes-error" className="student-field__error" style={{ color: '#dc2626', fontSize: '13px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{changeSummaryError}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -640,105 +979,157 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               <div className="student-form-section__header">
                 <span className="student-step-number">02</span>
                 <div>
-                  <h3 className="student-form-section__title">Authorship & Attribution</h3>
-                  <p className="student-form-section__desc">Primary submitter attribution is pre-filled from your profile. Add contributing co-authors if applicable.</p>
+                  <h3 className="student-form-section__title">Tác giả &amp; Đóng góp</h3>
                 </div>
               </div>
 
               {/* Primary Author */}
-              <div className="student-author-card student-author-card--primary">
+              <div
+                className="student-author-card student-author-card--primary"
+                style={{ cursor: !isReadOnly ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative' }}
+                onClick={!isReadOnly ? () => openEditAuthorModal(0) : undefined}
+                title={!isReadOnly ? 'Bấm để chỉnh sửa thông tin tác giả chính' : undefined}
+              >
                 <div className="student-author-avatar">{primaryInitials}</div>
                 <div className="student-author-info">
                   <div className="student-author-name-row">
-                    <strong>{primaryAuthorName}</strong>
-                    <span className="student-author-pill">Primary Author</span>
-                    <span className="student-author-pill">Corresponding</span>
+                    <strong className="student-author-name">{primaryAuthorName}</strong>
+                    <span className="student-author-pill">Tác giả chính</span>
+                    <span className="student-author-pill">Tác giả liên hệ</span>
                   </div>
                   <span className="student-author-meta">
-                    {primaryAuthorEmail} • {primaryAuthorStudentId || 'MSSV chưa nhập'} • {primaryAuthorInst}
+                    {[
+                      primaryAuthorEmail,
+                      isLecturer ? 'Giảng viên' : (primaryAuthorStudentId ? `MSSV: ${primaryAuthorStudentId}` : null),
+                      primaryAuthorInst,
+                    ].filter(Boolean).join(' • ')}
                   </span>
-                  <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'MISSING_IDENTIFIER'}`}>
-                    {authors[0]?.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
+                  <span className={`student-author-verification student-author-verification--${authors[0]?.verificationStatus || 'VERIFIED'}`}>
+                    {authors[0]?.verificationStatus === 'VERIFIED' || (!isEditing && !authors[0])
+                      ? 'Tài khoản đã xác thực'
+                      : 'Cần xác thực tài khoản trước khi nộp'}
                   </span>
                 </div>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    className="student-btn student-btn--sm student-btn--secondary"
+                    style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, zIndex: 2 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditAuthorModal(0);
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <span>Chỉnh sửa</span>
+                  </button>
+                )}
               </div>
 
               {/* Co-authors list */}
               {authors.slice(1).map((ca, idx) => (
-                <div key={idx} className="student-author-card">
+                <div
+                  key={idx}
+                  className="student-author-card"
+                  style={{ cursor: !isReadOnly ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative' }}
+                  onClick={!isReadOnly ? () => openEditAuthorModal(idx + 1) : undefined}
+                  title={!isReadOnly ? 'Bấm để chỉnh sửa thông tin đồng tác giả' : undefined}
+                >
                   <div className="student-author-avatar student-author-avatar--co">CA</div>
                   <div className="student-author-info">
                     <div className="student-author-name-row">
-                      <strong>{ca.name}</strong>
-                      <span className="student-author-pill student-author-pill--co">Co-Author</span>
+                      <strong className="student-author-name">{ca.name}</strong>
+                      <span className="student-author-pill student-author-pill--co">Đồng tác giả</span>
                     </div>
                     <span className="student-author-meta">
-                      {ca.email || 'Email chưa nhập'} • {ca.studentId || 'MSSV chưa nhập'} • {ca.institution}
+                      {[
+                        ca.email || 'Email chưa nhập',
+                        ca.studentId ? `MSSV: ${ca.studentId}` : null,
+                        ca.institution,
+                      ].filter(Boolean).join(' • ')}
                     </span>
                     <span className={`student-author-verification student-author-verification--${ca.verificationStatus || 'MISSING_IDENTIFIER'}`}>
-                      {ca.verificationStatus === 'VERIFIED' ? 'Active User verified' : 'Needs User verification before Submit'}
+                      {ca.verificationStatus === 'VERIFIED' ? 'Tài khoản đã xác thực' : 'Cần xác thực tài khoản trước khi nộp'}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeCoAuthor(idx)}
-                    className="student-author-remove"
-                    title="Remove author"
-                  >
-                    ×
-                  </button>
+                  {!isReadOnly && (
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, zIndex: 2 }}>
+                      <button
+                        type="button"
+                        className="student-btn student-btn--sm student-btn--secondary"
+                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditAuthorModal(idx + 1);
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span>Chỉnh sửa</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeCoAuthor(idx);
+                        }}
+                        className="student-author-remove"
+                        title="Xóa tác giả"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
 
               {/* Add Co-author Box */}
-              {showAddAuthor ? (
+              {!isReadOnly && (showAddAuthor ? (
                 <div className="student-add-author-box">
-                  <h4>Add Co-Author</h4>
+                  <h4>Thêm đồng tác giả</h4>
                   <div className="student-form-row">
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="Full Name"
+                      placeholder="Họ và tên tác giả"
                       value={newAuthorName}
                       onChange={(e) => setNewAuthorName(e.target.value)}
                     />
                     <input
                       type="email"
                       className="student-input"
-                      placeholder="University Email (lecturer/admin)"
+                      placeholder="Email trường đại học"
                       value={newAuthorEmail}
                       onChange={(e) => setNewAuthorEmail(e.target.value)}
                     />
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="MSSV (student)"
+                      placeholder="Mã số sinh viên (MSSV)"
                       value={newAuthorStudentId}
                       onChange={(e) => setNewAuthorStudentId(e.target.value)}
                     />
                     <select
                       className="student-select"
                       value={newAuthorRole}
-                      onChange={(e) => setNewAuthorRole(e.target.value as 'STUDENT' | 'LECTURER' | 'ADMIN')}
+                      onChange={(e) => setNewAuthorRole(e.target.value as 'STUDENT' | 'LECTURER')}
                     >
-                      <option value="STUDENT">Student author</option>
-                      <option value="LECTURER">Lecturer author</option>
-                      <option value="ADMIN">Admin author</option>
+                      <option value="STUDENT">Sinh viên</option>
+                      <option value="LECTURER">Giảng viên</option>
                     </select>
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="Institution (e.g. HCMUT, HUST)"
+                      placeholder="Đơn vị / Trường (ví dụ: ĐHBK, ĐHQG)"
                       value={newAuthorInst}
                       onChange={(e) => setNewAuthorInst(e.target.value)}
                     />
                   </div>
                   <div className="student-add-author-actions">
                     <button type="button" onClick={addCoAuthor} className="student-btn student-btn--sm student-btn--primary">
-                      Add Co-Author
+                      Thêm đồng tác giả
                     </button>
                     <button type="button" onClick={() => setShowAddAuthor(false)} className="student-btn student-btn--sm student-btn--secondary">
-                      Cancel
+                      Hủy
                     </button>
                   </div>
                 </div>
@@ -752,20 +1143,17 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>Add Contributing Co-Author</span>
+                  <span>Thêm đồng tác giả đóng góp</span>
                 </button>
-              )}
+              ))}
             </div>
 
-            {/* Step 03: Manuscript Metadata & Discipline (chờ GROBID extract ra) */}
+            {/* Step 03: Manuscript Metadata & Discipline */}
             <div className="student-form-section">
               <div className="student-form-section__header">
                 <span className="student-step-number">03</span>
                 <div>
-                  <h3 className="student-form-section__title">Manuscript Metadata & Discipline</h3>
-                  <p className="student-form-section__desc">
-                    Metadata will be automatically extracted from your PDF via GROBID. You can review, refine, or fill in any missing details before submission.
-                  </p>
+                  <h3 className="student-form-section__title">Dữ liệu bản thảo &amp; Lĩnh vực nghiên cứu</h3>
                 </div>
               </div>
 
@@ -773,7 +1161,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
               {isAnalyzing ? (
                 <div className="student-extraction-notice student-extraction-notice--waiting">
                   <span className="student-spinner" aria-hidden="true" />
-                  <span><strong>Analyzing PDF with GROBID…</strong> No file is stored yet. Save and submit will be available after the analysis finishes.</span>
+                  <span><strong>Đang phân tích PDF bằng GROBID…</strong> Tệp chưa được lưu lên máy chủ. Bạn có thể lưu hoặc nộp sau khi phân tích xong.</span>
                 </div>
               ) : analysis ? (
                 <div className="student-extraction-notice student-extraction-notice--success">
@@ -782,7 +1170,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                   <span>
-                    <strong>GROBID extraction ready:</strong> PDF <em>{fileName}</em> is held in this browser only. Review and edit the extracted metadata below before saving or submitting.
+                    <strong>Đã trích xuất thông tin qua GROBID:</strong> Tệp <em>{fileName}</em> đang được giữ tại trình duyệt này. Vui lòng rà soát và chỉnh sửa dữ liệu bên dưới trước khi lưu hoặc nộp.
                   </span>
                 </div>
               ) : (
@@ -793,114 +1181,338 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <line x1="12" y1="8" x2="12.01" y2="8" />
                   </svg>
                   <span>
-                    <strong>Waiting for PDF analysis:</strong> Select a manuscript to extract title, abstract, DOI, date, and author candidates. Discipline and keywords are entered by you.
+                    <strong>Chờ tải tệp bản thảo:</strong> Hãy chọn tệp PDF để tự động trích xuất tiêu đề, tóm tắt và danh sách tác giả. Lĩnh vực nghiên cứu và từ khóa do bạn tự nhập.
                   </span>
                 </div>
               )}
 
               <div className="student-field">
                 <label htmlFor="field-title" className="student-field__label">
-                  Manuscript Title <span className="student-required">*</span>
+                  Tiêu đề bản thảo <span className="student-required">*</span>
                 </label>
                 <input
                   id="field-title"
                   type="text"
                   className="student-input"
-                  placeholder="e.g., Mapping data literacy in undergraduate STEM research"
+                  placeholder="Ví dụ: Khảo sát năng lực xử lý dữ liệu trong nghiên cứu STEM bậc đại học"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
 
               <div className="student-field">
                 <label htmlFor="field-discipline" className="student-field__label">
-                  Research Discipline / Field <span className="student-required">*</span>
+                  Lĩnh vực nghiên cứu <span className="student-required">*</span>
                 </label>
-                <SearchableDisciplineSelect
+
+                <input
+                  id="field-discipline"
+                  type="text"
+                  className="student-input"
+                  placeholder="Ví dụ: Khoa học máy tính, Kỹ thuật y sinh, Khoa học dữ liệu..."
                   value={discipline}
-                  onChange={setDiscipline}
+                  onChange={(e) => setDiscipline(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
 
               <div className="student-field">
                 <label htmlFor="field-keywords" className="student-field__label">
-                  Keywords (comma separated)
+                  Từ khóa (phân cách bằng dấu phẩy)
                 </label>
                 <input
                   id="field-keywords"
                   type="text"
                   className="student-input"
-                  placeholder="e.g. Data Literacy, STEM Education, Statistical Integrity"
+                  placeholder="Ví dụ: Xử lý ngôn ngữ tự nhiên, Trí tuệ nhân tạo, Học sâu"
                   value={keywordsInput}
                   onChange={(e) => setKeywordsInput(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
 
               <div className="student-field">
                 <div className="student-field__label-row">
                   <label htmlFor="field-abstract" className="student-field__label">
-                    Abstract
+                    Tóm tắt nghiên cứu
                   </label>
-                  <span className="student-char-count">{abstractText.length} characters</span>
+                  <span className="student-char-count">{abstractText.length} ký tự</span>
                 </div>
                 <textarea
                   id="field-abstract"
                   className="student-textarea"
                   rows={6}
-                  placeholder="Summarize the core research question, empirical methodology, primary findings, and scientific significance..."
+                  placeholder="Tóm tắt câu hỏi nghiên cứu cốt lõi, phương pháp thực nghiệm, kết quả chính và ý nghĩa khoa học..."
                   value={abstractText}
                   onChange={(e) => setAbstractText(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
+
+              {isLecturer && (
+                <div
+                  className={`lecturer-privacy-card ${isPrivate ? 'lecturer-privacy-card--active' : ''}`}
+                  onClick={!isReadOnly ? () => setIsPrivate(!isPrivate) : undefined}
+                  role="button"
+                  tabIndex={isReadOnly ? -1 : 0}
+                  style={isReadOnly ? { cursor: 'default', opacity: 0.85 } : undefined}
+                  onKeyDown={(e) => {
+                    if (!isReadOnly && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      setIsPrivate(!isPrivate);
+                    }
+                  }}
+                >
+                  <div className="lecturer-privacy-card__main">
+                    <div className="lecturer-privacy-card__icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </div>
+                    <div className="lecturer-privacy-card__content">
+                      <div className="lecturer-privacy-card__title-row">
+                        <span className="lecturer-privacy-card__title">Lưu trữ bản thảo trong kho lưu trữ riêng của giảng viên</span>
+                        <span className={`lecturer-privacy-card__badge ${isPrivate ? 'lecturer-privacy-card__badge--private' : ''}`}>
+                          {isPrivate ? 'Bản nháp riêng' : 'Quy trình thẩm định tiêu chuẩn'}
+                        </span>
+                      </div>
+                      <p className="lecturer-privacy-card__desc">
+                        Khi bật, bản thảo này hoàn toàn bảo mật trong không gian giảng viên của bạn. Bản thảo sẽ không được gửi tới hội đồng thẩm định hay hiển thị với người khác cho đến khi bạn thay đổi quyền hiển thị.
+                      </p>
+                    </div>
+                  </div>
+                  <label
+                    className="lecturer-toggle-switch"
+                    htmlFor="toggle-private-manuscript"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      id="toggle-private-manuscript"
+                      type="checkbox"
+                      checked={isPrivate}
+                      onChange={(e) => setIsPrivate(e.target.checked)}
+                      disabled={isReadOnly}
+                      className="lecturer-toggle-switch__input"
+                      role="switch"
+                      aria-checked={isPrivate}
+                    />
+                    <span className="lecturer-toggle-switch__slider" />
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Sticky/Bottom Action Bar */}
             <div className="student-form-actions-bar">
-              <Link href="/student/my-preprints" className="student-btn student-btn--secondary">
-                Cancel
+              <Link href={workspacePath} className="student-btn student-btn--secondary">
+                Hủy
               </Link>
 
               <div className="student-form-actions-right">
-                <button
-                  type="button"
-                  onClick={() => handleSubmit(false)}
-                  disabled={isSubmitting || isAnalyzing}
-                  className="student-btn student-btn--secondary"
-                >
-                  {isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Saving…' : 'Save as Draft'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSubmit(true)}
-                  disabled={isSubmitting || isAnalyzing}
-                  className="student-btn student-btn--primary student-btn--shimmer"
-                >
-                  <span>{isAnalyzing ? 'Waiting for GROBID…' : isSubmitting ? 'Submitting…' : isRevisionMode ? 'Submit Revised Version' : 'Submit for Faculty Review'}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </button>
-
-                {devMockSubmitEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleSubmit(true, true)}
-                    disabled={isSubmitting || isAnalyzing}
-                    className="student-btn student-btn--secondary"
-                    title="Development-only: bypass author account verification"
+                {isReadOnly ? (
+                  <Link
+                    href={`${workspacePath}/${originalItem?.id || id}`}
+                    className="student-btn student-btn--primary"
                   >
-                    {isSubmitting ? 'Mock submittingâ€¦' : 'Mock submit (local)'}
-                  </button>
+                    <span>Xem chi tiết bản thảo</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(false)}
+                      disabled={isSubmitting || isAnalyzing}
+                      className="student-btn student-btn--secondary"
+                    >
+                      {isAnalyzing ? 'Đang phân tích…' : isSubmitting ? 'Đang lưu…' : 'Lưu bản nháp'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(true)}
+                      disabled={isSubmitting || isAnalyzing}
+                      className="student-btn student-btn--primary"
+                    >
+                      <span>{isAnalyzing ? 'Đang phân tích…' : isSubmitting ? 'Đang nộp…' : isRevisionMode ? 'Nộp bản sửa đổi' : 'Nộp bản thảo để xét duyệt'}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+
+                    {devMockSubmitEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => handleSubmit(true, true)}
+                        disabled={isSubmitting || isAnalyzing}
+                        className="student-btn student-btn--secondary"
+                        title="Development-only: bypass author account verification"
+                      >
+                        {isSubmitting ? 'Đang nộp giả lập…' : 'Nộp giả lập (dev)'}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </form>
         </div>
       )}
-    </StudentShell>
+
+      {/* Edit Author Modal */}
+      {editingAuthorIndex !== null && (
+        <div
+          className="author-modal-backdrop"
+          onClick={() => setEditingAuthorIndex(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="author-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="author-modal-header">
+              <div>
+                <h3 className="author-modal-title">
+                  {editingAuthorIndex === 0 ? 'Chỉnh sửa tác giả chính' : `Chỉnh sửa đồng tác giả #${editingAuthorIndex}`}
+                </h3>
+                <p className="author-modal-subtitle">
+                  Cập nhật thông tin tác giả để hệ thống liên kết tài khoản và tự động xác minh.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="author-modal-close"
+                onClick={() => setEditingAuthorIndex(null)}
+                aria-label="Đóng"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="author-modal-body">
+              {user && (
+                <div className="author-modal-quickfill">
+                  <div className="author-modal-quickfill-text">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span>Bạn là tác giả này? Dùng hồ sơ tài khoản hiện tại</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="student-btn student-btn--sm student-btn--secondary"
+                    onClick={handleUseMyInfo}
+                  >
+                    Điền nhanh
+                  </button>
+                </div>
+              )}
+
+              <div className="student-field">
+                <label className="student-field__label">Họ và tên tác giả *</label>
+                <input
+                  type="text"
+                  className="student-input"
+                  placeholder="Ví dụ: Lê Hữu Duy"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="student-field">
+                  <label className="student-field__label">Vai trò</label>
+                  <select
+                    className="student-select"
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as 'STUDENT' | 'LECTURER')}
+                  >
+                    <option value="STUDENT">Sinh viên</option>
+                    <option value="LECTURER">Giảng viên</option>
+                  </select>
+                </div>
+
+                <div className="student-field">
+                  <label className="student-field__label">Mã số sinh viên (MSSV)</label>
+                  <input
+                    type="text"
+                    className="student-input"
+                    placeholder="Ví dụ: SE170123"
+                    value={editStudentId}
+                    onChange={(e) => setEditStudentId(e.target.value)}
+                  />
+                  <span className="student-field__hint">Dùng để tự động match tài khoản sinh viên</span>
+                </div>
+              </div>
+
+              <div className="student-field">
+                <label className="student-field__label">Email trường / tổ chức</label>
+                <input
+                  type="email"
+                  className="student-input"
+                  placeholder="Ví dụ: student@hyperdata.org"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="student-field">
+                <label className="student-field__label">Đơn vị / Trường đại học (Institution)</label>
+                <input
+                  type="text"
+                  className="student-input"
+                  placeholder="Ví dụ: Đại học FPT TP.HCM"
+                  value={editInstitution}
+                  onChange={(e) => setEditInstitution(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  id="modal-is-primary"
+                  checked={editIsPrimary}
+                  onChange={(e) => setEditIsPrimary(e.target.checked)}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor="modal-is-primary" style={{ fontSize: 13.5, color: '#334155', cursor: 'pointer' }}>
+                  Đặt làm tác giả chính (Primary Author / Corresponding)
+                </label>
+              </div>
+            </div>
+
+            <div className="author-modal-footer">
+              <button
+                type="button"
+                className="student-btn student-btn--secondary"
+                onClick={() => setEditingAuthorIndex(null)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="student-btn student-btn--primary"
+                onClick={saveEditedAuthor}
+                disabled={!editName.trim()}
+              >
+                Lưu thay đổi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </PreprintWorkspaceShell>
   );
 }
 
 export default PreprintEditorView;
+

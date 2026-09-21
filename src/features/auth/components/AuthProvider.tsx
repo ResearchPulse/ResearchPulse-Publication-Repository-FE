@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  updateUser: (updated: Partial<User>) => void;
   logout: () => Promise<void>;
 }
 
@@ -15,6 +16,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   refresh: async () => {},
+  updateUser: () => {},
   logout: async () => {},
 });
 
@@ -32,6 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = (updated: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...updated } : null));
+  };
+
   const logout = async () => {
     setUser(null);
     await authApi.logout();
@@ -42,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refresh, logout }}>
+    <AuthContext.Provider value={{ user, loading, refresh, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

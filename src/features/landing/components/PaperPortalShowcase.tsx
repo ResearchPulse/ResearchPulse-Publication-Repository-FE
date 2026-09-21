@@ -71,7 +71,7 @@ export function PaperPortalShowcase() {
         <div className="paper-portal-topbar">
           <strong>
             <span>RP</span>
-            ResearchPulse Workspace
+            Hyperdata Lab Workspace
           </strong>
           <div className="paper-portal-nav-pills" role="tablist" aria-label="Portal views">
             <button
@@ -98,7 +98,7 @@ export function PaperPortalShowcase() {
           </div>
           <div className="paper-portal-top-user">
             <span className="paper-portal-badge-live">● Live Sync</span>
-            <i title="Student Author">NM</i>
+            <i title="Author">NM</i>
           </div>
         </div>
 

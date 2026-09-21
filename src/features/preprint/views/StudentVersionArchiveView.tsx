@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { StudentShell } from '../components';
+import { TimelineSkeleton } from '@/components/skeleton';
+import { SortDropdown } from '@/components/sort-dropdown';
 import { usePreprintList } from '../hooks';
 import { studentPreprintApi } from '../api';
 import type { PreprintVersionInfo } from '../types';
+import { useTranslation } from '@/i18n';
 
 export function StudentVersionArchiveView() {
+  const { t, locale } = useTranslation();
   const { items, loading: listLoading } = usePreprintList();
   const [versionsByPublication, setVersionsByPublication] = useState<Record<string, PreprintVersionInfo[]>>({});
   const [versionsLoading, setVersionsLoading] = useState(false);
@@ -15,11 +19,11 @@ export function StudentVersionArchiveView() {
   const [selectedManuscriptId, setSelectedManuscriptId] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
-  const [collapsedManuscripts, setCollapsedManuscripts] = useState<Record<string, boolean>>({});
+  const [expandedManuscripts, setExpandedManuscripts] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (listLoading || items.length === 0) {
-      setVersionsByPublication({});
+      setVersionsByPublication((prev) => (Object.keys(prev).length === 0 ? prev : {}));
       return;
     }
 
@@ -34,7 +38,7 @@ export function StudentVersionArchiveView() {
           .map((result) => result.value);
         setVersionsByPublication(Object.fromEntries(entries));
         if (results.some((result) => result.status === 'rejected')) {
-          setVersionsError('Some version histories could not be loaded. Open the manuscript to retry.');
+          setVersionsError('Không thể tải lịch sử một số phiên bản. Vui lòng mở bản thảo để thử lại.');
         }
       })
       .finally(() => {
@@ -47,7 +51,7 @@ export function StudentVersionArchiveView() {
   }, [items, listLoading]);
 
   const toggleManuscript = (id: string) => {
-    setCollapsedManuscripts((prev) => ({
+    setExpandedManuscripts((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
@@ -89,46 +93,45 @@ export function StudentVersionArchiveView() {
     return list;
   }, [manuscriptsWithVersions, selectedManuscriptId, searchQuery]);
 
-  const isAllCollapsed = useMemo(() => {
+  const isAllExpanded = useMemo(() => {
     if (filteredManuscripts.length === 0) return false;
-    return filteredManuscripts.every((m) => collapsedManuscripts[m.id]);
-  }, [filteredManuscripts, collapsedManuscripts]);
+    return filteredManuscripts.every((m) => expandedManuscripts[m.id]);
+  }, [filteredManuscripts, expandedManuscripts]);
 
   const toggleAllCollapse = () => {
-    if (isAllCollapsed) {
-      setCollapsedManuscripts({});
+    if (isAllExpanded) {
+      setExpandedManuscripts({});
     } else {
       const all: Record<string, boolean> = {};
       filteredManuscripts.forEach((m) => {
         all[m.id] = true;
       });
-      setCollapsedManuscripts(all);
+      setExpandedManuscripts(all);
     }
   };
 
   return (
-    <StudentShell title="Version Archive" showStandardHeader={false}>
-      {/* 1. Filter & Search Toolbar (Synced identically with My Manuscripts) */}
+    <StudentShell title={t('nav.versions')} showStandardHeader={false}>
+      {/* 1. Filter & Search Toolbar */}
       <div className="student-filter-toolbar">
         {/* Left: Dropdown select manuscript */}
         <div className="student-sort-box" style={{ gap: '8px' }}>
           <span className="student-sort-label" style={{ fontWeight: 600, color: '#475569' }}>
-            Manuscript:
+            {t('student.preprints.tableManuscript')}:
           </span>
-          <select
+          <SortDropdown
             value={selectedManuscriptId}
-            onChange={(e) => setSelectedManuscriptId(e.target.value)}
-            className="student-sort-select"
-            style={{ maxWidth: '340px' }}
-            aria-label="Filter versions by manuscript"
-          >
-            <option value="ALL">All Manuscripts ({items.length})</option>
-            {items.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title || 'Untitled Manuscript'}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedManuscriptId(val)}
+            options={[
+              { value: 'ALL', label: locale === 'vi' ? `Tất cả bản thảo (${items.length})` : `All Manuscripts (${items.length})` },
+              ...items.map((m) => ({
+                value: m.id,
+                label: m.title || (locale === 'vi' ? 'Bản thảo chưa đặt tên' : 'Untitled manuscript'),
+              })),
+            ]}
+            style={{ width: '280px' }}
+            ariaLabel={locale === 'vi' ? 'Lọc phiên bản theo bản thảo' : 'Filter versions by manuscript'}
+          />
         </div>
 
         {/* Right: Search Input & Toggle All Button */}
@@ -140,7 +143,7 @@ export function StudentVersionArchiveView() {
             </svg>
             <input
               type="search"
-              placeholder="Search title, DOI, SHA-256..."
+              placeholder={t('common.searchArchive')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="student-search-input"
@@ -156,9 +159,9 @@ export function StudentVersionArchiveView() {
             type="button"
             className="student-btn student-btn--secondary archive-toggle-all-btn"
             onClick={toggleAllCollapse}
-            aria-label={isAllCollapsed ? 'Expand all manuscript versions' : 'Collapse all manuscript versions'}
+            aria-label={isAllExpanded ? (locale === 'vi' ? 'Thu gọn tất cả phiên bản bản thảo' : 'Collapse all manuscript versions') : (locale === 'vi' ? 'Mở rộng tất cả phiên bản bản thảo' : 'Expand all manuscript versions')}
           >
-            <span>{isAllCollapsed ? 'Expand All' : 'Collapse All'}</span>
+            <span>{isAllExpanded ? (locale === 'vi' ? 'Thu gọn tất cả' : 'Collapse all') : (locale === 'vi' ? 'Mở rộng tất cả' : 'Expand all')}</span>
           </button>
         </div>
       </div>
@@ -166,10 +169,7 @@ export function StudentVersionArchiveView() {
       {/* 2. Version Lineages Content Stream */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {(listLoading || versionsLoading) && (
-          <div className="student-loading-box">
-            <div className="student-spinner" />
-            <p>Loading cryptographic version archives and provenance…</p>
-          </div>
+          <TimelineSkeleton count={3} />
         )}
 
         {versionsError && (
@@ -187,51 +187,52 @@ export function StudentVersionArchiveView() {
               </svg>
             </div>
             <h3>
-              {searchQuery ? 'No matching version archives found' : 'No manuscript archives yet'}
+              {searchQuery ? 'Không tìm thấy phiên bản lưu trữ phù hợp' : 'Chưa có bản lưu trữ nào'}
             </h3>
             <p>
               {searchQuery
-                ? `No version history matches "${searchQuery}". Try searching by manuscript title, DOI, or SHA-256 hash.`
-                : 'You have not submitted any preprints yet. Submit your first manuscript to establish cryptographic version timestamps and permanent provenance.'}
+                ? `Không có lịch sử phiên bản nào khớp với "${searchQuery}". Hãy thử tìm kiếm theo tiêu đề, DOI hoặc mã băm SHA-256.`
+                : 'Bạn chưa nộp bản thảo preprint nào. Hãy nộp bản thảo đầu tiên để xác lập dấu thời gian phiên bản mật mã và xuất xứ vĩnh viễn.'}
             </p>
             <div className="student-empty-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <Link href="/student/my-preprints" className="student-btn student-btn--secondary">
-                View My Manuscripts
+                Xem bản thảo của tôi
               </Link>
               <Link href="/student/my-preprints/new" className="student-btn student-btn--primary">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                <span>Start New Submission</span>
+                <span>Bắt đầu nộp bản thảo mới</span>
               </Link>
             </div>
           </div>
         )}
 
         {!listLoading && !versionsLoading && filteredManuscripts.map((manuscript) => {
-          const isExpanded = !collapsedManuscripts[manuscript.id];
+          const isExpanded = Boolean(expandedManuscripts[manuscript.id]);
 
           return (
             <article key={manuscript.id} className="archive-manuscript-card">
               {/* Manuscript Header */}
               <div className="archive-manuscript-header">
                 <div className="archive-manuscript-meta">
-                  <div>
-                    <span className="dashboard-badge-tag">{manuscript.discipline || 'General'}</span>
-                  </div>
                   <h3 className="archive-manuscript-title">
-                    <Link href={`/student/my-preprints/${manuscript.id}`}>
+                    <Link href={`/student/my-preprints/${manuscript.id}`} title={manuscript.title}>
                       {manuscript.title}
                     </Link>
                   </h3>
                   <div className="archive-manuscript-subinfo">
+                    {manuscript.doi && (
+                      <>
+                        <span>
+                          <strong>DOI:</strong> {manuscript.doi}
+                        </span>
+                        <span className="archive-subinfo-bullet">&bull;</span>
+                      </>
+                    )}
                     <span>
-                      <strong>DOI:</strong> {manuscript.doi || 'DOI Pending / Not Assigned'}
-                    </span>
-                    <span>&bull;</span>
-                    <span>
-                      {manuscript.versions?.length || 0} permanent version(s) recorded
+                      {manuscript.versions?.length || 0} phiên bản lưu trữ vĩnh viễn
                     </span>
                   </div>
                 </div>
@@ -241,14 +242,14 @@ export function StudentVersionArchiveView() {
                     href={`/student/my-preprints/${manuscript.id}`}
                     className="student-btn student-btn--secondary student-btn--sm"
                   >
-                    View Details →
+                    Xem chi tiết
                   </Link>
                   <button
                     type="button"
                     onClick={() => toggleManuscript(manuscript.id)}
                     className={`archive-toggle-btn ${isExpanded ? 'archive-toggle-btn--expanded' : ''}`}
-                    title={isExpanded ? 'Collapse versions' : 'Expand versions'}
-                    aria-label="Toggle versions list"
+                    title={isExpanded ? 'Thu gọn các phiên bản' : 'Mở rộng các phiên bản'}
+                    aria-label="Thu gọn hoặc mở rộng danh sách phiên bản"
                   >
                     <svg
                       width="16"
@@ -269,9 +270,9 @@ export function StudentVersionArchiveView() {
                 </div>
               </div>
 
-              {/* Version Lineage Timeline */}
+              {/* Version Lineage Timeline (Git-Style Lineage) */}
               {isExpanded && (
-                <div className="archive-timeline-container">
+                <div className="archive-git-timeline">
                   {manuscript.versions && manuscript.versions.length > 0 ? (
                     manuscript.versions.map((ver, idx) => {
                       const isLatest = idx === 0;
@@ -279,100 +280,114 @@ export function StudentVersionArchiveView() {
                       return (
                         <div
                           key={ver.version}
-                          className={`archive-version-item ${isLatest ? 'archive-version-item--latest' : ''}`}
+                          className={`archive-git-entry ${isLatest ? 'archive-git-entry--latest' : ''}`}
                         >
-                          {/* Version Badge Node */}
-                          <div className={`archive-version-badge ${isLatest ? 'archive-version-badge--latest' : ''}`}>
-                            <span>v{ver.version}</span>
-                            {isLatest && <span className="archive-version-badge__sub">Latest</span>}
+                          {/* Git Node */}
+                          <div className="archive-git-node">
+                            v{ver.version}
                           </div>
 
-                          {/* Version Info & Provenance */}
-                          <div className="archive-version-content">
-                            <div className="archive-version-header">
-                              <div>
-                                <strong className="archive-version-title">
-                                  Version {ver.version_label || `v${ver.version}`} Release
-                                </strong>
+                          {/* Git Body */}
+                          <div className="archive-git-body">
+                            {/* Row 1: Release label, summary, date, status */}
+                            <div className="archive-git-header">
+                              <div className="archive-git-summary-line">
+                                <span className="archive-git-version-tag">
+                                  Phát hành phiên bản {ver.version_label || `v${ver.version}`}
+                                </span>
+                                <span className="archive-git-summary-text" title={ver.change_summary}>
+                                  · {ver.change_summary || 'Phiên bản hoàn chỉnh ban đầu được gửi lưu trữ.'}
+                                </span>
+                              </div>
+
+                              <div className="archive-git-meta-group">
                                 {ver.created_at && (
-                                  <span className="archive-version-date">
-                                    &bull; Archived on {new Date(ver.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  <span className="archive-git-date">
+                                    {new Date(ver.created_at).toLocaleDateString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                                   </span>
                                 )}
-                              </div>
-                              <span
-                                className={`user-badge ${
-                                  ver.status === 'APPROVED'
-                                    ? 'user-badge--approved'
+                                <span
+                                  className={`user-badge ${
+                                    ver.status === 'APPROVED' || ver.status === 'PUBLISHED'
+                                      ? 'user-badge--approved'
+                                      : ver.status === 'NEEDS_REVISION'
+                                      ? 'user-badge--revision'
+                                      : ver.status === 'UNDER_REVIEW'
+                                      ? 'user-badge--review'
+                                      : ver.status === 'REJECTED' || ver.status === 'WITHDRAWN'
+                                      ? 'user-badge--withdrawn'
+                                      : ver.status === 'ARCHIVED'
+                                      ? 'user-badge--archived'
+                                      : 'user-badge--draft'
+                                  }`}
+                                >
+                                  {ver.status === 'APPROVED'
+                                    ? 'ĐÃ DUYỆT'
+                                    : ver.status === 'PUBLISHED'
+                                    ? 'ĐÃ XUẤT BẢN'
                                     : ver.status === 'NEEDS_REVISION'
-                                    ? 'user-badge--revision'
+                                    ? 'CẦN CHỈNH SỬA'
                                     : ver.status === 'UNDER_REVIEW'
-                                    ? 'user-badge--review'
-                                    : 'user-badge--draft'
-                                }`}
-                              >
-                                {ver.status}
-                              </span>
+                                    ? 'ĐANG THẨM ĐỊNH'
+                                    : ver.status === 'REJECTED'
+                                    ? 'ĐÃ TỪ CHỐI'
+                                    : ver.status === 'WITHDRAWN'
+                                    ? 'ĐÃ RÚT'
+                                    : ver.status === 'ARCHIVED'
+                                    ? 'LƯU TRỮ'
+                                    : 'BẢN NHÁP'}
+                                </span>
+                              </div>
                             </div>
 
-                            <p className="archive-change-summary">
-                              <strong>Change Summary:</strong> {ver.change_summary || 'Initial camera-ready version submitted for archive.'}
-                            </p>
+                            {/* Row 2: File pill, SHA checksum copy, Download PDF */}
+                            <div className="archive-git-files-bar">
+                              <span className="archive-file-tag">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                </svg>
+                                {ver.file_name} ({ver.file_size || 'Kích thước không khả dụng'})
+                              </span>
 
-                            {/* Cryptographic Provenance Bar */}
-                            <div className="archive-provenance-bar">
-                              <div className="archive-provenance-info">
-                                <span className="archive-file-tag">
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <polyline points="14 2 14 8 20 8" />
+                              {ver.sha256 && (
+                                <button
+                                  type="button"
+                                  className={`archive-sha-pill ${copiedHash === ver.sha256 ? 'archive-sha-pill--copied' : ''}`}
+                                  onClick={() => handleCopyHash(ver.sha256!)}
+                                  title={`Nhấp để sao chép SHA-256: ${ver.sha256}`}
+                                >
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    {copiedHash === ver.sha256 ? (
+                                      <polyline points="20 6 9 17 4 12" />
+                                    ) : (
+                                      <>
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                      </>
+                                    )}
                                   </svg>
-                                  {ver.file_name} ({ver.file_size || 'Size unavailable'})
-                                </span>
-                                {ver.sha256 && (
-                                  <span className="archive-sha-tag" title={ver.sha256}>
-                                    SHA-256: {ver.sha256.substring(0, 10)}…{ver.sha256.substring(ver.sha256.length - 6)}
+                                  <span>
+                                    {copiedHash === ver.sha256 ? 'Đã sao chép SHA!' : `SHA: ${ver.sha256.substring(0, 7)}…${ver.sha256.substring(ver.sha256.length - 4)}`}
                                   </span>
-                                )}
-                              </div>
+                                </button>
+                              )}
 
-                              <div className="archive-actions-group">
-                                {ver.sha256 && (
-                                  <button
-                                    type="button"
-                                    className={`archive-cite-btn ${copiedHash === ver.sha256 ? 'archive-cite-btn--copied' : ''}`}
-                                    onClick={() => handleCopyHash(ver.sha256!)}
-                                  >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      {copiedHash === ver.sha256 ? (
-                                        <polyline points="20 6 9 17 4 12" />
-                                      ) : (
-                                        <>
-                                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                        </>
-                                      )}
-                                    </svg>
-                                    <span>{copiedHash === ver.sha256 ? 'Hash Copied!' : 'Copy Checksum'}</span>
-                                  </button>
-                                )}
-                                {ver.download_url && (
-                                  <a
-                                    href={ver.download_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="student-btn student-btn--secondary"
-                                    style={{ fontSize: '12px', padding: '5px 10px', gap: '5px' }}
-                                  >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                      <polyline points="7 10 12 15 17 10" />
-                                      <line x1="12" y1="15" x2="12" y2="3" />
-                                    </svg>
-                                    <span>Download PDF</span>
-                                  </a>
-                                )}
-                              </div>
+                              {ver.download_url && (
+                                <a
+                                  href={ver.download_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="archive-download-btn"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                  </svg>
+                                  <span>Tải tệp PDF</span>
+                                </a>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -380,7 +395,7 @@ export function StudentVersionArchiveView() {
                     })
                   ) : (
                     <div style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic', padding: '8px 0' }}>
-                      No version history is recorded for this manuscript yet.
+                      Chưa có lịch sử phiên bản nào được ghi nhận cho bản thảo này.
                     </div>
                   )}
                 </div>

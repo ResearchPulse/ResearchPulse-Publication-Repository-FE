@@ -2,14 +2,17 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { PageHeader } from '@hyperdata/design-system';
 
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { authApi } from '@/features/auth/api/authApi';
+import { adminApi } from '../api';
+import { LanguageSwitcher, useTranslation } from '@/i18n';
+import { NotificationBell } from '@/shared/components/NotificationBell';
 
-export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'profile';
+export type AdminNavKey = 'dashboard' | 'submissions' | 'reviews' | 'users' | 'registrations' | 'profile';
 
 export interface AdminShellProps {
   active: AdminNavKey;
@@ -30,6 +33,43 @@ export function AdminSidebar({
   onClose?: () => void;
 }) {
   const { user } = useAuth();
+  const { t, locale } = useTranslation();
+  const [internalPendingCount, setInternalPendingCount] = useState<number | undefined>(pendingCount);
+
+  useEffect(() => {
+    if (pendingCount !== undefined) {
+      setInternalPendingCount(pendingCount);
+    }
+  }, [pendingCount]);
+
+  useEffect(() => {
+    adminApi
+      .listPendingUsers({ limit: 1 })
+      .then((res) => {
+        setInternalPendingCount(res.pagination?.total ?? res.users.length);
+      })
+      .catch(() => {});
+
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource('/api/admin/registrations/stream');
+      es.addEventListener('registration:new', () => {
+        adminApi
+          .listPendingUsers({ limit: 1 })
+          .then((res) => {
+            setInternalPendingCount(res.pagination?.total ?? res.users.length);
+          })
+          .catch(() => {});
+      });
+    } catch {
+      // SSE silent catch
+    }
+
+    return () => {
+      es?.close();
+    };
+  }, []);
+
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Administrator';
   const displayRole = user?.role === 'ADMIN' ? 'System Administrator' : user?.email || 'Administrator';
 
@@ -53,7 +93,7 @@ export function AdminSidebar({
     <aside className={`student-sidebar ${isOpen ? 'student-sidebar--open' : ''}`}>
       {/* Brand Header */}
       <div className="student-sidebar__brand">
-        <Link href={ROUTES.ADMIN.DASHBOARD} className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
+        <Link href={ROUTES.ADMIN.SUBMISSIONS} className="student-sidebar__logo-link" aria-label="Hyperdata Lab Home">
           <div className="student-sidebar__logo-lockup">
             <Image
               src="/hyperdata-lab-logo.png"
@@ -73,7 +113,7 @@ export function AdminSidebar({
             type="button"
             className="student-sidebar__close-btn"
             onClick={onClose}
-            aria-label="Close Sidebar"
+            aria-label={t('common.close')}
           >
             ×
           </button>
@@ -83,38 +123,22 @@ export function AdminSidebar({
       {/* Navigation Groups */}
       <nav className="student-sidebar__nav" aria-label="Admin navigation">
         <div className="student-sidebar__group">
-          <span className="student-sidebar__group-title">WORKSPACE</span>
-          <Link
-            href={ROUTES.ADMIN.DASHBOARD}
-            className={`student-sidebar__link ${active === 'dashboard' ? 'student-sidebar__link--active' : ''}`}
-            onClick={onClose}
-          >
-            <span className="student-sidebar__icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="7" height="9" x="3" y="3" rx="1" />
-                <rect width="7" height="5" x="14" y="3" rx="1" />
-                <rect width="7" height="9" x="14" y="12" rx="1" />
-                <rect width="7" height="5" x="3" y="16" rx="1" />
-              </svg>
-            </span>
-            <span className="student-sidebar__text">Dashboard</span>
-          </Link>
-
+          <span className="student-sidebar__group-title">{t('admin.workspace')}</span>
           <Link
             href={ROUTES.ADMIN.SUBMISSIONS}
-            className={`student-sidebar__link ${active === 'submissions' ? 'student-sidebar__link--active' : ''}`}
+            className={`student-sidebar__link ${active === 'submissions' || active === 'dashboard' ? 'student-sidebar__link--active' : ''}`}
             onClick={onClose}
           >
             <span className="student-sidebar__icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                 <polyline points="14 2 14 8 20 8" />
-                <line x1="16" x2="8" y1="13" y2="13" />
-                <line x1="16" x2="8" y1="17" y2="17" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
                 <line x1="10" x2="8" y1="9" y2="9" />
               </svg>
             </span>
-            <span className="student-sidebar__text">Submissions</span>
+            <span className="student-sidebar__text">{t('admin.submissions')}</span>
             {pendingCount !== undefined && pendingCount > 0 && (
               <span style={{ marginLeft: 'auto', fontSize: '12.5px', fontWeight: 700, color: '#0071bc' }}>
                 {pendingCount}
@@ -134,13 +158,13 @@ export function AdminSidebar({
                 <path d="m9 9 2 2 4-4" />
               </svg>
             </span>
-            <span className="student-sidebar__text">Reviews</span>
+            <span className="student-sidebar__text">{t('admin.reviews')}</span>
           </Link>
         </div>
 
         {/* Group: SYSTEM */}
         <div className="student-sidebar__group">
-          <span className="student-sidebar__group-title">SYSTEM</span>
+          <span className="student-sidebar__group-title">{t('admin.system')}</span>
           <Link
             href={ROUTES.ADMIN.USERS}
             className={`student-sidebar__link ${active === 'users' ? 'student-sidebar__link--active' : ''}`}
@@ -148,13 +172,46 @@ export function AdminSidebar({
           >
             <span className="student-sidebar__icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </span>
-            <span className="student-sidebar__text">User accounts</span>
+            <span className="student-sidebar__text">{t('admin.accountManagement')}</span>
+          </Link>
+
+          <Link
+            href={ROUTES.ADMIN.REGISTRATIONS}
+            className={`student-sidebar__link ${active === 'registrations' ? 'student-sidebar__link--active' : ''}`}
+            onClick={onClose}
+          >
+            <span className="student-sidebar__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
+              </svg>
+            </span>
+            <span className="student-sidebar__text">{t('admin.registrationRequests')}</span>
+            {internalPendingCount !== undefined && internalPendingCount > 0 && (
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: '999px',
+                  background: '#fef3c7',
+                  color: '#b45309',
+                  border: '1px solid #fde68a',
+                  lineHeight: 1.4,
+                }}
+              >
+                {internalPendingCount}
+              </span>
+            )}
           </Link>
 
           <Link
@@ -168,10 +225,11 @@ export function AdminSidebar({
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </span>
-            <span className="student-sidebar__text">Profile</span>
+            <span className="student-sidebar__text">{t('common.profile')}</span>
           </Link>
         </div>
       </nav>
+
 
       {/* Sidebar Footer with Profile Card */}
       <div className="student-sidebar__footer">
@@ -192,8 +250,8 @@ export function AdminSidebar({
             type="button"
             onClick={() => authApi.logout()}
             className="student-sidebar__logout-btn"
-            title="Sign Out"
-            aria-label="Sign Out"
+            title={t('common.logout')}
+            aria-label={t('common.logout')}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -209,6 +267,8 @@ export function AdminSidebar({
 
 
 export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSidebar?: () => void }) {
+  const { t } = useTranslation();
+
   return (
     <header className="student-topbar">
       <div className="student-topbar__left">
@@ -227,10 +287,29 @@ export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSide
         </button>
 
         <div className="student-topbar__breadcrumbs">
-          <span className="student-topbar__crumb-root">Admin Workspace</span>
+          <span className="student-topbar__crumb-root">{t('admin.dashboard')}</span>
           <span className="student-topbar__crumb-sep">/</span>
           <span className="student-topbar__crumb-current">{title}</span>
         </div>
+      </div>
+
+      <div className="student-topbar__right">
+        <div className="student-topbar__search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            placeholder={t('common.searchShell')}
+            className="student-topbar__search-input"
+            aria-label={t('common.searchManuscripts')}
+          />
+        </div>
+
+        <NotificationBell />
+
+        <LanguageSwitcher variant="toggle" />
       </div>
     </header>
   );
