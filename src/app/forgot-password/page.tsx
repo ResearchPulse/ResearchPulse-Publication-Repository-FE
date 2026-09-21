@@ -195,7 +195,7 @@ function ForgotPasswordContent() {
                 padding: '6px',
               }}
             >
-              Về trang chủ Hyperdata Lab
+              Về trang chủ HyperData Lab
             </Link>
           </div>
         </div>
@@ -659,7 +659,7 @@ export default function ForgotPasswordPage() {
       {/* Header đồng bộ với Landing Page và Login */}
       <header className="pl-header" style={{ position: 'relative', zIndex: 10 }}>
         <div className="pl-container pl-header__inner">
-          <Link href="/" className="pl-brand" aria-label="Trang chủ Hyperdata">
+          <Link href="/" className="pl-brand" aria-label="Trang chủ HyperData Lab">
             <HyperdataLogo size={34} />
           </Link>
 
@@ -694,7 +694,7 @@ export default function ForgotPasswordPage() {
               </h1>
 
               <p className="pl-hero__desc" style={{ fontSize: '1.05rem', color: '#4b5563', lineHeight: 1.6, marginBottom: 28, maxWidth: 520 }}>
-                Hệ thống xác thực học thuật Hyperdata Lab bảo vệ mọi công trình và dữ liệu bản thảo khoa học của bạn. Thực hiện đặt lại mật khẩu để tiếp tục quản lý tài liệu và kết nối phản biện.
+                Hệ thống xác thực học thuật HyperData Lab bảo vệ mọi công trình và dữ liệu bản thảo khoa học của bạn. Thực hiện đặt lại mật khẩu để tiếp tục quản lý tài liệu và kết nối phản biện.
               </p>
 
               {/* Danh sách cam kết bảo mật & quyền lợi */}
@@ -767,7 +767,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="pl-container pl-footer__bottom">
-          <p>© {new Date().getFullYear()} Hyperdata Lab. Tất cả các quyền được bảo lưu.</p>
+          <p>© {new Date().getFullYear()} HyperData Lab. Tất cả các quyền được bảo lưu.</p>
           <p className="pl-footer__disclaimer">
             Nền tảng công bố học thuật phi lợi nhuận phục vụ sinh viên và nhà nghiên cứu trẻ.
           </p>

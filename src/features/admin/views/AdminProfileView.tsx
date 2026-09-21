@@ -7,7 +7,7 @@ import { LanguageSwitcher, useTranslation } from '@/i18n';
 
 export function AdminProfileView() {
   const [copiedId, setCopiedId] = useState(false);
-  const { t, locale } = useTranslation();
+  const { locale } = useTranslation();
   const { user } = useAuth();
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Administrator';
   const displayEmail = user?.email || 'admin@hyperdata.org';
