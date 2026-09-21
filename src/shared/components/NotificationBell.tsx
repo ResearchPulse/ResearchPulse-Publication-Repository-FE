@@ -254,22 +254,26 @@ export function NotificationBell({ align = 'right', className = '' }: Notificati
       </button>
 
       {phase !== 'closed' && (
-        <div
-          className={`student-topbar__notif-popover ${phase === 'open' ? 'student-topbar__notif-popover--open' : 'student-topbar__notif-popover--closing'}`}
-          onAnimationEnd={(e) => {
-            if (e.target === e.currentTarget && phase === 'closing') {
-              if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-              setPhase('closed');
-            }
-          }}
-          style={{
-            [align === 'left' ? 'left' : 'right']: 0,
-            width: '360px',
-            maxHeight: '480px',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        <>
+          <div
+            className={`student-notif-backdrop ${phase === 'open' ? 'student-notif-backdrop--open' : 'student-notif-backdrop--closing'}`}
+            onClick={closePopover}
+            aria-hidden="true"
+          />
+          <div
+            className={`student-topbar__notif-popover ${phase === 'open' ? 'student-topbar__notif-popover--open' : 'student-topbar__notif-popover--closing'}`}
+            onAnimationEnd={(e) => {
+              if (e.target === e.currentTarget && phase === 'closing') {
+                if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+                setPhase('closed');
+              }
+            }}
+            style={{
+              [align === 'left' ? 'left' : 'right']: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
           {/* Header */}
           <div
             style={{
@@ -287,16 +291,31 @@ export function NotificationBell({ align = 'right', className = '' }: Notificati
               </strong>
             </div>
 
-            {unreadCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAll}
+                  className="student-notif-popover__mark-all-btn"
+                  style={{ textDecoration: 'none' }}
+                >
+                  {locale === 'vi' ? 'Đã đọc tất cả' : 'Mark all read'}
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={handleMarkAll}
-                className="student-notif-popover__mark-all-btn"
-                style={{ textDecoration: 'none' }}
+                onClick={closePopover}
+                className="student-notif-popover__close-btn"
+                aria-label={locale === 'vi' ? 'Đóng thông báo' : 'Close notifications'}
+                title={locale === 'vi' ? 'Đóng' : 'Close'}
               >
-                {locale === 'vi' ? 'Đã đọc tất cả' : 'Mark all read'}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
-            )}
+            </div>
           </div>
 
           {/* List */}
@@ -305,7 +324,6 @@ export function NotificationBell({ align = 'right', className = '' }: Notificati
             style={{
               overflowY: 'auto',
               flex: 1,
-              maxHeight: '380px',
             }}
           >
             {isLoading ? (
@@ -372,7 +390,8 @@ export function NotificationBell({ align = 'right', className = '' }: Notificati
             )}
           </div>
         </div>
-      )}
+      </>
+    )}
     </div>
   );
 }

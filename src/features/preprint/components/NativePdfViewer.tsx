@@ -20,9 +20,11 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
   useEffect(() => {
     function updateWidth() {
       if (containerRef.current) {
-        // Leave comfortable padding around the paper
-        const measured = containerRef.current.clientWidth - 48;
-        if (measured > 300) {
+        // Leave comfortable padding around the paper on mobile vs desktop
+        const clientW = containerRef.current.clientWidth;
+        const padding = clientW < 500 ? 16 : 48;
+        const measured = clientW - padding;
+        if (measured > 120) {
           setContainerWidth(Math.min(measured, 950));
         }
       }
@@ -101,34 +103,36 @@ export function NativePdfViewer({ url, fileName }: NativePdfViewerProps) {
           <div className="native-pdf-toolbar__divider" aria-hidden="true" />
 
           {/* Action buttons */}
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="native-pdf-btn native-pdf-btn--outline"
-            title="Mở PDF trong tab mới"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-            <span>Mở tab mới</span>
-          </a>
+          <div className="native-pdf-toolbar__actions">
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="native-pdf-btn native-pdf-btn--outline"
+              title="Mở PDF trong tab mới"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span className="native-pdf-btn__text">Mở tab mới</span>
+            </a>
 
-          <a
-            href={url}
-            download={fileName || 'manuscript.pdf'}
-            className="native-pdf-btn native-pdf-btn--primary"
-            title="Tải xuống tệp PDF"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            <span>Tải xuống</span>
-          </a>
+            <a
+              href={url}
+              download={fileName || 'manuscript.pdf'}
+              className="native-pdf-btn native-pdf-btn--primary"
+              title="Tải xuống tệp PDF"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span className="native-pdf-btn__text">Tải xuống</span>
+            </a>
+          </div>
         </div>
       </div>
 

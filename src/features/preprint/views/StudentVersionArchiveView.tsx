@@ -342,44 +342,46 @@ export function StudentVersionArchiveView() {
                                 {ver.file_name} ({ver.file_size || 'Kích thước không khả dụng'})
                               </span>
 
-                              {ver.sha256 && (
-                                <button
-                                  type="button"
-                                  className={`archive-sha-pill ${copiedHash === ver.sha256 ? 'archive-sha-pill--copied' : ''}`}
-                                  onClick={() => handleCopyHash(ver.sha256!)}
-                                  title={`Nhấp để sao chép SHA-256: ${ver.sha256}`}
-                                >
-                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    {copiedHash === ver.sha256 ? (
-                                      <polyline points="20 6 9 17 4 12" />
-                                    ) : (
-                                      <>
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                      </>
-                                    )}
-                                  </svg>
-                                  <span>
-                                    {copiedHash === ver.sha256 ? 'Đã sao chép SHA!' : `SHA: ${ver.sha256.substring(0, 7)}…${ver.sha256.substring(ver.sha256.length - 4)}`}
-                                  </span>
-                                </button>
-                              )}
+                              <div className="archive-git-actions-row">
+                                {ver.sha256 && (
+                                  <button
+                                    type="button"
+                                    className={`archive-sha-pill ${copiedHash === ver.sha256 ? 'archive-sha-pill--copied' : ''}`}
+                                    onClick={() => handleCopyHash(ver.sha256!)}
+                                    title={`Nhấp để sao chép SHA-256: ${ver.sha256}`}
+                                  >
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      {copiedHash === ver.sha256 ? (
+                                        <polyline points="20 6 9 17 4 12" />
+                                      ) : (
+                                        <>
+                                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                        </>
+                                      )}
+                                    </svg>
+                                    <span>
+                                      {copiedHash === ver.sha256 ? 'Đã sao chép SHA!' : `SHA: ${ver.sha256.substring(0, 7)}…${ver.sha256.substring(ver.sha256.length - 4)}`}
+                                    </span>
+                                  </button>
+                                )}
 
-                              {ver.download_url && (
-                                <a
-                                  href={ver.download_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="archive-download-btn"
-                                >
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                  </svg>
-                                  <span>Tải tệp PDF</span>
-                                </a>
-                              )}
+                                {ver.download_url && (
+                                  <a
+                                    href={ver.download_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="archive-download-btn"
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                      <polyline points="7 10 12 15 17 10" />
+                                      <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    <span>Tải tệp PDF</span>
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

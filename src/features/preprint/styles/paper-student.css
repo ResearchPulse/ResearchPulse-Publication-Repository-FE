@@ -2420,18 +2420,27 @@
 /* Panels */
 .student-tab-panel {
   animation: studentCardFadeInUp 380ms cubic-bezier(0.16, 1, 0.3, 1) both 140ms;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .student-panel-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .student-panel-main {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .student-section-card {
@@ -2441,6 +2450,12 @@
   padding: 24px;
   box-shadow: 0 2px 6px rgba(18, 35, 49, 0.02);
   animation: studentCardFadeInUp 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .student-section-card__title {
@@ -2464,6 +2479,9 @@
   flex-wrap: wrap;
   padding-top: 14px;
   border-top: 1px solid #f0f4f7;
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
 }
 
 .student-keywords-label {
@@ -2477,14 +2495,16 @@
   background: #f0f7fc;
   color: #0071bc;
   border: 1px solid #dbeef9;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 5px;
   font-weight: 600;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
   display: inline-block;
+  line-height: 1.4;
+  box-sizing: border-box;
 }
 
 /* Authors Table in Detail */
@@ -2526,6 +2546,9 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 .student-meta-card {
@@ -2534,6 +2557,11 @@
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 6px rgba(18, 35, 49, 0.02);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .student-meta-card__title {
@@ -2551,11 +2579,14 @@
 
 .student-meta-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   font-size: 12.5px;
   padding-bottom: 8px;
   border-bottom: 1px solid #f0f4f7;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .student-meta-item:last-child {
@@ -2566,11 +2597,17 @@
 .student-meta-key {
   color: #647381;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .student-meta-val {
   color: #122331;
   font-weight: 700;
+  text-align: right;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .student-meta-val--code {
@@ -4081,11 +4118,34 @@
   40%, 80% { transform: rotate(-14deg); }
 }
 
+.student-notif-backdrop {
+  display: none;
+}
+
+.student-notif-popover__close-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.student-notif-popover__close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
 .student-topbar__notif-popover {
   position: absolute;
   top: 48px;
   right: 0;
   width: 360px;
+  max-height: 480px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -4144,6 +4204,7 @@
 }
 
 .student-notif-popover__list {
+  max-height: 380px;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
   transition: scrollbar-color 0.2s ease;
@@ -5246,6 +5307,56 @@
     gap: 8px;
   }
 
+  .student-notif-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    top: 64px;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 90;
+    pointer-events: auto;
+    animation: notifBackdropFadeIn 0.2s ease forwards;
+  }
+
+  .student-notif-backdrop--closing {
+    animation: notifBackdropFadeOut 0.2s ease forwards;
+    pointer-events: none;
+  }
+
+  .student-notif-popover__close-btn {
+    display: flex;
+  }
+
+  .student-topbar__notif-popover {
+    position: fixed !important;
+    top: 64px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    max-height: calc(85dvh - 64px) !important;
+    border-radius: 0 0 16px 16px !important;
+    border: none !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16) !important;
+    z-index: 95 !important;
+    transform-origin: top center !important;
+  }
+
+  .student-topbar__notif-popover--open {
+    animation: notifSlideDownMenu 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  }
+
+  .student-topbar__notif-popover--closing {
+    animation: notifSlideUpMenu 0.18s cubic-bezier(0.32, 0, 0.67, 0) forwards !important;
+  }
+
+  .student-notif-popover__list {
+    max-height: calc(85dvh - 64px - 48px) !important;
+  }
+
   .student-topbar__menu-btn {
     display: flex;
   }
@@ -5283,22 +5394,78 @@
     display: none;
   }
 
+  .student-dashboard-layout {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .student-dashboard-main {
+    max-width: 100vw;
+    overflow-x: hidden;
+    min-width: 0;
+  }
+
+  .student-dashboard-body {
+    padding: 16px 12px;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .student-content {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .student-detail-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .student-panel-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .student-panel-main,
+  .student-panel-sidebar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
   /* --- Synchronized Responsive Rules across all tabs & detail page --- */
   .student-paper-hero {
     padding: 20px 16px;
     border-radius: 12px;
     margin-bottom: 18px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   .student-paper-hero__title {
     font-size: 20px;
     line-height: 1.35;
     margin-bottom: 14px;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   .student-paper-hero__byline {
     margin-bottom: 16px;
     padding-bottom: 14px;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   .student-paper-hero__meta-row {
@@ -5309,6 +5476,7 @@
 
   .student-paper-hero__badges {
     gap: 8px;
+    flex-wrap: wrap;
   }
 
   .student-paper-hero__actions {
@@ -5321,6 +5489,7 @@
   .student-paper-hero__actions .student-btn {
     width: 100%;
     justify-content: center;
+    box-sizing: border-box;
   }
 
   /* Tab Navigation: Smooth swipe without wrapping */
@@ -5331,6 +5500,8 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
     padding-bottom: 2px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .student-detail-tabs::-webkit-scrollbar {
@@ -5349,6 +5520,11 @@
   .student-meta-card {
     padding: 18px 16px;
     border-radius: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   .student-meta-val--code {
@@ -5708,6 +5884,32 @@
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .archive-manuscript-header {
+    padding: 14px 14px;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .archive-manuscript-title {
+    font-size: 14.5px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .archive-manuscript-title a {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .archive-manuscript-actions {
+    gap: 6px;
+  }
 }
 
 .archive-timeline-container {
@@ -7038,29 +7240,114 @@
   text-decoration: none;
 }
 
+.archive-git-actions-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 @media (max-width: 640px) {
   .archive-git-timeline {
-    padding-left: 36px;
+    padding: 12px 10px 14px 42px;
   }
+
+  .archive-git-timeline::before {
+    left: 20px;
+    top: 20px;
+    bottom: 20px;
+  }
+
+  .archive-git-entry {
+    margin-bottom: 10px;
+  }
+
   .archive-git-node {
-    left: -26px;
-    width: 18px;
-    height: 18px;
-    font-size: 8.5px;
+    left: -31px;
+    top: 10px;
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
   }
-  .archive-git-summary-line {
+
+  .archive-git-body {
+    padding: 11px 12px;
+    border-radius: 8px;
+  }
+
+  .archive-git-header {
+    display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-items: stretch;
+    gap: 8px;
   }
-  .archive-git-summary-text {
-    white-space: normal;
-  }
-  .archive-git-files-bar {
+
+  .archive-git-summary-line {
+    display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: 3px;
+    width: 100%;
   }
+
+  .archive-git-version-tag {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+  }
+
+  .archive-git-summary-text {
+    font-size: 12px;
+    color: #64748b;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  .archive-git-meta-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px dashed #f1f5f9;
+  }
+
+  .archive-git-date {
+    font-size: 11.5px;
+  }
+
+  .archive-git-files-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .archive-file-tag {
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  .archive-git-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .archive-sha-pill {
+    font-size: 10.5px;
+    padding: 3px 7px;
+  }
+
   .archive-download-btn {
+    font-size: 11.5px;
+    padding: 4px 8px;
     margin-left: 0;
   }
 }
@@ -7710,3 +7997,169 @@
     transition: none !important;
   }
 }
+
+/* ==========================================================================
+   Mobile Responsive Rules for Native PDF Toolbar
+   ========================================================================== */
+
+.native-pdf-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .native-pdf-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .native-pdf-toolbar__left {
+    width: 100%;
+    min-width: 0;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  .native-pdf-toolbar__file-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .native-pdf-toolbar__title {
+    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .native-pdf-toolbar__pages {
+    font-size: 12.5px;
+    flex-shrink: 0;
+  }
+
+  .native-pdf-toolbar__right {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: nowrap;
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .native-pdf-toolbar__zoom {
+    flex-shrink: 0;
+    padding: 3px 6px;
+    gap: 4px;
+  }
+
+  .native-pdf-zoom-val {
+    min-width: 38px;
+    font-size: 12px;
+  }
+
+  .native-pdf-btn--icon {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+  }
+
+  .native-pdf-toolbar__divider {
+    display: none;
+  }
+
+  .native-pdf-toolbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .native-pdf-btn {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12.5px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 430px) {
+  .native-pdf-toolbar {
+    padding: 10px 12px;
+  }
+  .native-pdf-toolbar__title {
+    font-size: 13px;
+  }
+  .native-pdf-toolbar__pages {
+    font-size: 12px;
+  }
+  .native-pdf-btn {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .native-pdf-toolbar__zoom {
+    padding: 2px 4px;
+    gap: 2px;
+  }
+  .native-pdf-zoom-val {
+    min-width: 34px;
+    font-size: 11.5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .native-pdf-btn .native-pdf-btn__text {
+    display: none;
+  }
+  .native-pdf-btn {
+    padding: 0 10px;
+  }
+}
+
+/* ==========================================================================
+   Mobile Notification Menu Animations
+   ========================================================================== */
+@keyframes notifBackdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes notifBackdropFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes notifSlideDownMenu {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes notifSlideUpMenu {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
