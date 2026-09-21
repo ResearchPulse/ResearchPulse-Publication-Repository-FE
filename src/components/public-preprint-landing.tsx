@@ -331,27 +331,14 @@ function PublishedCatalogue() {
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <button type="button" onClick={() => setSelected(null)} className="pl-published-btn-secondary" style={{ padding: '10px 18px', fontSize: 13.5 }}>Đóng</button>
-              {selected.downloadUrl ? (
-                <a
-                  href={selected.downloadUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="pl-published-btn-primary"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', fontSize: 13.5, textDecoration: 'none' }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  Xem chi tiết bài báo (PDF)
-                </a>
-              ) : (
-                <Link
-                  href={`/student/published/${selected.id}?tab=pdf`}
-                  className="pl-published-btn-primary"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', fontSize: 13.5, textDecoration: 'none' }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  Xem chi tiết bài báo (PDF)
-                </Link>
-              )}
+              <Link
+                href={`/student/published/${selected.id}?tab=pdf`}
+                className="pl-published-btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 20px', fontSize: 13.5, textDecoration: 'none' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                Xem chi tiết bài báo (PDF)
+              </Link>
             </div>
           </div>
         </div>,

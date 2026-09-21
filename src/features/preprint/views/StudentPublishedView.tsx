@@ -505,17 +505,6 @@ export function StudentPublishedView() {
               >
                 {locale === 'vi' ? 'Đóng' : 'Close'}
               </button>
-              {selected.downloadUrl && (
-                <a
-                  href={selected.downloadUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="student-modal-btn-download"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                  {locale === 'vi' ? 'Tải PDF chính thức' : 'Download PDF'}
-                </a>
-              )}
               <Link
                 href={`/student/published/${selected.id}?tab=pdf`}
                 className="student-modal-btn-detail"
