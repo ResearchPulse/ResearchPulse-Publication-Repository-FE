@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
 import { useTranslation } from '@/i18n';
@@ -30,7 +31,9 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
   const [error, setError] = useState<string | null>(null);
   const [citationFormat, setCitationFormat] = useState<'APA' | 'IEEE' | 'BibTeX'>('APA');
   const [citationCopied, setCitationCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'pdf'>('overview');
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams?.get('tab') === 'pdf' ? 'pdf' : 'overview';
+  const [activeTab, setActiveTab] = useState<'overview' | 'pdf'>(defaultTab);
 
   useEffect(() => {
     let active = true;

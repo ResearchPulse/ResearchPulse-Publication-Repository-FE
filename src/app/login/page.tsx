@@ -119,7 +119,7 @@ function LoginForm() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <button
             type="button"
-            onClick={() => handleQuickLogin('admin@hyperdata.org', 'admin')}
+            onClick={() => handleQuickLogin('phuonglhk@gmail.com', 'admin')}
             disabled={loading}
             style={{
               padding: '7px 8px',
@@ -153,7 +153,7 @@ function LoginForm() {
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('lecturer@hyperdata.org', 'lecturer')}
+            onClick={() => handleQuickLogin('phuonglhk@fpt.edu.vn', 'lecturer')}
             disabled={loading}
             style={{
               padding: '7px 8px',
