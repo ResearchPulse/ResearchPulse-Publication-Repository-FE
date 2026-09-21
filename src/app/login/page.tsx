@@ -360,7 +360,7 @@ export default function LoginPage() {
       {/* Header chuẩn theo style Landing Page */}
       <header className="pl-header" style={{ position: 'relative', zIndex: 10 }}>
         <div className="pl-container pl-header__inner">
-          <Link href="/" className="pl-brand" aria-label="Trang chủ Hyperdata">
+          <Link href="/" className="pl-brand" aria-label="Trang chủ HyperData Lab">
             <HyperdataLogo size={34} />
           </Link>
 
@@ -469,7 +469,7 @@ export default function LoginPage() {
         </div>
 
         <div className="pl-container pl-footer__bottom">
-          <p>© {new Date().getFullYear()} Hyperdata Lab. Tất cả các quyền được bảo lưu.</p>
+          <p>© {new Date().getFullYear()} HyperData Lab. Tất cả các quyền được bảo lưu.</p>
           <p className="pl-footer__disclaimer">
             Nền tảng công bố học thuật phi lợi nhuận phục vụ sinh viên và nhà nghiên cứu trẻ.
           </p>

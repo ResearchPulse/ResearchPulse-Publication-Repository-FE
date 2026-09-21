@@ -69,12 +69,12 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
     const year = pub.publishedAt ? new Date(pub.publishedAt).getFullYear() : new Date().getFullYear();
     const title = pub.title || (locale === 'vi' ? 'Bản thảo nghiên cứu' : 'Research Preprint');
     if (format === 'APA') {
-      return `${authorsStr} (${year}). ${title}. Hyperdata Lab Academic Repository, ${pub.currentVersion?.versionLabel || 'v1.0'}. https://hyperdatalab.org/preprints/${pub.id}`;
+      return `${authorsStr} (${year}). ${title}. HyperData Lab Academic Repository, ${pub.currentVersion?.versionLabel || 'v1.0'}. https://hyperdatalab.org/preprints/${pub.id}`;
     }
     if (format === 'IEEE') {
-      return `[1] ${authorsStr}, "${title}," Hyperdata Lab Preprint Rep., vol. 1, no. 1, ${year}.`;
+      return `[1] ${authorsStr}, "${title}," HyperData Lab Preprint Rep., vol. 1, no. 1, ${year}.`;
     }
-    return `@article{hyperdatalab_${pub.id.slice(0, 8)},\n  title={${title}},\n  author={${authorsStr}},\n  journal={Hyperdata Lab Preprints},\n  year={${year}}\n}`;
+    return `@article{hyperdatalab_${pub.id.slice(0, 8)},\n  title={${title}},\n  author={${authorsStr}},\n  journal={HyperData Lab Preprints},\n  year={${year}}\n}`;
   };
 
   const copyCitation = () => {
@@ -374,7 +374,7 @@ export function StudentPublishedDetailView({ id }: StudentPublishedDetailViewPro
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#64748b' }}>{locale === 'vi' ? 'Kho lưu trữ:' : 'Repository:'}</span>
-                  <span style={{ fontWeight: 600, color: '#0071bc' }}>Hyperdata Lab</span>
+                  <span style={{ fontWeight: 600, color: '#0071bc' }}>HyperData Lab</span>
                 </div>
               </div>
             </div>

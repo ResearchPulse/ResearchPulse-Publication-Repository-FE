@@ -193,8 +193,8 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
   const isEditing = Boolean(id);
-  const isLecturer = user?.role === 'LECTURER';
   const isLecturerRoute = pathname?.startsWith('/lecturer/') ?? false;
+  const isLecturer = (user?.role === 'LECTURER') || isLecturerRoute;
   const workspacePath = isLecturer ? '/lecturer/submissions' : '/student/my-preprints';
   const devMockSubmitEnabled = process.env.NEXT_PUBLIC_DEV_MOCK_SUBMIT === 'true';
 
@@ -213,7 +213,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
   const [newAuthorName, setNewAuthorName] = useState('');
   const [newAuthorEmail, setNewAuthorEmail] = useState('');
   const [newAuthorStudentId, setNewAuthorStudentId] = useState('');
-  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
+  const [newAuthorRole, setNewAuthorRole] = useState<'STUDENT' | 'LECTURER'>(isLecturerRoute ? 'LECTURER' : 'STUDENT');
   const [newAuthorInst, setNewAuthorInst] = useState('');
   const [showAddAuthor, setShowAddAuthor] = useState(false);
 
@@ -361,17 +361,27 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
         const isSelf = user && (
           (user.studentId && author.studentId && user.studentId.toUpperCase() === author.studentId.toUpperCase()) ||
           (user.email && author.email && user.email.toLowerCase() === author.email.toLowerCase()) ||
-          (index === 0 && user.role === 'STUDENT')
+          index === 0
         );
+        const resolvedRole = isLecturerRoute
+          ? 'LECTURER'
+          : ((author.role || user?.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN');
+
         if (isSelf && user) {
           return {
             ...author,
             name: author.name || user.name || '',
             email: author.email || user.email || '',
             studentId: author.studentId || user.studentId || undefined,
-            role: (author.role || user.role || 'STUDENT') as 'STUDENT' | 'LECTURER' | 'ADMIN',
+            role: resolvedRole,
             userId: user.id,
             verificationStatus: 'VERIFIED' as const,
+          };
+        }
+        if (isLecturerRoute && index === 0) {
+          return {
+            ...author,
+            role: 'LECTURER' as const,
           };
         }
         return author;
@@ -409,7 +419,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setNewAuthorName('');
     setNewAuthorEmail('');
     setNewAuthorStudentId('');
-    setNewAuthorRole('STUDENT');
+    setNewAuthorRole(isLecturerRoute ? 'LECTURER' : 'STUDENT');
     setNewAuthorInst('');
     setShowAddAuthor(false);
   };
@@ -460,7 +470,10 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setEditName(author.name || '');
     setEditEmail(author.email || '');
     setEditStudentId(author.studentId || '');
-    setEditRole(author.role === 'LECTURER' ? 'LECTURER' : (author.studentId ? 'STUDENT' : (author.role === 'STUDENT' ? 'STUDENT' : 'LECTURER')));
+    const detectedRole = isLecturerRoute
+      ? (author.role === 'STUDENT' && index !== 0 ? 'STUDENT' : 'LECTURER')
+      : (author.role === 'LECTURER' ? 'LECTURER' : 'STUDENT');
+    setEditRole(detectedRole);
     setEditInstitution(author.institution || '');
     setEditIsPrimary(Boolean(author.isPrimary || index === 0));
   };
@@ -471,6 +484,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
     setEditEmail(user.email || '');
     if (user.studentId) setEditStudentId(user.studentId);
     setEditRole(user.role === 'LECTURER' ? 'LECTURER' : 'STUDENT');
+    if (user.affiliation && !editInstitution) {
+      setEditInstitution(user.affiliation);
+    }
   };
 
   const saveEditedAuthor = () => {
@@ -1031,7 +1047,11 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                   <span className="student-author-meta">
                     {[
                       primaryAuthorEmail,
-                      isLecturer ? 'Giảng viên' : (primaryAuthorStudentId ? `MSSV: ${primaryAuthorStudentId}` : null),
+                      primaryAuthorStudentId
+                        ? ((authors[0]?.role || (isLecturer ? 'LECTURER' : 'STUDENT')) === 'LECTURER'
+                            ? `MSGV: ${primaryAuthorStudentId}`
+                            : `MSSV: ${primaryAuthorStudentId}`)
+                        : (isLecturer ? 'Giảng viên' : null),
                       primaryAuthorInst,
                     ].filter(Boolean).join(' • ')}
                   </span>
@@ -1085,7 +1105,9 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <span className="student-author-meta">
                       {[
                         ca.email || 'Email chưa nhập',
-                        ca.studentId ? `MSSV: ${ca.studentId}` : null,
+                        ca.studentId
+                          ? (ca.role === 'LECTURER' ? `MSGV: ${ca.studentId}` : `MSSV: ${ca.studentId}`)
+                          : null,
                         ca.institution,
                       ].filter(Boolean).join(' • ')}
                     </span>
@@ -1154,7 +1176,7 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                     <input
                       type="text"
                       className="student-input"
-                      placeholder="Mã số sinh viên (MSSV)"
+                      placeholder={newAuthorRole === 'LECTURER' ? 'Mã Số Giảng Viên (MSGV)' : 'Mã số sinh viên (MSSV)'}
                       value={newAuthorStudentId}
                       onChange={(e) => setNewAuthorStudentId(e.target.value)}
                     />
@@ -1492,15 +1514,21 @@ export function PreprintEditorView({ id }: PreprintEditorViewProps) {
                 </div>
 
                 <div className="student-field">
-                  <label className="student-field__label">Mã số sinh viên (MSSV)</label>
+                  <label className="student-field__label">
+                    {editRole === 'LECTURER' ? 'Mã Số Giảng Viên (MSGV)' : 'Mã số sinh viên (MSSV)'}
+                  </label>
                   <input
                     type="text"
                     className="student-input"
-                    placeholder="Ví dụ: SE170123"
+                    placeholder={editRole === 'LECTURER' ? 'Ví dụ: MSGV0042' : 'Ví dụ: SE170123'}
                     value={editStudentId}
                     onChange={(e) => setEditStudentId(e.target.value)}
                   />
-                  <span className="student-field__hint">Dùng để tự động match tài khoản sinh viên</span>
+                  <span className="student-field__hint">
+                    {editRole === 'LECTURER'
+                      ? 'Dùng để tự động match và liên kết hồ sơ giảng viên'
+                      : 'Dùng để tự động match tài khoản sinh viên'}
+                  </span>
                 </div>
               </div>
 

@@ -8,6 +8,7 @@ export type User = {
   lastName?: string;
   studentId?: string;
   major?: string;
+  affiliation?: string;
   avatarUrl?: string;
   role?: Role;
   status?: string;

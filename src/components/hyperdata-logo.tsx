@@ -14,10 +14,10 @@ export function HyperdataLogo({
   variant = 'dark',
 }: HyperdataLogoProps) {
   return (
-    <span className={`pl-brand-lockup pl-brand-lockup--${variant} ${className}`} aria-label="Hyperdata Lab">
+    <span className={`pl-brand-lockup pl-brand-lockup--${variant} ${className}`} aria-label="HyperData Lab">
       <Image
         src="/hyperdata-lab-logo.png"
-        alt="Hyperdata Lab Logo"
+        alt="HyperData Lab Logo"
         width={size}
         height={size}
         className="pl-brand-logo-img"
