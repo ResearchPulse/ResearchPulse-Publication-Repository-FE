@@ -186,7 +186,7 @@ function LoginForm() {
           </button>
           <button
             type="button"
-            onClick={() => handleQuickLogin('student@hyperdata.org', 'student')}
+            onClick={() => handleQuickLogin('duyga544@gmail.com', 'student')}
             disabled={loading}
             style={{
               padding: '7px 8px',

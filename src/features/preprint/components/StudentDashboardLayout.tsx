@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { StudentSidebar } from './StudentSidebar';
 import { StudentTopbar } from './StudentTopbar';
+import { usePreprintList } from '../hooks';
 
 interface StudentDashboardLayoutProps {
   title?: string;
@@ -14,10 +15,21 @@ interface StudentDashboardLayoutProps {
 export function StudentDashboardLayout({
   title,
   children,
-  revisionCount = 0,
-  totalCount = 0,
+  revisionCount,
+  totalCount,
 }: StudentDashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { items } = usePreprintList();
+
+  const effectiveTotalCount = useMemo(() => {
+    if (totalCount !== undefined) return totalCount;
+    return items.length;
+  }, [totalCount, items]);
+
+  const effectiveRevisionCount = useMemo(() => {
+    if (revisionCount !== undefined) return revisionCount;
+    return items.filter((i) => i.status === 'NEEDS_REVISION').length;
+  }, [revisionCount, items]);
 
   return (
     <div className="student-dashboard-layout">
@@ -25,8 +37,8 @@ export function StudentDashboardLayout({
       <StudentSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        revisionCount={revisionCount}
-        totalCount={totalCount}
+        revisionCount={effectiveRevisionCount}
+        totalCount={effectiveTotalCount}
       />
 
       {/* Main Workspace Frame */}
@@ -34,7 +46,7 @@ export function StudentDashboardLayout({
         {/* Sticky Top Header */}
         <StudentTopbar
           title={title}
-          revisionCount={revisionCount}
+          revisionCount={effectiveRevisionCount}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
 
