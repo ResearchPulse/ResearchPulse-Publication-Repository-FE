@@ -466,6 +466,12 @@ export const studentPreprintApi = {
       version: event.version,
     }));
   },
+
+  delete: async (id: string): Promise<void> => {
+    await request('/' + encodeURIComponent(id), {
+      method: 'DELETE',
+    });
+  },
 };
 
 export default studentPreprintApi;

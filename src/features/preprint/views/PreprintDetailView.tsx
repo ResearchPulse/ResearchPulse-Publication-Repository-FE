@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudentShell } from '../components';
 import { LecturerShell } from '@/features/lecturer/components';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreprintDetail } from '../hooks';
+import { studentPreprintApi } from '../api';
 import type { PreprintStatus } from '@/shared/types';
 import { DetailSkeleton } from '@/components/skeleton';
 import { useTranslation } from '@/i18n';
@@ -80,6 +81,26 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
   const [copiedDoi, setCopiedDoi] = useState(false);
   const [pdfExpanded, setPdfExpanded] = useState(false);
   const [showAllAuthors, setShowAllAuthors] = useState(false);
+
+  const router = useRouter();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteDraft = async () => {
+    if (!item || item.status !== 'DRAFT') return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await studentPreprintApi.delete(item.id);
+      setShowDeleteModal(false);
+      router.push(workspacePath);
+      router.refresh();
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : 'Không thể xóa bản nháp.');
+      setIsDeleting(false);
+    }
+  };
 
   const handleCopyDoi = () => {
     if (!item?.doi) return;
@@ -322,13 +343,36 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
                 )}
 
                 {item.status === 'DRAFT' && (
-                  <Link href={editPath} className="student-btn student-btn--primary">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    <span>Tiếp tục bản nháp →</span>
-                  </Link>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <Link href={editPath} className="student-btn student-btn--primary">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      <span>Tiếp tục bản nháp →</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="student-btn student-btn--danger"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#fff',
+                        color: '#dc2626',
+                        borderColor: '#fca5a5',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                      <span>Xóa bản nháp</span>
+                    </button>
+                  </div>
                 )}
 
                 {(item.status === 'PUBLISHED' || item.status === 'APPROVED') && (
@@ -708,6 +752,121 @@ export function PreprintDetailView({ id }: PreprintDetailViewProps) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'grid',
+            placeItems: 'center',
+            zIndex: 9999,
+            padding: '16px',
+          }}
+          onClick={() => {
+            if (!isDeleting) setShowDeleteModal(false);
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              maxWidth: '440px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fee2e2',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 600, color: '#0f172a' }}>
+                  Xác nhận xóa bản nháp
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+                  Hành động này không thể hoàn tác.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="student-error-banner" style={{ marginBottom: '16px', fontSize: '13px' }}>
+                {deleteError}
+              </div>
+            )}
+
+            <p style={{ fontSize: '14px', color: '#334155', lineHeight: 1.5, marginBottom: '20px' }}>
+              Bạn có chắc chắn muốn xóa bản nháp <strong>&ldquo;{item?.title}&rdquo;</strong> khỏi hệ thống không?
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                className="student-btn student-btn--ghost"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                style={{ padding: '8px 16px', fontSize: '13.5px' }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="student-btn student-btn--danger"
+                onClick={handleDeleteDraft}
+                disabled={isDeleting}
+                style={{
+                  padding: '8px 18px',
+                  fontSize: '13.5px',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  opacity: isDeleting ? 0.7 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <span>Đang xóa...</span>
+                  </>
+                ) : (
+                  <span>Xóa bản nháp</span>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </PreprintDetailShell>
