@@ -458,8 +458,8 @@ export function AdminUsersView() {
                 <TableSkeleton rows={4} type="users" />
               ) : accounts.length > 0 ? (
                 accounts.map((user) => (
-                  <tr key={user.id}>
-                    <td>
+                  <tr key={user.id} className="admin-user-row">
+                    <td className="admin-user-col-main">
                       <div className="admin-user-cell">
                         <div className="admin-user-avatar">
                           {getUserInitials(user.name, user.email)}
@@ -479,7 +479,7 @@ export function AdminUsersView() {
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td className="admin-user-col-role">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {renderRoleBadge(user.role)}
                         {/* Role Switcher Dropdown */}
@@ -498,24 +498,24 @@ export function AdminUsersView() {
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div>
-                        {user.studentId && <div style={{ fontWeight: 600, color: '#0f172a' }}>{user.studentId}</div>}
-                        {user.major && <div style={{ fontSize: '12px', color: '#64748b' }}>{user.major}</div>}
-                        {!user.studentId && !user.major && <span style={{ color: '#94a3b8' }}>—</span>}
+                    <td className="admin-user-col-academic">
+                      <div className="admin-user-academic-info">
+                        {user.studentId && <div className="admin-user-id" style={{ fontWeight: 600, color: '#0f172a' }}>{user.studentId}</div>}
+                        {user.major && <div className="admin-user-major" style={{ fontSize: '12px', color: '#64748b' }}>{user.major}</div>}
+                        {!user.studentId && !user.major && <span className="admin-user-empty" style={{ color: '#94a3b8' }}>—</span>}
                       </div>
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td className="admin-user-col-status" style={{ whiteSpace: 'nowrap' }}>
                       {renderStatusBadge(user.isActive)}
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td className="admin-user-col-date" style={{ whiteSpace: 'nowrap' }}>
                       <span style={{ fontSize: '12.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
                         {user.createdAt
                           ? new Date(user.createdAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : locale === 'vi' ? 'Gần đây' : 'Recently'}
                       </span>
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td className="admin-user-col-actions" style={{ whiteSpace: 'nowrap' }}>
                       <div className="review-actions" style={{ justifyContent: 'flex-end', gap: '6px', flexWrap: 'nowrap' }}>
                         <Button
                           variant="secondary"

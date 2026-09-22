@@ -7,14 +7,37 @@
   display: grid;
   min-height: 100dvh;
   grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-rows: 1fr;
   background: var(--hd-bg);
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Sidebar stays fully fixed within the grid column */
+.admin-frame .student-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Custom smooth scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.admin-frame .student-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.admin-frame .student-sidebar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
 }
 
 .admin-main {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  min-height: 100dvh;
 }
 
 .admin-content {
@@ -22,6 +45,53 @@
   max-width: 1440px;
   margin: 0 auto;
   padding: 36px 40px;
+  flex: 1;
+}
+
+/* Fixed Topbar with smooth scrolling elevations and frosted glass */
+.admin-frame .admin-topbar-fixed {
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  z-index: 80;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-frame .admin-topbar--scrolled {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom-color: rgba(203, 213, 225, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 1px 3px -1px rgba(15, 23, 42, 0.04);
+}
+
+/* Scroll container for admin main content */
+.admin-content-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-content-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-content-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.admin-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .skip-link {
@@ -2375,31 +2445,116 @@
 }
 
 @media (max-width: 640px) {
+  .admin-users-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+  .admin-users-card .table-wrap {
+    overflow: visible !important;
+  }
+  .admin-users-table {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    border: none !important;
+  }
   .admin-users-table thead {
-    display: none;
+    display: none !important;
   }
-  .admin-users-table,
-  .admin-users-table tbody,
-  .admin-users-table tr,
+  .admin-users-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .admin-users-table tr.admin-user-row {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-areas:
+      "main status"
+      "role role"
+      "academic academic"
+      "major major"
+      "date actions" !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+    transition: all 0.2s ease !important;
+    gap: 12px !important;
+  }
+  .admin-users-table tr.admin-user-row:active {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+  }
   .admin-users-table td {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .admin-users-table tr {
-    padding: 14px;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  .admin-users-table td {
-    padding: 6px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 !important;
     border: none !important;
     min-width: 0 !important;
   }
-  .admin-user-actions {
-    justify-content: flex-start;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed #f1f5f9;
+  .admin-user-col-main {
+    grid-area: main;
+  }
+  .admin-user-col-status {
+    grid-area: status;
+    justify-content: flex-end;
+    align-items: flex-start !important;
+  }
+  .admin-user-col-role {
+    grid-area: role;
+  }
+  .admin-user-col-academic {
+    grid-area: academic;
+  }
+  .admin-user-col-major {
+    grid-area: major;
+  }
+  .admin-user-empty {
+    display: none !important;
+  }
+  .admin-user-academic-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .admin-user-id {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .admin-user-major {
+    color: #64748b;
+    font-size: 12px;
+  }
+  .admin-user-col-date {
+    grid-area: date;
+    padding-top: 14px !important;
+    margin-top: 4px;
+    border-top: 1px solid #f1f5f9 !important;
+    align-items: center !important;
+  }
+  .admin-user-col-actions {
+    grid-area: actions;
+    padding-top: 14px !important;
+    margin-top: 4px;
+    border-top: 1px solid #f1f5f9 !important;
+    justify-content: flex-end;
+    align-items: center !important;
+  }
+  .admin-user-actions-group {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
   }
 }
 
@@ -4125,4 +4280,37 @@
 
 .dashboard-table__row--selected {
   background-color: #f0f7fc !important;
+}
+
+.dashboard-table th,
+.table-shell th,
+.data-table th {
+  white-space: nowrap !important;
+}
+
+/* Mobile responsive layout */
+@media (max-width: 768px) {
+  .admin-frame {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-frame .student-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 270px;
+    z-index: 100;
+    transform: translateX(-100%);
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .admin-frame .student-sidebar.student-sidebar--open {
+    transform: translateX(0);
+  }
+
+  .admin-content {
+    padding: 20px 16px;
+  }
 }
