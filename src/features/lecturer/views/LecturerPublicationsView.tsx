@@ -93,6 +93,7 @@ export function LecturerPublicationsView() {
 
   // Full-Text Viewer Modal State
   const [viewPdfPub, setViewPdfPub] = useState<LecturerPublication | null>(null);
+  const [loadingPdfDetail, setLoadingPdfDetail] = useState(false);
 
   // Expandable abstracts
   const [expandedAbstracts, setExpandedAbstracts] = useState<Record<string, boolean>>({});
@@ -126,6 +127,36 @@ export function LecturerPublicationsView() {
   useEffect(() => {
     fetchPublications();
   }, [fetchPublications]);
+
+  // Lazy-load presigned downloadUrl when opening PDF viewer
+  useEffect(() => {
+    if (!viewPdfPub || viewPdfPub.downloadUrl) return;
+
+    let cancelled = false;
+    setLoadingPdfDetail(true);
+
+    lecturerPublicationApi
+      .get(viewPdfPub.id)
+      .then((detail) => {
+        if (cancelled) return;
+        if (detail.downloadUrl) {
+          setViewPdfPub((prev) => (prev && prev.id === detail.id ? { ...prev, downloadUrl: detail.downloadUrl } : prev));
+          setItems((prev) =>
+            prev.map((item) => (item.id === detail.id ? { ...item, downloadUrl: detail.downloadUrl } : item))
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load publication PDF detail:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPdfDetail(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewPdfPub?.id, viewPdfPub?.downloadUrl]);
 
   // Extract unique disciplines for the filter dropdown
   const disciplines = useMemo(() => {
@@ -1122,7 +1153,13 @@ export function LecturerPublicationsView() {
                   {/* Direct PDF Download if available */}
                   {(pub.downloadUrl || pub.currentVersion?.fileName) && (
                     <a
-                      href={pub.downloadUrl || `/api/pdf-proxy?key=${encodeURIComponent(pub.objectKey)}`}
+                      href={pub.downloadUrl || '#'}
+                      onClick={(e) => {
+                        if (!pub.downloadUrl) {
+                          e.preventDefault();
+                          setViewPdfPub(pub);
+                        }
+                      }}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
@@ -1349,31 +1386,33 @@ export function LecturerPublicationsView() {
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>{viewPdfPub.title}</h3>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <a
-                href={viewPdfPub.downloadUrl || `/api/pdf-proxy?key=${encodeURIComponent(viewPdfPub.objectKey)}`}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#0071bc',
-                  color: '#ffffff',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                {locale === 'vi' ? 'Tải tệp PDF' : 'Download PDF'}
-              </a>
+              {viewPdfPub.downloadUrl && (
+                <a
+                  href={viewPdfPub.downloadUrl}
+                  download={viewPdfPub.currentVersion?.fileName || 'manuscript.pdf'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#0071bc',
+                    color: '#ffffff',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  {locale === 'vi' ? 'Tải tệp PDF' : 'Download PDF'}
+                </a>
+              )}
 
               <button
                 type="button"
@@ -1393,12 +1432,27 @@ export function LecturerPublicationsView() {
           </div>
 
           {/* Viewer Frame */}
-          <div style={{ flex: 1, backgroundColor: '#334155' }}>
-            <iframe
-              src={viewPdfPub.downloadUrl || `/api/pdf-proxy?key=${encodeURIComponent(viewPdfPub.objectKey)}`}
-              title={viewPdfPub.title || 'PDF Document'}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-            />
+          <div style={{ flex: 1, backgroundColor: '#334155', position: 'relative' }}>
+            {loadingPdfDetail ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ffffff', gap: '12px' }}>
+                <div className="student-spinner" />
+                <span style={{ fontSize: '14px', color: '#cbd5e1' }}>
+                  {locale === 'vi' ? 'Đang chuẩn bị tài liệu PDF...' : 'Loading PDF document...'}
+                </span>
+              </div>
+            ) : viewPdfPub.downloadUrl ? (
+              <iframe
+                src={`/api/pdf-proxy?url=${encodeURIComponent(viewPdfPub.downloadUrl)}`}
+                title={viewPdfPub.title || 'PDF Document'}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', gap: '12px' }}>
+                <p style={{ fontSize: '14px', margin: 0 }}>
+                  {locale === 'vi' ? 'Không thể tải bản xem trước PDF của công trình này.' : 'PDF preview is not available for this publication.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
