@@ -256,8 +256,8 @@ export function AdminRegistrationsView() {
                 <TableSkeleton rows={4} type="users" />
               ) : filteredPendingUsers.length > 0 ? (
                 filteredPendingUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>
+                  <tr key={user.id} className="admin-user-row">
+                    <td className="admin-user-col-main">
                       <div className="admin-user-cell">
                         <div className="admin-user-avatar">
                           {getUserInitials(user.name, user.email)}
@@ -299,24 +299,32 @@ export function AdminRegistrationsView() {
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                        {user.studentId || '—'}
-                      </span>
+                    <td className="admin-user-col-academic">
+                      <div className="admin-user-academic-info">
+                        {user.studentId ? (
+                          <div className="admin-user-id" style={{ fontWeight: 600, color: '#0f172a' }}>{user.studentId}</div>
+                        ) : (
+                          <span className="admin-user-empty" style={{ color: '#94a3b8' }}>—</span>
+                        )}
+                      </div>
                     </td>
-                    <td>
-                      <span style={{ color: '#475569' }}>
-                        {user.major || '—'}
-                      </span>
+                    <td className="admin-user-col-major">
+                      <div className="admin-user-academic-info">
+                        {user.major ? (
+                          <div className="admin-user-major" style={{ fontSize: '12px', color: '#64748b' }}>{user.major}</div>
+                        ) : (
+                          <span className="admin-user-empty" style={{ color: '#94a3b8' }}>—</span>
+                        )}
+                      </div>
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td className="admin-user-col-date" style={{ whiteSpace: 'nowrap' }}>
                       <span style={{ fontSize: '12.5px', color: '#64748b', whiteSpace: 'nowrap' }}>
                         {user.createdAt
                           ? new Date(user.createdAt).toLocaleDateString(locale === 'vi' ? 'vi-VN' : undefined, { year: 'numeric', month: 'short', day: 'numeric' })
                           : locale === 'vi' ? 'Gần đây' : 'Recently'}
                       </span>
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td className="admin-user-col-actions" style={{ whiteSpace: 'nowrap' }}>
                       <div className="review-actions" style={{ justifyContent: 'flex-end', flexWrap: 'nowrap', gap: '6px' }}>
                         <Button
                           variant="primary"

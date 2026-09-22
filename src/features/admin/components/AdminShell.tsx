@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { PageHeader } from '@hyperdata/design-system';
 
 import { ROUTES } from '@/app/router';
@@ -281,11 +281,11 @@ export function AdminSidebar({
 }
 
 
-export function Topbar({ title, onToggleSidebar }: { title: string; onToggleSidebar?: () => void }) {
+export function Topbar({ title, onToggleSidebar, scrolled }: { title: string; onToggleSidebar?: () => void; scrolled?: boolean }) {
   const { t } = useTranslation();
 
   return (
-    <header className="student-topbar">
+    <header className={`student-topbar admin-topbar-fixed${scrolled ? ' admin-topbar--scrolled' : ''}`}>
       <div className="student-topbar__left">
         {/* Hamburger Button on Mobile */}
         <button
@@ -334,6 +334,16 @@ export function AdminPageHeader({ eyebrow, title, description, actions }: { eyeb
 
 export function AdminShell({ active, title, pendingCount, children }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="admin-frame">
@@ -356,9 +366,15 @@ export function AdminShell({ active, title, pendingCount, children }: AdminShell
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="admin-main" id="main-content">
-        <Topbar title={title} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <div className="admin-content">{children}</div>
+      <main className="admin-main">
+        <Topbar
+          title={title}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          scrolled={scrolled}
+        />
+        <div className="admin-content-scroll" id="main-content">
+          <div className="admin-content">{children}</div>
+        </div>
       </main>
     </div>
   );
