@@ -10,6 +10,7 @@ import type { StudentPreprint } from '@/features/preprint/types';
 import { ROUTES } from '@/app/router';
 import { TableSkeleton } from '@/components/skeleton';
 import { SortDropdown } from '@/components/sort-dropdown';
+import { studentPreprintApi } from '@/features/preprint/api';
 import { useTranslation } from '@/i18n';
 
 function formatUpdatedDate(value: string, locale: string = 'en') {
@@ -23,14 +24,34 @@ function formatUpdatedDate(value: string, locale: string = 'en') {
   }).format(date);
 }
 
-
-
 export function LecturerSubmissionsView() {
   const { t, locale } = useTranslation();
   const searchParams = useSearchParams();
-  const { items, loading, error, apiPending } = usePreprintList();
+  const { items, loading, error, apiPending, refetch } = usePreprintList();
   const [selectedTab, setSelectedTab] = useState<'ALL' | 'PRIVATE' | PreprintStatus>('ALL');
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || searchParams?.get('q') || '');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<StudentPreprint | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const handleDeleteDraft = async (item: StudentPreprint) => {
+    if (item.status !== 'DRAFT') return;
+    try {
+      setDeletingId(item.id);
+      setActionError(null);
+      await studentPreprintApi.delete(item.id);
+      setActionSuccess(t('student.preprints.deleteSuccess'));
+      setDeleteConfirmItem(null);
+      await refetch();
+      setTimeout(() => setActionSuccess(null), 4000);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : (locale === 'vi' ? 'Lỗi khi xóa bản nháp.' : 'Failed to delete draft.'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
 
   // 1. Sync from URL
   useEffect(() => {
@@ -140,6 +161,17 @@ export function LecturerSubmissionsView() {
           {locale === 'vi'
             ? 'Dịch vụ kho lưu trữ tạm thời gián đoạn, đang hiển thị dữ liệu xem trước.'
             : 'Repository service is temporarily unreachable, preview data shown.'}
+        </div>
+      )}
+
+      {actionSuccess && (
+        <div className="user-notice" style={{ marginTop: '0', marginBottom: '20px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>
+          {actionSuccess}
+        </div>
+      )}
+      {actionError && (
+        <div className="student-error-banner" style={{ marginTop: '0', marginBottom: '20px' }}>
+          <strong>Lỗi:</strong> {actionError}
         </div>
       )}
 
@@ -481,19 +513,46 @@ export function LecturerSubmissionsView() {
                       </Link>
                     )}
                     {item.status === 'DRAFT' && (
-                      <Link
-                        href={ROUTES.LECTURER.SUBMISSION_EDIT(item.id)}
-                        className="student-btn student-btn--primary student-btn--sm"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '4px 10px',
-                          fontSize: '12.5px',
-                        }}
-                      >
-                        <span>{locale === 'vi' ? 'Tiếp tục' : 'Continue'}</span>
-                      </Link>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                        <Link
+                          href={ROUTES.LECTURER.SUBMISSION_EDIT(item.id)}
+                          className="student-btn student-btn--primary student-btn--sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            fontSize: '12.5px',
+                          }}
+                        >
+                          <span>{t('student.preprints.continueEdit') || (locale === 'vi' ? 'Tiếp tục' : 'Continue')}</span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmItem(item)}
+                          disabled={deletingId === item.id}
+                          className="student-btn student-btn--danger student-btn--sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            fontSize: '12.5px',
+                            backgroundColor: '#fff',
+                            color: '#dc2626',
+                            borderColor: '#fca5a5',
+                          }}
+                          title={t('student.preprints.deleteDraft') || (locale === 'vi' ? 'Xóa bản nháp' : 'Delete Draft')}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
+                          </svg>
+                          <span>{t('common.delete') || (locale === 'vi' ? 'Xóa' : 'Delete')}</span>
+                        </button>
+                      </div>
                     )}
                     {(item.status === 'UNDER_REVIEW' || item.status === 'REJECTED' || item.status === 'WITHDRAWN') && (
                       <Link
@@ -515,6 +574,119 @@ export function LecturerSubmissionsView() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {deleteConfirmItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'grid',
+            placeItems: 'center',
+            zIndex: 9999,
+            padding: '16px',
+          }}
+          onClick={() => {
+            if (!deletingId) setDeleteConfirmItem(null);
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              maxWidth: '440px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fee2e2',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 600, color: '#0f172a' }}>
+                  {t('student.preprints.deleteDraft') || (locale === 'vi' ? 'Xác nhận xóa bản nháp' : 'Confirm Delete Draft')}
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+                  {t('student.preprints.confirmDeleteDraft') || (locale === 'vi' ? 'Hành động này không thể hoàn tác.' : 'This action cannot be undone.')}
+                </p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '14px', color: '#334155', lineHeight: 1.5, marginBottom: '20px' }}>
+              {locale === 'vi' ? (
+                <>Bạn có chắc chắn muốn xóa bản nháp <strong>&ldquo;{deleteConfirmItem.title}&rdquo;</strong> không?</>
+              ) : (
+                <>Are you sure you want to permanently delete draft <strong>&ldquo;{deleteConfirmItem.title}&rdquo;</strong>?</>
+              )}
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                className="student-btn student-btn--ghost"
+                onClick={() => setDeleteConfirmItem(null)}
+                disabled={Boolean(deletingId)}
+                style={{ padding: '8px 16px', fontSize: '13.5px' }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                className="student-btn student-btn--danger"
+                onClick={() => handleDeleteDraft(deleteConfirmItem)}
+                disabled={Boolean(deletingId)}
+                style={{
+                  padding: '8px 18px',
+                  fontSize: '13.5px',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  cursor: deletingId ? 'not-allowed' : 'pointer',
+                  opacity: deletingId ? 0.7 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {deletingId ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <span>{locale === 'vi' ? 'Đang xóa...' : 'Deleting...'}</span>
+                  </>
+                ) : (
+                  <span>{t('student.preprints.deleteDraft') || (locale === 'vi' ? 'Xóa bản nháp' : 'Delete Draft')}</span>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </LecturerShell>
