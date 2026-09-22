@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { LecturerShell } from '../components';
 import {
@@ -11,8 +13,21 @@ import {
 } from '../api/lecturerReviewApi';
 import { ROUTES } from '@/app/router';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { Skeleton } from '@/components/skeleton';
+import { Skeleton, PublishedPaperCardSkeleton } from '@/components/skeleton';
 import { useTranslation } from '@/i18n';
+
+const NativePdfViewer = dynamic(
+  () => import('../../preprint/components/NativePdfViewer').then((mod) => mod.NativePdfViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '12px' }}>
+        <div className="student-spinner" />
+        <span style={{ fontSize: '14px', color: '#64748b' }}>Đang tải tài liệu PDF...</span>
+      </div>
+    ),
+  }
+);
 
 function formatDisplayDate(value?: string | null, locale: string = 'vi') {
   if (!value) return locale === 'vi' ? 'Chưa công bố' : 'Unpublished';
@@ -53,6 +68,7 @@ export function LecturerPublicationsView() {
   const { t, locale } = useTranslation();
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<LecturerPublication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +77,28 @@ export function LecturerPublicationsView() {
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || searchParams?.get('q') || '');
   const [sortBy, setSortBy] = useState<'NEWEST' | 'TITLE' | 'CITATIONS'>('NEWEST');
+
+  // Modal State for Detail & Native PDF Viewer
+  const [selectedPub, setSelectedPub] = useState<LecturerPublication | null>(null);
+  const [modalTab, setModalTab] = useState<'overview' | 'pdf'>('overview');
+  const [citationFormat, setCitationFormat] = useState<'APA' | 'IEEE' | 'BibTeX'>('APA');
+  const [citationCopied, setCitationCopied] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedPub) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      };
+    }
+  }, [selectedPub]);
 
   // 1. Sync from URL
   useEffect(() => {
@@ -86,17 +124,6 @@ export function LecturerPublicationsView() {
     const newUrl = val.trim() ? `/lecturer/publications?search=${encodeURIComponent(val.trim())}` : '/lecturer/publications';
     window.history.replaceState(null, '', newUrl);
   };
-
-  // Citation Modal State
-  const [citeModalPub, setCiteModalPub] = useState<LecturerPublication | null>(null);
-  const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
-
-  // Full-Text Viewer Modal State
-  const [viewPdfPub, setViewPdfPub] = useState<LecturerPublication | null>(null);
-  const [loadingPdfDetail, setLoadingPdfDetail] = useState(false);
-
-  // Expandable abstracts
-  const [expandedAbstracts, setExpandedAbstracts] = useState<Record<string, boolean>>({});
 
   const isMyPublication = useCallback(
     (pub: LecturerPublication) => {
@@ -127,36 +154,6 @@ export function LecturerPublicationsView() {
   useEffect(() => {
     fetchPublications();
   }, [fetchPublications]);
-
-  // Lazy-load presigned downloadUrl when opening PDF viewer
-  useEffect(() => {
-    if (!viewPdfPub || viewPdfPub.downloadUrl) return;
-
-    let cancelled = false;
-    setLoadingPdfDetail(true);
-
-    lecturerPublicationApi
-      .get(viewPdfPub.id)
-      .then((detail) => {
-        if (cancelled) return;
-        if (detail.downloadUrl) {
-          setViewPdfPub((prev) => (prev && prev.id === detail.id ? { ...prev, downloadUrl: detail.downloadUrl } : prev));
-          setItems((prev) =>
-            prev.map((item) => (item.id === detail.id ? { ...item, downloadUrl: detail.downloadUrl } : item))
-          );
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load publication PDF detail:', err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingPdfDetail(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [viewPdfPub?.id, viewPdfPub?.downloadUrl]);
 
   // Extract unique disciplines for the filter dropdown
   const disciplines = useMemo(() => {
@@ -206,13 +203,13 @@ export function LecturerPublicationsView() {
       campusCount,
       assignedCount,
     };
-  }, [items]);
+  }, [items, getPublicationScope]);
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
     return items
       .filter((pub) => {
-        // Scope Filter (when client-side filtering beyond query)
+        // Scope Filter
         if (selectedScope !== 'ALL') {
           const scope = getPublicationScope(pub);
           if (selectedScope === 'PUBLIC' && scope !== 'PUBLIC') return false;
@@ -249,16 +246,34 @@ export function LecturerPublicationsView() {
         const timeB = new Date(b.createdAt || 0).getTime();
         return timeB - timeA;
       });
-  }, [items, selectedScope, selectedDiscipline, searchQuery, sortBy]);
+  }, [items, selectedScope, selectedDiscipline, searchQuery, sortBy, getPublicationScope]);
 
-  const toggleAbstract = (id: string) => {
-    setExpandedAbstracts((prev) => ({ ...prev, [id]: !prev[id] }));
+  // Open Paper Detail Modal & Lazy Load PDF Presigned Download URL
+  const handleSelectPaper = async (pub: LecturerPublication) => {
+    setSelectedPub(pub);
+    setModalTab('overview');
+
+    if (!pub.downloadUrl) {
+      try {
+        const detail = await lecturerPublicationApi.get(pub.id);
+        if (detail?.downloadUrl) {
+          setSelectedPub((prev) => (prev && prev.id === pub.id ? { ...prev, downloadUrl: detail.downloadUrl } : prev));
+          setItems((prev) =>
+            prev.map((item) => (item.id === pub.id ? { ...item, downloadUrl: detail.downloadUrl } : item))
+          );
+        }
+      } catch (err) {
+        console.error('Failed to load publication PDF detail:', err);
+      }
+    }
   };
 
-  const handleCopyCitation = (text: string, format: string) => {
+  const copyCitation = (pub: LecturerPublication) => {
+    const citations = generateCitations(pub);
+    const text = citations[citationFormat.toLowerCase() as keyof typeof citations] || citations.apa;
     navigator.clipboard.writeText(text);
-    setCopiedFormat(format);
-    setTimeout(() => setCopiedFormat(null), 2500);
+    setCitationCopied(true);
+    setTimeout(() => setCitationCopied(false), 2200);
   };
 
   const renderScopeBadge = (pub: LecturerPublication) => {
@@ -352,63 +367,59 @@ export function LecturerPublicationsView() {
               color: '#d97706',
               border: '1px solid #fde68a',
             }}
-            title={locale === 'vi' ? 'Được phân công thẩm định: Nhóm tác giả & Giảng viên review' : 'Under Review: Reviewer & author group only'}
+            title={locale === 'vi' ? 'Được giao: Bài báo đang trong vòng thẩm định của bạn' : 'Assigned: Peer review task assigned to you'}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            {locale === 'vi' ? 'ĐANG THẨM ĐỊNH' : 'UNDER REVIEW'}
+            {locale === 'vi' ? 'ĐƯỢC GIAO THẨM ĐỊNH' : 'ASSIGNED TO ME'}
           </span>
         );
+      default:
+        return null;
     }
   };
 
   return (
-    <LecturerShell
-      active="publications"
-      title={t('lecturer.publicationsRepository') || 'Kho bài báo khoa học'}
-    >
-      {/* Top Banner / Hero Header (Matching Web Portal Theme) */}
+    <LecturerShell active="publications" title={t('lecturer.topbar.publicationsTitle') || 'Kho bài báo khoa học'}>
+      {/* Page Header */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f0f7fc 100%)',
-          border: '1px solid #dce4e9',
-          borderRadius: '12px',
-          padding: '20px 24px',
-          marginBottom: '22px',
-          boxShadow: '0 2px 8px rgba(18, 35, 49, 0.03)',
           display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
           justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          flexWrap: 'wrap',
           gap: '16px',
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <span
               style={{
-                backgroundColor: '#e6f2f9',
+                backgroundColor: '#e0f2fe',
                 color: '#0071bc',
                 padding: '6px',
                 borderRadius: '8px',
                 display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                 <line x1="9" y1="6" x2="16" y2="6" />
                 <line x1="9" y1="10" x2="16" y2="10" />
               </svg>
             </span>
-            <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#102a43', letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#102a43', letterSpacing: '-0.02em' }}>
               {t('lecturer.publicationsRepository') || 'Kho bài báo khoa học'}
             </h1>
           </div>
-          <p style={{ margin: 0, fontSize: '13.5px', color: '#627d98', maxWidth: '640px' }}>
-            {t('lecturer.publicationsSubtitle') || 'Tra cứu, trích dẫn và tham khảo các công trình nghiên cứu khoa học được bảo hộ và công bố.'}
+          <p style={{ margin: 0, fontSize: '13.5px', color: '#627d98', maxWidth: '640px', lineHeight: 1.5 }}>
+            {t('lecturer.publicationsSubtitle') || 'Khám phá, tra cứu, trích dẫn và tham khảo các công trình nghiên cứu khoa học được bảo hộ và công bố.'}
           </p>
         </div>
 
@@ -440,119 +451,26 @@ export function LecturerPublicationsView() {
         </div>
       </div>
 
-      {/* Metrics Summary Strip (All 5 cards on 1 row) */}
-      <div
-        className="lecturer-publications-metric-strip"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-          gap: '14px',
-          marginBottom: '22px',
-        }}
-      >
-        <div
-          className={`student-metric-card ${selectedScope === 'ALL' ? 'student-metric-card--active' : ''}`}
-          onClick={() => setSelectedScope('ALL')}
-          style={{ cursor: 'pointer', padding: '16px 14px', minWidth: 0 }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon student-metric-icon--blue">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-            </svg>
-          </div>
-          <div className="student-metric-info" style={{ minWidth: 0 }}>
-            <span className="student-metric-value">{metrics.total}</span>
-            <span className="student-metric-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {t('lecturer.scopeAll') || 'Tất cả'}
-            </span>
+      {/* Metrics Summary Strip (Student Metric Style) */}
+      <div className="student-metrics-grid student-metrics-grid--3" style={{ marginBottom: '24px' }}>
+        <div className="student-metric-card">
+          <div className="student-metric-info">
+            <span className="student-metric-value">{loading ? <Skeleton width={36} height={26} style={{ display: 'inline-block' }} /> : metrics.total}</span>
+            <span className="student-metric-label">{locale === 'vi' ? 'Tổng số bài báo lưu trữ' : 'Total Repository Papers'}</span>
           </div>
         </div>
 
-        <div
-          className={`student-metric-card ${selectedScope === 'PUBLIC' ? 'student-metric-card--active' : ''}`}
-          onClick={() => setSelectedScope('PUBLIC')}
-          style={{ cursor: 'pointer', padding: '16px 14px', minWidth: 0 }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon student-metric-icon--green">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-          </div>
-          <div className="student-metric-info" style={{ minWidth: 0 }}>
-            <span className="student-metric-value" style={{ color: '#059669' }}>{metrics.publicCount}</span>
-            <span className="student-metric-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {t('lecturer.scopePublic') || 'Công khai'}
-            </span>
+        <div className="student-metric-card">
+          <div className="student-metric-info">
+            <span className="student-metric-value">{loading ? <Skeleton width={36} height={26} style={{ display: 'inline-block' }} /> : Math.max(1, disciplines.length)}</span>
+            <span className="student-metric-label">{locale === 'vi' ? 'Lĩnh vực nghiên cứu' : 'Academic Disciplines'}</span>
           </div>
         </div>
 
-        <div
-          className={`student-metric-card ${selectedScope === 'FACULTY_ONLY' ? 'student-metric-card--active' : ''}`}
-          onClick={() => setSelectedScope('FACULTY_ONLY')}
-          style={{ cursor: 'pointer', padding: '16px 14px', minWidth: 0 }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon" style={{ backgroundColor: '#f5f3ff', color: '#7c3aed' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-              <path d="M6 12v5c3 3 9 3 12 0v-5" />
-            </svg>
-          </div>
-          <div className="student-metric-info" style={{ minWidth: 0 }}>
-            <span className="student-metric-value" style={{ color: '#7c3aed' }}>{metrics.facultyCount}</span>
-            <span className="student-metric-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {t('lecturer.scopeFaculty') || 'Chỉ Giảng viên'}
-            </span>
-          </div>
-        </div>
-
-        <div
-          className={`student-metric-card ${selectedScope === 'CAMPUS' ? 'student-metric-card--active' : ''}`}
-          onClick={() => setSelectedScope('CAMPUS')}
-          style={{ cursor: 'pointer', padding: '16px 14px', minWidth: 0 }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon" style={{ backgroundColor: '#eff6ff', color: '#2563eb' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-          </div>
-          <div className="student-metric-info" style={{ minWidth: 0 }}>
-            <span className="student-metric-value" style={{ color: '#2563eb' }}>{metrics.campusCount}</span>
-            <span className="student-metric-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {t('lecturer.scopeCampus') || 'Nội bộ trường'}
-            </span>
-          </div>
-        </div>
-
-        <div
-          className={`student-metric-card ${selectedScope === 'ASSIGNED' ? 'student-metric-card--active' : ''}`}
-          onClick={() => setSelectedScope('ASSIGNED')}
-          style={{ cursor: 'pointer', padding: '16px 14px', minWidth: 0 }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="student-metric-icon student-metric-icon--amber">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-          <div className="student-metric-info" style={{ minWidth: 0 }}>
-            <span className="student-metric-value" style={{ color: '#d97706' }}>{metrics.assignedCount}</span>
-            <span className="student-metric-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {t('lecturer.scopeAssigned') || 'Được giao thẩm định'}
-            </span>
+        <div className="student-metric-card">
+          <div className="student-metric-info">
+            <span className="student-metric-value">{loading ? <Skeleton width={36} height={26} style={{ display: 'inline-block' }} /> : filteredItems.length}</span>
+            <span className="student-metric-label">{locale === 'vi' ? 'Kết quả hiển thị' : 'Matching Results'}</span>
           </div>
         </div>
       </div>
@@ -724,38 +642,16 @@ export function LecturerPublicationsView() {
               }}
             >
               <option value="NEWEST">{locale === 'vi' ? 'Mới nhất' : 'Newest'}</option>
-              <option value="TITLE">{locale === 'vi' ? 'Tựa đề A-Z' : 'Title A-Z'}</option>
+              <option value="TITLE">{locale === 'vi' ? 'Tiêu đề A-Z' : 'Title A-Z'}</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Publications Content List */}
+      {/* Main Publications Grid (Matching Student Style) */}
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                backgroundColor: '#ffffff',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                padding: '20px 24px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <Skeleton variant="pill" width={110} height={24} />
-                <Skeleton variant="pill" width={90} height={24} />
-              </div>
-              <Skeleton height={22} width="70%" />
-              <Skeleton height={14} width="40%" />
-              <Skeleton height={14} width="95%" />
-              <Skeleton height={14} width="80%" />
-            </div>
-          ))}
+        <div className="student-pub-grid">
+          <PublishedPaperCardSkeleton count={6} />
         </div>
       ) : error ? (
         <div
@@ -823,365 +719,93 @@ export function LecturerPublicationsView() {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div className="student-pub-grid">
           {filteredItems.map((pub) => {
-            const isExpanded = expandedAbstracts[pub.id] || false;
-            const hasAbstract = !!pub.abstract && pub.abstract.trim().length > 0;
-            const abstractText = pub.abstract || '';
-            const shouldTruncate = abstractText.length > 260;
-            const displayAbstract = shouldTruncate && !isExpanded
-              ? abstractText.slice(0, 260) + '...'
-              : abstractText;
-
-            const isMyPub = Boolean(user && (
-              pub.uploader?.id === user.id ||
-              (user.email && pub.uploader?.email?.toLowerCase() === user.email.toLowerCase())
-            ));
+            const authorNames = pub.authors && pub.authors.length > 0
+              ? pub.authors.map((a) => a.name).join(', ')
+              : pub.uploader?.name || (locale === 'vi' ? 'Tác giả ẩn danh' : 'Unknown Author');
 
             return (
               <div
                 key={pub.id}
-                style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  padding: '20px 24px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                  transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
+                onClick={() => handleSelectPaper(pub)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectPaper(pub);
+                  }
                 }}
+                className="student-pub-card"
               >
-                {/* Card Header: Scope Badge + Discipline + Meta Date */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {renderScopeBadge(pub)}
-                    {pub.discipline && (
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          color: '#475569',
-                          backgroundColor: '#f1f5f9',
-                          padding: '3px 9px',
-                          borderRadius: '6px',
-                          fontWeight: 500,
-                        }}
-                      >
-                        {pub.discipline}
+                <div>
+                  {/* Card Header: Scope Badge + Discipline + Version */}
+                  <div className="student-pub-card__header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      {renderScopeBadge(pub)}
+                      <span className="student-pub-card__discipline">
+                        {pub.discipline || (locale === 'vi' ? 'Khoa học tổng quát' : 'General Science')}
                       </span>
-                    )}
-                  </div>
+                    </div>
 
-                  <span style={{ fontSize: '12.5px', color: '#64748b' }}>
-                    {formatDisplayDate(pub.createdAt, locale)}
-                  </span>
-                </div>
-
-                {/* Title */}
-                <h2
-                  style={{
-                    fontSize: '17px',
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    margin: '2px 0 0 0',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {pub.title || (locale === 'vi' ? 'Bản thảo chưa đặt tên' : 'Untitled Manuscript')}
-                </h2>
-
-                {/* Authors Strip */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '13px', color: '#334155' }}>
-                  <span style={{ fontWeight: 600, color: '#64748b' }}>
-                    {locale === 'vi' ? 'Tác giả:' : 'Authors:'}
-                  </span>
-                  {pub.authors && pub.authors.length > 0 ? (
-                    pub.authors.map((author, index) => (
-                      <span key={author.id || index} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 500 }}>{author.name}</span>
-                        {index < (pub.authors?.length || 1) - 1 && <span style={{ color: '#94a3b8', marginRight: '4px' }}>,</span>}
-                      </span>
-                    ))
-                  ) : (
-                    <span>{pub.uploader?.name || pub.uploader?.email || 'N/A'}</span>
-                  )}
-
-                  {pub.doi && (
-                    <span
-                      style={{
-                        marginLeft: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '12px',
-                        color: '#0284c7',
-                        fontWeight: 600,
-                        backgroundColor: '#f0f9ff',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        border: '1px solid #bae6fd',
-                      }}
-                    >
-                      DOI: {pub.doi}
+                    <span className="student-pub-card__version">
+                      {pub.currentVersion?.versionLabel || 'v1.0'}
                     </span>
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="student-pub-card__title">
+                    {pub.title || (locale === 'vi' ? 'Bản thảo chưa đặt tên' : 'Untitled Manuscript')}
+                  </h3>
+
+                  {/* Author Row */}
+                  <div className="student-pub-card__author">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span className="student-pub-card__author-name">
+                      {authorNames}
+                    </span>
+                  </div>
+
+                  {/* Abstract preview */}
+                  {pub.abstract && (
+                    <p className="student-pub-card__abstract">
+                      {pub.abstract}
+                    </p>
                   )}
                 </div>
 
-                {/* Abstract */}
-                {hasAbstract && (
-                  <div style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55, marginTop: '2px' }}>
-                    <p style={{ margin: 0 }}>
-                      {displayAbstract}
-                      {shouldTruncate && (
-                        <button
-                          type="button"
-                          onClick={() => toggleAbstract(pub.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#0071bc',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            padding: '0 4px',
-                            fontSize: '13px',
-                          }}
-                        >
-                          {isExpanded
-                            ? (locale === 'vi' ? 'Thu gọn' : 'Show less')
-                            : (locale === 'vi' ? 'Xem thêm' : 'Show more')}
-                        </button>
+                <div>
+                  {/* Tags */}
+                  {pub.keywords && pub.keywords.length > 0 && (
+                    <div className="student-pub-card__tags">
+                      {pub.keywords.slice(0, 3).map((kw) => (
+                        <span key={kw} className="student-pub-card__tag" title={`#${kw}`}>
+                          #{kw}
+                        </span>
+                      ))}
+                      {pub.keywords.length > 3 && (
+                        <span className="student-pub-card__tag-more">+{pub.keywords.length - 3}</span>
                       )}
-                    </p>
-                  </div>
-                )}
-
-                {/* Keywords */}
-                {pub.keywords && pub.keywords.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-                    {pub.keywords.map((kw, i) => (
-                      <span
-                        key={i}
-                        title={`#${kw}`}
-                        style={{
-                          fontSize: '11.5px',
-                          color: '#64748b',
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid #e2e8f0',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          maxWidth: '150px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          display: 'inline-block',
-                        }}
-                      >
-                        #{kw}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Card Actions Toolbar */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid #f1f5f9',
-                    marginTop: '6px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {/* View Details / Read Link */}
-                    {pub.status === 'REVIEWING' && !isMyPub ? (
-                      <Link
-                        href={ROUTES.LECTURER.REVIEW_DETAIL(pub.id)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 14px',
-                          borderRadius: '8px',
-                          backgroundColor: '#0071bc',
-                          color: '#ffffff',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                          <line x1="16" y1="13" x2="8" y2="13" />
-                          <line x1="16" y1="17" x2="8" y2="17" />
-                        </svg>
-                        {locale === 'vi' ? 'Vào thẩm định' : 'Review Manuscript'}
-                      </Link>
-                    ) : pub.status === 'REVIEWING' && isMyPub ? (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                        <Link
-                          href={ROUTES.LECTURER.SUBMISSION_DETAIL(pub.id)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '7px 14px',
-                            borderRadius: '8px',
-                            backgroundColor: '#0071bc',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                          }}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                          </svg>
-                          {locale === 'vi' ? 'Xem bản thảo' : 'View Manuscript'}
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setViewPdfPub(pub)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '7px 12px',
-                            borderRadius: '8px',
-                            backgroundColor: '#f1f5f9',
-                            color: '#334155',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            border: '1px solid #cbd5e1',
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                            <path d="M22 3h-6a4 4 0 0 1-4 4v14a3 3 0 0 1 3-3h7z" />
-                          </svg>
-                          {locale === 'vi' ? 'Đọc bản thảo' : 'Read PDF'}
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setViewPdfPub(pub)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 14px',
-                          borderRadius: '8px',
-                          backgroundColor: '#0071bc',
-                          color: '#ffffff',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                        </svg>
-                        {t('lecturer.readFullText') || 'Đọc toàn văn'}
-                      </button>
-                    )}
-
-                    {/* Cite Button */}
-                    <button
-                      type="button"
-                      onClick={() => setCiteModalPub(pub)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '7px 14px',
-                        borderRadius: '8px',
-                        backgroundColor: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        color: '#334155',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M10 11h-4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4v5zm-5 0v3a2 2 0 0 0 2 2h3M20 11h-4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4v5zm-5 0v3a2 2 0 0 0 2 2h3" />
-                      </svg>
-                      {t('lecturer.citePaper') || 'Trích dẫn'}
-                    </button>
-
-                    {/* Update Paper Button (Owner Lecturer) */}
-                    {isMyPub && (
-                      <Link
-                        href={ROUTES.LECTURER.SUBMISSION_EDIT(pub.id)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '7px 14px',
-                          borderRadius: '8px',
-                          backgroundColor: '#f0fdf4',
-                          border: '1px solid #86efac',
-                          color: '#166534',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          textDecoration: 'none',
-                          transition: 'all 0.15s ease',
-                        }}
-                        title={locale === 'vi' ? 'Chỉnh sửa thông tin bài báo hoặc nộp file phiên bản mới' : 'Update manuscript or submit new version'}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                        <span>{locale === 'vi' ? 'Cập nhật bài báo' : 'Update Paper'}</span>
-                      </Link>
-                    )}
-                  </div>
-
-                  {/* Direct PDF Download if available */}
-                  {(pub.downloadUrl || pub.currentVersion?.fileName) && (
-                    <a
-                      href={pub.downloadUrl || '#'}
-                      onClick={(e) => {
-                        if (!pub.downloadUrl) {
-                          e.preventDefault();
-                          setViewPdfPub(pub);
-                        }
-                      }}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        color: '#64748b',
-                        fontSize: '12.5px',
-                        fontWeight: 500,
-                        textDecoration: 'none',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      {pub.currentVersion?.fileName || 'Download PDF'}
-                    </a>
+                    </div>
                   )}
+
+                  {/* Card Footer: Date & Action */}
+                  <div className="student-pub-card__footer">
+                    <span className="student-pub-card__date">
+                      {formatDisplayDate(pub.createdAt, locale)}
+                    </span>
+                    <span className="student-pub-card__action">
+                      {locale === 'vi' ? 'Xem & Trích dẫn' : 'View & Cite'}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -1189,272 +813,240 @@ export function LecturerPublicationsView() {
         </div>
       )}
 
-      {/* Citation Modal */}
-      {citeModalPub && (
+      {/* Modal Detail & Native PDF Viewer (Student Style) */}
+      {mounted && selectedPub && createPortal(
         <div
+          className="pl-published-modal-backdrop"
+          data-lenis-prevent="true"
+          onWheel={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedPub(null);
+          }}
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            background: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 100,
+            zIndex: 9999,
             padding: '20px',
+            overscrollBehavior: 'contain',
           }}
-          onClick={() => setCiteModalPub(null)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: '#ffffff',
+              background: '#ffffff',
               borderRadius: '16px',
-              maxWidth: '620px',
+              maxWidth: modalTab === 'pdf' ? '980px' : '680px',
+              transition: 'max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
               width: '100%',
-              padding: '28px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div
-                  style={{
-                    backgroundColor: '#e0f2fe',
-                    color: '#0284c7',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 11h-4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4v5zm-5 0v3a2 2 0 0 0 2 2h3M20 11h-4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4v5zm-5 0v3a2 2 0 0 0 2 2h3" />
-                  </svg>
-                </div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
-                  {t('lecturer.citePaper') || 'Trích dẫn công trình'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCiteModalPub(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '22px',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>
-              &ldquo;{citeModalPub.title}&rdquo;
-            </p>
-
-            {/* Citation Formats */}
-            {(() => {
-              const { apa, ieee, bibtex } = generateCitations(citeModalPub);
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* APA */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '13px', color: '#0284c7' }}>APA 7th Edition</strong>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCitation(apa, 'APA')}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          backgroundColor: copiedFormat === 'APA' ? '#ecfdf5' : '#ffffff',
-                          color: copiedFormat === 'APA' ? '#059669' : '#475569',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {copiedFormat === 'APA' ? `✓ ${t('lecturer.copied') || 'Đã sao chép!'}` : t('lecturer.copyCitation') || 'Sao chép'}
-                      </button>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: 1.45 }}>{apa}</p>
-                  </div>
-
-                  {/* IEEE */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '13px', color: '#0284c7' }}>IEEE</strong>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCitation(ieee, 'IEEE')}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          backgroundColor: copiedFormat === 'IEEE' ? '#ecfdf5' : '#ffffff',
-                          color: copiedFormat === 'IEEE' ? '#059669' : '#475569',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {copiedFormat === 'IEEE' ? `✓ ${t('lecturer.copied') || 'Đã sao chép!'}` : t('lecturer.copyCitation') || 'Sao chép'}
-                      </button>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: 1.45 }}>{ieee}</p>
-                  </div>
-
-                  {/* BibTeX */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '13px', color: '#0284c7' }}>BibTeX</strong>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCitation(bibtex, 'BIBTEX')}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          backgroundColor: copiedFormat === 'BIBTEX' ? '#ecfdf5' : '#ffffff',
-                          color: copiedFormat === 'BIBTEX' ? '#059669' : '#475569',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {copiedFormat === 'BIBTEX' ? `✓ ${t('lecturer.copied') || 'Đã sao chép!'}` : t('lecturer.copyCitation') || 'Sao chép'}
-                      </button>
-                    </div>
-                    <pre
-                      style={{
-                        margin: 0,
-                        padding: '8px',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        color: '#1e293b',
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {bibtex}
-                    </pre>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Full-Text PDF Reader Modal */}
-      {viewPdfPub && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.75)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 110,
-          }}
-        >
-          {/* Viewer Header */}
-          <div
-            style={{
-              padding: '14px 24px',
-              backgroundColor: '#0f172a',
-              color: '#ffffff',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch',
+              padding: '32px',
+              position: 'relative',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
             }}
           >
-            <div>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                {locale === 'vi' ? 'Đọc toàn văn công trình' : 'Full-Text Document Viewer'}
-              </span>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>{viewPdfPub.title}</h3>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {viewPdfPub.downloadUrl && (
-                <a
-                  href={viewPdfPub.downloadUrl}
-                  download={viewPdfPub.currentVersion?.fileName || 'manuscript.pdf'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    backgroundColor: '#0071bc',
-                    color: '#ffffff',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  {locale === 'vi' ? 'Tải tệp PDF' : 'Download PDF'}
-                </a>
-              )}
+            <button
+              type="button"
+              onClick={() => setSelectedPub(null)}
+              className="student-modal-close-btn"
+              title={locale === 'vi' ? 'Đóng' : 'Close'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setViewPdfPub(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-
-          {/* Viewer Frame */}
-          <div style={{ flex: 1, backgroundColor: '#334155', position: 'relative' }}>
-            {loadingPdfDetail ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ffffff', gap: '12px' }}>
-                <div className="student-spinner" />
-                <span style={{ fontSize: '14px', color: '#cbd5e1' }}>
-                  {locale === 'vi' ? 'Đang chuẩn bị tài liệu PDF...' : 'Loading PDF document...'}
+            {/* Modal Header */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                {renderScopeBadge(selectedPub)}
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#0071bc', background: '#f0f7fc', padding: '4px 10px', borderRadius: '6px' }}>
+                  {selectedPub.discipline || (locale === 'vi' ? 'Khoa học tổng quát' : 'General Science')}
                 </span>
               </div>
-            ) : viewPdfPub.downloadUrl ? (
-              <iframe
-                src={`/api/pdf-proxy?url=${encodeURIComponent(viewPdfPub.downloadUrl)}`}
-                title={viewPdfPub.title || 'PDF Document'}
-                style={{ width: '100%', height: '100%', border: 'none' }}
-              />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', gap: '12px' }}>
-                <p style={{ fontSize: '14px', margin: 0 }}>
-                  {locale === 'vi' ? 'Không thể tải bản xem trước PDF của công trình này.' : 'PDF preview is not available for this publication.'}
-                </p>
+
+              <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0', lineHeight: 1.4 }}>
+                {selectedPub.title}
+              </h2>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', color: '#64748b', fontSize: '13.5px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  <span>
+                    {selectedPub.authors && selectedPub.authors.length > 0
+                      ? selectedPub.authors.map((a) => a.name).join(' · ')
+                      : selectedPub.uploader?.name || (locale === 'vi' ? 'Tác giả ẩn danh' : 'Unknown Author')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071bc" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                  <span>{selectedPub.currentVersion?.versionLabel || 'v1.0'}</span>
+                </div>
+                {selectedPub.doi && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontWeight: 600, color: '#0284c7' }}>DOI: {selectedPub.doi}</span>
+                  </div>
+                )}
               </div>
+            </div>
+
+            {modalTab === 'pdf' ? (
+              <div style={{ marginTop: 16 }}>
+                {selectedPub.downloadUrl ? (
+                  <NativePdfViewer
+                    url={selectedPub.downloadUrl}
+                    fileName={selectedPub.currentVersion?.fileName || `${selectedPub.title?.substring(0, 50) || 'manuscript'}.pdf`}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 350, gap: 12 }}>
+                    <div className="student-spinner" />
+                    <span style={{ fontSize: 14, color: '#64748b' }}>{locale === 'vi' ? 'Đang chuẩn bị tài liệu PDF...' : 'Loading PDF document...'}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Abstract Section */}
+                {selectedPub.abstract && (
+                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ fontSize: '12.5px', textTransform: 'uppercase', color: '#0071bc', margin: '0 0 8px 0', fontWeight: 800, letterSpacing: '0.05em' }}>
+                      {locale === 'vi' ? 'Tóm tắt công trình' : 'Abstract'}
+                    </h4>
+                    <p style={{ fontSize: '14.5px', color: '#334155', lineHeight: 1.6, margin: 0 }}>
+                      {selectedPub.abstract}
+                    </p>
+                  </div>
+                )}
+
+                {/* Keywords Chips */}
+                {selectedPub.keywords && selectedPub.keywords.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>
+                      {locale === 'vi' ? 'Từ khóa nghiên cứu:' : 'Keywords:'}
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {selectedPub.keywords.map((kw) => (
+                        <span
+                          key={kw}
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            color: '#475569',
+                            background: '#f1f5f9',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          #{kw}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Citation Box */}
+                {(() => {
+                  const citations = generateCitations(selectedPub);
+                  const citationText = citations[citationFormat.toLowerCase() as keyof typeof citations] || citations.apa;
+                  return (
+                    <div style={{ background: '#f0fdf4', padding: '18px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #bbf7d0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#166534' }}>
+                          <span>{locale === 'vi' ? 'Trích dẫn bài báo này:' : 'Cite this paper:'}</span>
+                          <div style={{ display: 'inline-flex', gap: '4px', marginLeft: '6px' }}>
+                            {(['APA', 'IEEE', 'BibTeX'] as const).map((fmt) => (
+                              <button
+                                key={fmt}
+                                type="button"
+                                onClick={() => setCitationFormat(fmt)}
+                                className={`student-citation-fmt-btn ${citationFormat === fmt ? 'student-citation-fmt-btn--active' : ''}`}
+                              >
+                                {fmt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => copyCitation(selectedPub)}
+                          className="student-citation-copy-btn"
+                          style={{ color: citationCopied ? '#15803d' : '#0071bc' }}
+                        >
+                          {citationCopied ? (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                              <span>{locale === 'vi' ? 'Đã sao chép!' : 'Copied!'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                              <span>{locale === 'vi' ? 'Sao chép trích dẫn' : 'Copy Citation'}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div style={{ fontSize: '13px', color: '#14532d', background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #dcfce7', fontFamily: 'monospace', lineHeight: 1.5, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                        {citationText}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
             )}
+
+            {/* Modal Footer */}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '20px' }}>
+              {modalTab === 'pdf' ? (
+                <>
+                  <button type="button" onClick={() => setModalTab('overview')} className="student-modal-btn-dismiss" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                    {locale === 'vi' ? 'Quay lại tóm tắt' : 'Back to summary'}
+                  </button>
+                  <button type="button" onClick={() => setSelectedPub(null)} className="student-modal-btn-dismiss">
+                    {locale === 'vi' ? 'Đóng' : 'Close'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {isMyPublication(selectedPub) && (
+                    <Link
+                      href={ROUTES.LECTURER.SUBMISSION_EDIT(selectedPub.id)}
+                      className="student-modal-btn-dismiss"
+                      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#166534', backgroundColor: '#f0fdf4', border: '1px solid #86efac' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      {locale === 'vi' ? 'Cập nhật bài báo' : 'Update Paper'}
+                    </Link>
+                  )}
+                  <button type="button" onClick={() => setSelectedPub(null)} className="student-modal-btn-dismiss">
+                    {locale === 'vi' ? 'Đóng' : 'Close'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalTab('pdf')}
+                    className="student-modal-btn-detail"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    {locale === 'vi' ? 'Xem chi tiết bài báo (PDF)' : 'View Full Paper (PDF)'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </LecturerShell>
   );
